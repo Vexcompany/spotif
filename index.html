@@ -538,7 +538,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 
 <script>
 // ════════════════════════════════════════════════════════════════
-//  ★ KONFIGURASI BACKEND SPOTIFY DOWNLOADER ★
+//  ★ KONFIGURASI BACKEND SOUNDCLOUD DOWNLOADER ★
 // ════════════════════════════════════════════════════════════════
 
 const API_BASE_URL = 'https://spotif-taksaka.vercel.app';
@@ -594,10 +594,12 @@ let qi=-1,currentTrack=null,isPlaying=false,isShuffle=false,isRepeat=false,isMut
 const audio=document.getElementById('audioEl');
 
 // ════════════════════════════════════════════════════════════════
-//  SEARCH - MENGGUNAKAN BACKEND SPOTIFY BARU
+//  SEARCH - SOUNDCLOUD VERSION
 // ════════════════════════════════════════════════════════════════
-document.getElementById('sInput').addEventListener('keydown',e=>{if(e.key==='Enter')doSearch();});
 
+
+document.getElementById('sInput').addEventListener('keydown',e=>{if(e.key==='Enter')doSearch();});
+  
 async function doSearch(){
   const q = document.getElementById('sInput').value.trim();
   if(!q) return;
@@ -607,11 +609,10 @@ async function doSearch(){
   setBtnLoad(true);
   
   try{
-    // 1. Cek database Supabase dulu (cache)
     if(sbOk){
-      const c=await sb.get('tracks',`search_query=ilike.${encodeURIComponent('%'+q+'%')}&order=play_count.desc&limit=1`);
+      const c = await sb.get('tracks',`search_query=ilike.${encodeURIComponent('%'+q+'%')}&order=play_count.desc&limit=1`);
       if(c?.length){
-        const t=rowToTrack(c[0],'db');
+        const t = rowToTrack(c[0],'db');
         showHero(t,'db'); 
         addToQueue(t); 
         setState('none');
@@ -622,11 +623,9 @@ async function doSearch(){
       }
     }
     
-    // 2. Gunakan Backend Spotify Downloader - VERSI GET
-    setStLoad(`Mencari "${q}"`,'🎵 Mengunduh dari Spotify...');
+    setStLoad(`Mencari "${q}"`,'🎵 Mengunduh dari SoundCloud...');
     
-    // ✅ VERSI GET dengan parameter 'q'
-    const apiUrl = `${API_BASE_URL}/api/spotify-play?query=${encodeURIComponent(q)}`;
+    const apiUrl = `${API_BASE_URL}/api/soundcloud-play?q=${encodeURIComponent(q)}`;
     
     const res = await fetch(apiUrl, {
       method: 'GET',
@@ -646,24 +645,21 @@ async function doSearch(){
       throw new Error(data.message || 'Format response tidak valid');
     }
     
-    // 3. Buat track object
-    const track={
-      id: data.info.spotify_url ? data.info.spotify_url.split('/track/')[1] : 'sp_' + Date.now(),
+    const track = {
+      id: 'sc_' + Date.now(),
       title: data.info.title,
       artist: data.info.artist,
       album: data.info.album || '',
       duration: data.info.duration,
-      year: data.info.release_date || '–',
+      year: '–',
       thumbnail: data.info.thumbnail,
       audio: data.download.url,
-      spotifyUrl: data.info.spotify_url,
+      soundcloudUrl: data.info.soundcloud_url,
       searchQuery: q,
       source: 'api',
-      playCount: 1,
-      size: data.download.size
+      playCount: 1
     };
     
-    // 4. Simpan ke Supabase
     if(sbOk){
       try{
         await sb.upsert('tracks',{
@@ -675,14 +671,17 @@ async function doSearch(){
           year: track.year,
           thumbnail: track.thumbnail,
           audio_url: track.audio,
-          spotify_url: track.spotifyUrl,
+          spotify_url: track.soundcloudUrl, 
           search_query: q,
           searched_by: session?.nama || 'guest',
           play_count: 1,
           last_played: new Date().toISOString(),
         });
         toast('✓ Disimpan ke Supabase!');
-      }catch(e){console.warn('[sb upsert]',e.message); toast('⚠️ Gagal simpan, tetap diputar');}
+      }catch(e){
+        console.warn('[sb upsert]',e.message); 
+        toast('⚠️ Gagal simpan, tetap diputar');
+      }
     }
     
     saveSug(q); 
@@ -693,15 +692,15 @@ async function doSearch(){
     
   }catch(err){
     setState('err');
-    document.getElementById('stErrT').textContent='Gagal mengambil lagu';
-    document.getElementById('stErrM').textContent=err.message;
+    document.getElementById('stErrT').textContent = 'Gagal mengambil lagu';
+    document.getElementById('stErrM').textContent = err.message;
     toast('⚠️ ' + err.message); 
     console.error(err);
   }finally{
     setBtnLoad(false);
   }
 }
-  
+
 function rowToTrack(r,src='db'){
   return{
     id: r.id,
@@ -736,7 +735,8 @@ function setStLoad(t,m){
 // ════════════════════════════════════════════════════════════════
 //  HERO
 // ════════════════════════════════════════════════════════════════
-function showHero(t,src){
+
+function showHero(t, src){
   currentTrack=t;
   const PH='https://via.placeholder.com/210x210/0d0d1c/1DB954?text=♪';
   document.getElementById('hImg').src=t.thumbnail||PH;
@@ -746,14 +746,14 @@ function showHero(t,src){
   document.getElementById('hDur').textContent=t.duration;
   document.getElementById('hYear').textContent=t.year;
   
-  const badge=document.getElementById('hBadge');
-  badge.style.display='inline-flex';
-  if(src==='db'){
-    badge.className='h-src-badge badge-db';
-    badge.innerHTML='<i class="fas fa-database"></i> Dari Database';
-  }else{
-    badge.className='h-src-badge badge-api';
-    badge.innerHTML='<i class="fab fa-spotify"></i> Spotify → Disimpan';
+  const badge = document.getElementById('hBadge');
+  badge.style.display = 'inline-flex';
+  if(src === 'db'){
+    badge.className = 'h-src-badge badge-db';
+    badge.innerHTML = '<i class="fas fa-database"></i> Dari Database';
+  } else {
+    badge.className = 'h-src-badge badge-api';
+    badge.innerHTML = '<i class="fab fa-soundcloud"></i> SoundCloud → Disimpan'; // Ganti icon
   }
   
   if(t.playCount){
