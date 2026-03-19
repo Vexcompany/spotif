@@ -626,7 +626,7 @@ async function doSearch(){
     setStLoad(`Mencari "${q}"`,'🎵 Mengunduh dari Spotify...');
     
     // ✅ VERSI GET dengan parameter 'q'
-    const apiUrl = `${API_BASE_URL}/api/spotify-play?q=${encodeURIComponent(q)}`;
+    const apiUrl = `${API_BASE_URL}/api/spotify-play?query=${encodeURIComponent(q)}`;
     
     const res = await fetch(apiUrl, {
       method: 'GET',
