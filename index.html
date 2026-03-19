@@ -538,12 +538,14 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 
 <script>
 // ════════════════════════════════════════════════════════════════
-//  ★ KONFIGURASI SUPABASE ★
+//  ★ KONFIGURASI BACKEND SPOTIFY DOWNLOADER ★
 // ════════════════════════════════════════════════════════════════
+
+// ✅ GANTI DENGAN URL BACKEND ANDA
+const API_BASE_URL = 'https://spotif-taksaka.vercel.app';
+
 const SB_URL = 'https://ygwoddwdhelqcwhpqasl.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlnd29kZHdkaGVscWN3aHBxYXNsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE4NTEwNzcsImV4cCI6MjA4NzQyNzA3N30.y0tnci0aWnhWYpxb9v7M7I0X9ss-jAt0JvpOBnZgFzo';
-
-const API_BASE_URL = 'https://spotif-taksaka.vercel.app';
 const SESS_KEY = 'pgsk_v2_session';
 
 // ════════════════════════════════════════════════════════════════
@@ -593,81 +595,143 @@ let qi=-1,currentTrack=null,isPlaying=false,isShuffle=false,isRepeat=false,isMut
 const audio=document.getElementById('audioEl');
 
 // ════════════════════════════════════════════════════════════════
-//  SEARCH
+//  SEARCH - MENGGUNAKAN BACKEND SPOTIFY BARU
 // ════════════════════════════════════════════════════════════════
 document.getElementById('sInput').addEventListener('keydown',e=>{if(e.key==='Enter')doSearch();});
 
 async function doSearch(){
   const q=document.getElementById('sInput').value.trim();
   if(!q)return;
-  setState('load'); setStLoad(`Mencari "${q}"`,'Memeriksa database...'); setBtnLoad(true);
+  
+  setState('load'); 
+  setStLoad(`Mencari "${q}"`,'Memeriksa database...'); 
+  setBtnLoad(true);
+  
   try{
+    // 1. Cek database Supabase dulu (cache)
     if(sbOk){
       const c=await sb.get('tracks',`search_query=ilike.${encodeURIComponent('%'+q+'%')}&order=play_count.desc&limit=1`);
       if(c?.length){
         const t=rowToTrack(c[0],'db');
-        showHero(t,'db'); addToQueue(t); setState('none');
+        showHero(t,'db'); 
+        addToQueue(t); 
+        setState('none');
         await playTrackObj(t);
         sb.patch('tracks',`id=eq.${encodeURIComponent(t.id)}`,{play_count:(c[0].play_count||0)+1,last_played:new Date().toISOString()}).catch(()=>{});
-        saveSug(q); return;
+        saveSug(q); 
+        return;
       }
     }
-    setStLoad(`Mencari "${q}"`,'☁️ Mengunduh dari Spotify...');
-    const res=await fetch(`${API_BASE_URL}/api/spotify-play?q=${encodeURIComponent(q)}`);
-    if(!res.ok)throw new Error('FAA API HTTP '+res.status);
-    const data=await res.json();
-    if(data.status!==true||!data.info||!data.download)throw new Error(data.message||'Format FAA tidak dikenali');
-
+    
+    // 2. Gunakan Backend Spotify Downloader
+    setStLoad(`Mencari "${q}"`,'🎵 Mengunduh dari Spotify...');
+    
+    const apiUrl = `${API_BASE_URL}/api/spotify-play?q=${encodeURIComponent(q)}`;
+    
+    const res = await fetch(apiUrl, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+      }
+    });
+    
+    if(!res.ok){
+      const errData = await res.json().catch(()=>({}));
+      throw new Error(errData.message || `HTTP ${res.status}`);
+    }
+    
+    const data = await res.json();
+    
+    if(!data.status || !data.info || !data.download){
+      throw new Error(data.message || 'Format response tidak valid');
+    }
+    
+    // 3. Buat track object
     const track={
-      id:data.info.spotify_url||'faa_'+Date.now(),
-      title:data.info.title||'Unknown Title',
-      artist:data.info.artist||'Unknown Artist',
-      album:data.info.album||'',
-      duration:data.info.duration||'0:00',
-      year:data.info.release_date||'–',
-      thumbnail:data.info.thumbnail||'',
-      audio:data.download.url,
-      spotifyUrl:data.info.spotify_url||null,
-      searchQuery:q,source:'api',playCount:1,
+      id: data.info.spotify_url.split('/track/')[1] || 'sp_' + Date.now(),
+      title: data.info.title,
+      artist: data.info.artist,
+      album: data.info.album || '',
+      duration: data.info.duration,
+      year: data.info.release_date || '–',
+      thumbnail: data.info.thumbnail,
+      audio: data.download.url, // Base64 data URL
+      spotifyUrl: data.info.spotify_url,
+      searchQuery: q,
+      source: 'api',
+      playCount: 1,
+      size: data.download.size
     };
-
+    
+    // 4. Simpan ke Supabase
     if(sbOk){
       try{
         await sb.upsert('tracks',{
-          id:track.id,title:track.title,artist:track.artist,album:track.album,
-          duration:track.duration,year:track.year,thumbnail:track.thumbnail,
-          audio_url:track.audio,spotify_url:track.spotifyUrl,
-          search_query:q,searched_by:session?.nama||'guest',
-          play_count:1,last_played:new Date().toISOString(),
+          id: track.id,
+          title: track.title,
+          artist: track.artist,
+          album: track.album,
+          duration: track.duration,
+          year: track.year,
+          thumbnail: track.thumbnail,
+          audio_url: track.audio,
+          spotify_url: track.spotifyUrl,
+          search_query: q,
+          searched_by: session?.nama || 'guest',
+          play_count: 1,
+          last_played: new Date().toISOString(),
         });
         toast('✓ Disimpan ke Supabase!');
       }catch(e){console.warn('[sb upsert]',e.message); toast('⚠️ Gagal simpan, tetap diputar');}
     }
-
-    saveSug(q); addToQueue(track); showHero(track,'api'); setState('none');
+    
+    saveSug(q); 
+    addToQueue(track); 
+    showHero(track,'api'); 
+    setState('none');
     await playTrackObj(track);
+    
   }catch(err){
     setState('err');
     document.getElementById('stErrT').textContent='Gagal mengambil lagu';
     document.getElementById('stErrM').textContent=err.message;
-    toast('⚠️ '+err.message); console.error(err);
-  }finally{setBtnLoad(false);}
+    toast('⚠️ ' + err.message); 
+    console.error(err);
+  }finally{
+    setBtnLoad(false);
+  }
 }
 
 function rowToTrack(r,src='db'){
-  return{id:r.id,title:r.title,artist:r.artist,album:r.album||'',
-    duration:r.duration||'0:00',year:r.year||'–',thumbnail:r.thumbnail||'',
-    audio:r.audio_url,spotifyUrl:r.spotify_url||null,
-    playCount:r.play_count||0,searchQuery:r.search_query||'',searchedBy:r.searched_by||'',source:src};
+  return{
+    id: r.id,
+    title: r.title,
+    artist: r.artist,
+    album: r.album || '',
+    duration: r.duration || '0:00',
+    year: r.year || '–',
+    thumbnail: r.thumbnail || '',
+    audio: r.audio_url,
+    spotifyUrl: r.spotify_url || null,
+    playCount: r.play_count || 0,
+    searchQuery: r.search_query || '',
+    searchedBy: r.searched_by || '',
+    source: src
+  };
 }
 
 function setBtnLoad(on){
-  const b=document.getElementById('sBtn'); b.disabled=on;
+  const b=document.getElementById('sBtn'); 
+  b.disabled=on;
   document.getElementById('sBtnIco').className=on?'fas fa-circle-notch spin-lg':'fas fa-search';
   document.getElementById('sBtnIco').style.fontSize=on?'.78rem':'';
   document.getElementById('sBtnTxt').textContent=on?'Mencari...':'Cari';
 }
-function setStLoad(t,m){document.getElementById('stLoadT').textContent=t;document.getElementById('stLoadM').textContent=m;}
+
+function setStLoad(t,m){
+  document.getElementById('stLoadT').textContent=t;
+  document.getElementById('stLoadM').textContent=m;
+}
 
 // ════════════════════════════════════════════════════════════════
 //  HERO
@@ -681,14 +745,26 @@ function showHero(t,src){
   document.getElementById('hAlbum').textContent=t.album||'';
   document.getElementById('hDur').textContent=t.duration;
   document.getElementById('hYear').textContent=t.year;
+  
   const badge=document.getElementById('hBadge');
   badge.style.display='inline-flex';
-  if(src==='db'){badge.className='h-src-badge badge-db';badge.innerHTML='<i class="fas fa-database"></i> Dari Database';}
-  else{badge.className='h-src-badge badge-api';badge.innerHTML='<i class="fas fa-cloud-download-alt"></i> FAA API → Disimpan';}
-  if(t.playCount){document.getElementById('hPlays').style.display='flex';document.getElementById('hPlaysN').textContent=t.playCount;}
+  if(src==='db'){
+    badge.className='h-src-badge badge-db';
+    badge.innerHTML='<i class="fas fa-database"></i> Dari Database';
+  }else{
+    badge.className='h-src-badge badge-api';
+    badge.innerHTML='<i class="fab fa-spotify"></i> Spotify → Disimpan';
+  }
+  
+  if(t.playCount){
+    document.getElementById('hPlays').style.display='flex';
+    document.getElementById('hPlaysN').textContent=t.playCount;
+  }
+  
   document.getElementById('hSpot').style.display=t.spotifyUrl?'flex':'none';
   document.getElementById('hero').classList.add('show');
-  updHeroPlayBtn(); updHeroLike();
+  updHeroPlayBtn(); 
+  updHeroLike();
 }
 
 function updHeroPlayBtn(){
@@ -698,30 +774,58 @@ function updHeroPlayBtn(){
   document.getElementById('hPlayBtn').classList.toggle('pause-state',p);
   document.getElementById('hRing').classList.toggle('on',p);
 }
-function playOrToggle(){if(!currentTrack)return;if(audio.src===currentTrack.audio){togglePlay();return;}playTrackObj(currentTrack);}
-function addHeroToQueue(){if(!currentTrack)return;addToQueue(currentTrack);toast('Ditambahkan ke queue');}
-function openSpotify(){if(currentTrack?.spotifyUrl)window.open(currentTrack.spotifyUrl,'_blank');}
+
+function playOrToggle(){
+  if(!currentTrack)return;
+  if(audio.src===currentTrack.audio){togglePlay();return;}
+  playTrackObj(currentTrack);
+}
+
+function addHeroToQueue(){
+  if(!currentTrack)return;
+  addToQueue(currentTrack);
+  toast('Ditambahkan ke queue');
+}
+
+function openSpotify(){
+  if(currentTrack?.spotifyUrl)window.open(currentTrack.spotifyUrl,'_blank');
+}
 
 // ════════════════════════════════════════════════════════════════
 //  QUEUE
 // ════════════════════════════════════════════════════════════════
 function addToQueue(t){
-  queue=queue.filter(x=>x.id!==t.id); queue.unshift(t);
+  queue=queue.filter(x=>x.id!==t.id); 
+  queue.unshift(t);
   if(queue.length>60)queue=queue.slice(0,60);
-  LS.sq(queue); qi=queue.findIndex(x=>x.id===currentTrack?.id);
-  renderQueue(); document.getElementById('qSec').style.display='block';
+  LS.sq(queue); 
+  qi=queue.findIndex(x=>x.id===currentTrack?.id);
+  renderQueue(); 
+  document.getElementById('qSec').style.display='block';
   document.getElementById('qBadge').textContent=queue.length;
 }
+
 function removeFromQueue(id){
-  queue=queue.filter(t=>t.id!==id); LS.sq(queue);
+  queue=queue.filter(t=>t.id!==id); 
+  LS.sq(queue);
   qi=queue.findIndex(t=>t.id===currentTrack?.id);
-  renderQueue(); document.getElementById('qBadge').textContent=queue.length;
+  renderQueue(); 
+  document.getElementById('qBadge').textContent=queue.length;
   if(!queue.length)document.getElementById('qSec').style.display='none';
 }
-function clearQueue(){queue=[];LS.sq(queue);qi=-1;renderQueue();document.getElementById('qBadge').textContent=0;document.getElementById('qSec').style.display='none';}
+
+function clearQueue(){
+  queue=[];LS.sq(queue);qi=-1;renderQueue();
+  document.getElementById('qBadge').textContent=0;
+  document.getElementById('qSec').style.display='none';
+}
+
 function renderQueue(){
   const el=document.getElementById('panQ');
-  if(!queue.length){el.innerHTML='<div class="empty-ti"><i class="fas fa-layer-group"></i>Queue kosong</div>';return;}
+  if(!queue.length){
+    el.innerHTML='<div class="empty-ti"><i class="fas fa-layer-group"></i>Queue kosong</div>';
+    return;
+  }
   el.innerHTML=queue.map((t,i)=>`
     <div class="ti ${currentTrack?.id===t.id?'on':''}" onclick='playTrackObj(${esc(t)})'>
       <div class="ti-n">${currentTrack?.id===t.id?'<i class="fas fa-volume-up" style="color:var(--g);font-size:.62rem"></i>':i+1}</div>
@@ -738,15 +842,24 @@ function renderQueue(){
 // ════════════════════════════════════════════════════════════════
 async function addToHistory(t){
   const entry={...t,playedAt:new Date().toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'})};
-  histArr=histArr.filter(x=>x.id!==t.id); histArr.unshift(entry);
+  histArr=histArr.filter(x=>x.id!==t.id); 
+  histArr.unshift(entry);
   if(histArr.length>30)histArr=histArr.slice(0,30);
-  LS.sh(histArr); renderHistory();
+  LS.sh(histArr); 
+  renderHistory();
   if(sbOk)sb.post('play_history',{user_key:USER_KEY,track_id:t.id,played_at:new Date().toISOString()}).catch(()=>{});
 }
-function clearHistory(){histArr=[];LS.sh(histArr);renderHistory();}
+
+function clearHistory(){
+  histArr=[];LS.sh(histArr);renderHistory();
+}
+
 function renderHistory(){
   const el=document.getElementById('panH');
-  if(!histArr.length){el.innerHTML='<div class="empty-ti"><i class="fas fa-history"></i>Belum ada riwayat</div>';return;}
+  if(!histArr.length){
+    el.innerHTML='<div class="empty-ti"><i class="fas fa-history"></i>Belum ada riwayat</div>';
+    return;
+  }
   el.innerHTML=histArr.map((t,i)=>`
     <div class="ti" onclick='playTrackObj(${esc(t)})'>
       <div class="ti-n" style="font-size:.6rem">${t.playedAt||''}</div>
@@ -757,7 +870,12 @@ function renderHistory(){
       <button class="ti-del" onclick="event.stopPropagation();removeHist('${t.id}')"><i class="fas fa-times"></i></button>
     </div>`).join('');
 }
-function removeHist(id){histArr=histArr.filter(t=>t.id!==id);LS.sh(histArr);renderHistory();}
+
+function removeHist(id){
+  histArr=histArr.filter(t=>t.id!==id);
+  LS.sh(histArr);
+  renderHistory();
+}
 
 // ════════════════════════════════════════════════════════════════
 //  LIKED
@@ -766,14 +884,21 @@ async function toggleLikeCurrent(){
   if(!currentTrack)return;
   const idx=likedArr.findIndex(l=>l.id===currentTrack.id);
   if(idx>-1){
-    likedArr.splice(idx,1); toast('Dihapus dari Disukai');
+    likedArr.splice(idx,1); 
+    toast('Dihapus dari Disukai');
     if(sbOk)sb.del('liked',`user_key=eq.${USER_KEY}&track_id=eq.${encodeURIComponent(currentTrack.id)}`).catch(()=>{});
   }else{
-    likedArr.unshift(currentTrack); toast('Ditambahkan ke Disukai ❤️');
+    likedArr.unshift(currentTrack); 
+    toast('Ditambahkan ke Disukai ❤️');
     if(sbOk)sb.post('liked',{user_key:USER_KEY,track_id:currentTrack.id}).catch(()=>{});
   }
-  LS.sl(likedArr); updHeroLike(); updPBLike(); renderLiked(); updLikedCnt();
+  LS.sl(likedArr); 
+  updHeroLike(); 
+  updPBLike(); 
+  renderLiked(); 
+  updLikedCnt();
 }
+
 function updHeroLike(){
   if(!currentTrack)return;
   const on=likedArr.some(l=>l.id===currentTrack.id);
@@ -781,6 +906,7 @@ function updHeroLike(){
   b.innerHTML=`<i class="${on?'fas':'far'} fa-heart" style="color:${on?'var(--rd)':''}"></i>`;
   b.classList.toggle('liked',on);
 }
+
 function updPBLike(){
   if(!currentTrack)return;
   const on=likedArr.some(l=>l.id===currentTrack.id);
@@ -788,9 +914,13 @@ function updPBLike(){
   b.innerHTML=`<i class="${on?'fas':'far'} fa-heart"></i>`;
   b.classList.toggle('on',on);
 }
+
 function renderLiked(){
   const el=document.getElementById('likedList');
-  if(!likedArr.length){el.innerHTML='<div class="empty-ti"><i class="fas fa-heart"></i>Belum ada</div>';return;}
+  if(!likedArr.length){
+    el.innerHTML='<div class="empty-ti"><i class="fas fa-heart"></i>Belum ada</div>';
+    return;
+  }
   el.innerHTML=likedArr.map((t,i)=>`
     <div class="ti" onclick='playTrackObj(${esc(t)})'>
       <div class="ti-n">${i+1}</div>
@@ -801,7 +931,15 @@ function renderLiked(){
       <button class="ti-del" onclick="event.stopPropagation();rmLiked('${t.id}')"><i class="fas fa-times"></i></button>
     </div>`).join('');
 }
-function rmLiked(id){likedArr=likedArr.filter(l=>l.id!==id);LS.sl(likedArr);renderLiked();updLikedCnt();if(currentTrack?.id===id){updHeroLike();updPBLike();}}
+
+function rmLiked(id){
+  likedArr=likedArr.filter(l=>l.id!==id);
+  LS.sl(likedArr);
+  renderLiked();
+  updLikedCnt();
+  if(currentTrack?.id===id){updHeroLike();updPBLike();}
+}
+
 function updLikedCnt(){
   const n=likedArr.length;
   document.getElementById('likedBadge').textContent=n;
@@ -809,6 +947,7 @@ function updLikedCnt(){
   const lb=document.getElementById('likedCntLbl');
   if(lb)lb.textContent=n+' lagu';
 }
+
 function toggleLikedSec(){
   const s=document.getElementById('likedSec');
   const showing=s.style.display==='block';
@@ -826,7 +965,10 @@ async function loadDBTracks(){
     document.getElementById('dbSec').style.display='block';
     document.getElementById('dbCnt').textContent=rows.length;
     const el=document.getElementById('dbGrid');
-    if(!rows.length){el.innerHTML='<p style="color:var(--mt);font-size:.82rem;grid-column:1/-1;text-align:center;padding:26px">Belum ada lagu tersimpan.</p>';return;}
+    if(!rows.length){
+      el.innerHTML='<p style="color:var(--mt);font-size:.82rem;grid-column:1/-1;text-align:center;padding:26px">Belum ada lagu tersimpan.</p>';
+      return;
+    }
     el.innerHTML=rows.map(r=>{
       const t=rowToTrack(r,'db');
       const tEsc=esc(t);
@@ -884,16 +1026,14 @@ async function confirmDelete(){
       sb.del('play_history',`track_id=eq.${encodeURIComponent(id)}`),
     ]);
     await sb.del('tracks',`id=eq.${encodeURIComponent(id)}`);
-
-    // Bersihkan state lokal
+    
     queue=queue.filter(t=>t.id!==id);       LS.sq(queue);
     histArr=histArr.filter(t=>t.id!==id);   LS.sh(histArr);
     likedArr=likedArr.filter(t=>t.id!==id); LS.sl(likedArr);
     renderQueue();renderHistory();renderLiked();updLikedCnt();
     document.getElementById('qBadge').textContent=queue.length;
     if(!queue.length)document.getElementById('qSec').style.display='none';
-
-    // Animasi fade card
+    
     const cardEl=document.querySelector(`#card-${CSS.escape(id)}`);
     if(cardEl){
       cardEl.style.transition='opacity .25s,transform .25s';
@@ -903,8 +1043,7 @@ async function confirmDelete(){
     }
     const cnt=document.getElementById('dbCnt');
     cnt.textContent=Math.max(0,parseInt(cnt.textContent)-1);
-
-    // Reset player kalau lagu yang diputar dihapus
+    
     if(currentTrack?.id===id){
       currentTrack=null; audio.pause(); audio.src='';
       isPlaying=false; updAll();
@@ -927,7 +1066,14 @@ async function confirmDelete(){
 // ════════════════════════════════════════════════════════════════
 //  SUGGESTIONS
 // ════════════════════════════════════════════════════════════════
-function saveSug(q){let s=LS.sugs().filter(x=>x.toLowerCase()!==q.toLowerCase());s.unshift(q);s=s.slice(0,12);LS.ssug(s);renderSugs();}
+function saveSug(q){
+  let s=LS.sugs().filter(x=>x.toLowerCase()!==q.toLowerCase());
+  s.unshift(q);
+  s=s.slice(0,12);
+  LS.ssug(s);
+  renderSugs();
+}
+
 function renderSugs(){
   document.getElementById('sugList').innerHTML=LS.sugs().map(q=>`
     <div class="sug">
@@ -936,6 +1082,7 @@ function renderSugs(){
       <span class="sug-x" onclick="rmSug(${JSON.stringify(q)})"><i class="fas fa-times"></i></span>
     </div>`).join('');
 }
+
 function rmSug(q){LS.ssug(LS.sugs().filter(x=>x!==q));renderSugs();}
 
 // ════════════════════════════════════════════════════════════════
@@ -951,384 +1098,211 @@ function switchTab(t){
   document.getElementById('tabActBtn').dataset.t=t;
   document.getElementById('tabActBtn').innerHTML=t==='q'?'<i class="fas fa-trash-alt"></i> Hapus semua':'<i class="fas fa-trash-alt"></i> Hapus riwayat';
 }
-function tabAction(){const t=document.getElementById('tabActBtn').dataset.t||'q';t==='q'?clearQueue():clearHistory();}
+
+function tabAction(){
+  const t=document.getElementById('tabActBtn').dataset.t||'q';
+  t==='q'?clearQueue():clearHistory();
+}
 
 // ════════════════════════════════════════════════════════════════
-//  PLAYER & AUDIO CACHE SYSTEM
+//  PLAYER & AUDIO SYSTEM
 // ════════════════════════════════════════════════════════════════
 
-// Database IndexedDB untuk menyimpan file MP3
-const DB_NAME = 'PagaskaMusicDB';
-const DB_VERSION = 1;
-const STORE_NAME = 'audioCache';
+let currentAudioUrl = null;
 
-let db = null;
-let currentAudioUrl = null; // URL object untuk revoke nanti
-
-// Inisialisasi IndexedDB
-function initDB() {
-    return new Promise((resolve, reject) => {
-        const request = indexedDB.open(DB_NAME, DB_VERSION);
-        request.onerror = () => reject(request.error);
-        request.onsuccess = () => {
-            db = request.result;
-            resolve(db);
-        };
-        request.onupgradeneeded = (event) => {
-            const database = event.target.result;
-            if (!database.objectStoreNames.contains(STORE_NAME)) {
-                const store = database.createObjectStore(STORE_NAME, { keyPath: 'id' });
-                store.createIndex('timestamp', 'timestamp', { unique: false });
-            }
-        };
-    });
-}
-
-// Simpan blob audio ke IndexedDB
-async function saveAudioToCache(id, blob, metadata) {
-    if (!db) await initDB();
-    return new Promise((resolve, reject) => {
-        const transaction = db.transaction([STORE_NAME], 'readwrite');
-        const store = transaction.objectStore(STORE_NAME);
-        const data = {
-            id: id,
-            blob: blob,
-            metadata: metadata,
-            timestamp: Date.now(),
-            size: blob.size
-        };
-        const request = store.put(data);
-        request.onsuccess = () => resolve();
-        request.onerror = () => reject(request.error);
-    });
-}
-
-// Ambil audio dari IndexedDB
-async function getAudioFromCache(id) {
-    if (!db) await initDB();
-    return new Promise((resolve, reject) => {
-        const transaction = db.transaction([STORE_NAME], 'readonly');
-        const store = transaction.objectStore(STORE_NAME);
-        const request = store.get(id);
-        request.onsuccess = () => resolve(request.result);
-        request.onerror = () => reject(request.error);
-    });
-}
-
-// Hapus cache lama (cleanup)
-async function cleanupOldCache(maxAgeDays = 7) {
-    if (!db) return;
-    const maxAge = Date.now() - (maxAgeDays * 24 * 60 * 60 * 1000);
-    const transaction = db.transaction([STORE_NAME], 'readwrite');
-    const store = transaction.objectStore(STORE_NAME);
-    const index = store.index('timestamp');
-    
-    const request = index.openCursor();
-    request.onsuccess = (event) => {
-        const cursor = event.target.result;
-        if (cursor) {
-            if (cursor.value.timestamp < maxAge) {
-                store.delete(cursor.primaryKey);
-            }
-            cursor.continue();
-        }
-    };
-}
-
-// Download audio dari URL dengan retry logic
-async function downloadAudio(url, trackId, retries = 3) {
-    for (let i = 0; i < retries; i++) {
-        try {
-            const response = await fetch(url, {
-                method: 'GET',
-                headers: {
-                    'Accept': 'audio/mpeg, audio/*, */*',
-                }
-            });
-            
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
-            
-            const blob = await response.blob();
-            
-            // Validasi ukuran dan tipe
-            if (blob.size < 1024) {
-                throw new Error('File terlalu kecil, mungkin bukan audio');
-            }
-            
-            return blob;
-        } catch (error) {
-            console.warn(`Download attempt ${i + 1} failed:`, error);
-            if (i === retries - 1) throw error;
-            await new Promise(r => setTimeout(r, 1000 * (i + 1))); // Exponential backoff
-        }
-    }
-}
-
-// Fungsi utama untuk memuat audio (dari cache atau download)
-async function loadAudio(track) {
-    const trackId = track.id;
-    
-    // Cek cache dulu
-    try {
-        const cached = await getAudioFromCache(trackId);
-        if (cached) {
-            console.log('📦 Memutar dari cache:', track.title);
-            const blobUrl = URL.createObjectURL(cached.blob);
-            return { url: blobUrl, fromCache: true, blob: cached.blob };
-        }
-    } catch (e) {
-        console.warn('Gagal membaca cache:', e);
-    }
-    
-    // Download dari FAA API
-    console.log('⬇️ Download dari FAA:', track.title);
-    toast('⬇️ Mengunduh lagu...');
-    
-    try {
-        const blob = await downloadAudio(track.audio, trackId);
-        
-        // Simpan ke cache
-        await saveAudioToCache(trackId, blob, {
-            title: track.title,
-            artist: track.artist,
-            duration: track.duration
-        });
-        
-        const blobUrl = URL.createObjectURL(blob);
-        toast('✓ Disimpan ke cache lokal');
-        return { url: blobUrl, fromCache: false, blob: blob };
-    } catch (error) {
-        console.error('Download failed:', error);
-        throw new Error('Gagal mengunduh: ' + error.message);
-    }
-}
-
-// Cleanup URL object lama
 function cleanupAudioUrl() {
-    if (currentAudioUrl) {
-        URL.revokeObjectURL(currentAudioUrl);
-        currentAudioUrl = null;
-    }
+  if (currentAudioUrl && !currentAudioUrl.startsWith('data:')) {
+    URL.revokeObjectURL(currentAudioUrl);
+    currentAudioUrl = null;
+  }
 }
 
 async function playTrackObj(t){
-    // Cleanup audio sebelumnya
-    cleanupAudioUrl();
-    if (!audio.paused) {
-        audio.pause();
-        audio.currentTime = 0;
-    }
+  cleanupAudioUrl();
+  if (!audio.paused) {
+    audio.pause();
+    audio.currentTime = 0;
+  }
+  
+  currentTrack = t; 
+  qi = queue.findIndex(x => x.id === t.id);
+  
+  document.getElementById('plImg').src = t.thumbnail || '';
+  document.getElementById('plTitle').textContent = t.title;
+  document.getElementById('plArt').textContent = t.artist;
+  
+  try {
+    audio.src = t.audio;
+    audio.type = 'audio/mpeg';
     
-    currentTrack = t; 
-    qi = queue.findIndex(x => x.id === t.id);
+    await new Promise((resolve, reject) => {
+      const onCanPlay = () => {
+        audio.removeEventListener('canplaythrough', onCanPlay);
+        audio.removeEventListener('error', onError);
+        resolve();
+      };
+      const onError = (e) => {
+        audio.removeEventListener('canplaythrough', onCanPlay);
+        audio.removeEventListener('error', onError);
+        reject(new Error('Audio error: ' + (audio.error?.message || 'Unknown')));
+      };
+      
+      audio.addEventListener('canplaythrough', onCanPlay);
+      audio.addEventListener('error', onError);
+      audio.load();
+    });
     
-    // Update UI
-    document.getElementById('plImg').src = t.thumbnail || '';
-    document.getElementById('plTitle').textContent = t.title;
-    document.getElementById('plArt').textContent = t.artist;
+    await audio.play();
+    isPlaying = true;
     
-    try {
-        // Load audio (dari cache atau download)
-        const audioData = await loadAudio(t);
-        currentAudioUrl = audioData.url;
-        
-        // Set source dan play
-        audio.src = audioData.url;
-        audio.type = 'audio/mpeg';
-        
-        // Tunggu metadata load sebelum play
-        await new Promise((resolve, reject) => {
-            const onCanPlay = () => {
-                audio.removeEventListener('canplaythrough', onCanPlay);
-                audio.removeEventListener('error', onError);
-                resolve();
-            };
-            const onError = (e) => {
-                audio.removeEventListener('canplaythrough', onCanPlay);
-                audio.removeEventListener('error', onError);
-                reject(new Error('Audio error: ' + (audio.error?.message || 'Unknown')));
-            };
-            
-            audio.addEventListener('canplaythrough', onCanPlay);
-            audio.addEventListener('error', onError);
-            audio.load();
-        });
-        
-        await audio.play();
-        isPlaying = true;
-        
-    } catch (e) {
-        console.error('Play error:', e);
-        toast('⚠️ Gagal memutar: ' + e.message);
-        isPlaying = false;
-        
-        // Fallback: coba langsung dari URL asli jika cache gagal
-        if (e.message.includes('download') || e.message.includes('unduh')) {
-            try {
-                console.log('🔄 Fallback ke URL langsung');
-                audio.src = t.audio;
-                await audio.play();
-                isPlaying = true;
-                toast('⚠️ Memutar tanpa cache');
-            } catch (fallbackError) {
-                toast('❌ Gagal memutar lagu');
-                return;
-            }
-        }
-    }
-    
-    updAll(); 
-    showHero(t, t.source || 'api');
-    document.getElementById('pbar').classList.add('up');
-    addToHistory(t); 
-    updHeroLike(); 
-    updPBLike(); 
-    renderQueue(); 
-    startProg();
+  } catch (e) {
+    console.error('Play error:', e);
+    toast('⚠️ Gagal memutar: ' + e.message);
+    isPlaying = false;
+  }
+  
+  updAll(); 
+  showHero(t, t.source || 'api');
+  document.getElementById('pbar').classList.add('up');
+  addToHistory(t); 
+  updHeroLike(); 
+  updPBLike(); 
+  renderQueue(); 
+  startProg();
 }
 
 function togglePlay(){
-    if (!currentTrack) return;
-    if (isPlaying) {
-        audio.pause();
-    } else {
-        audio.play().catch(e => {
-            console.error('Resume failed:', e);
-            toast('⚠️ Gagal melanjutkan pemutaran');
-        });
-    }
+  if (!currentTrack) return;
+  if (isPlaying) {
+    audio.pause();
+  } else {
+    audio.play().catch(e => {
+      console.error('Resume failed:', e);
+      toast('⚠️ Gagal melanjutkan pemutaran');
+    });
+  }
 }
 
 function prevTrack(){
-    if (!queue.length) return;
-    qi = isShuffle ? Math.floor(Math.random() * queue.length) : (qi > 0 ? qi - 1 : queue.length - 1);
-    playTrackObj(queue[qi]);
+  if (!queue.length) return;
+  qi = isShuffle ? Math.floor(Math.random() * queue.length) : (qi > 0 ? qi - 1 : queue.length - 1);
+  playTrackObj(queue[qi]);
 }
 
 function nextTrack(){
-    if (!queue.length) return;
-    qi = isShuffle ? Math.floor(Math.random() * queue.length) : (qi < queue.length - 1 ? qi + 1 : 0);
-    playTrackObj(queue[qi]);
+  if (!queue.length) return;
+  qi = isShuffle ? Math.floor(Math.random() * queue.length) : (qi < queue.length - 1 ? qi + 1 : 0);
+  playTrackObj(queue[qi]);
 }
 
 function toggleShuffle(){
-    isShuffle = !isShuffle;
-    document.getElementById('cbShuf').classList.toggle('on', isShuffle);
-    toast(isShuffle ? 'Shuffle aktif 🔀' : 'Shuffle nonaktif');
+  isShuffle = !isShuffle;
+  document.getElementById('cbShuf').classList.toggle('on', isShuffle);
+  toast(isShuffle ? 'Shuffle aktif 🔀' : 'Shuffle nonaktif');
 }
 
 function toggleRepeat(){
-    isRepeat = !isRepeat;
-    document.getElementById('cbRep').classList.toggle('on', isRepeat);
-    toast(isRepeat ? 'Repeat aktif 🔁' : 'Repeat nonaktif');
+  isRepeat = !isRepeat;
+  document.getElementById('cbRep').classList.toggle('on', isRepeat);
+  toast(isRepeat ? 'Repeat aktif 🔁' : 'Repeat nonaktif');
 }
 
 function toggleMute(){
-    isMuted = !isMuted;
-    audio.muted = isMuted;
-    document.getElementById('vIco').className = isMuted ? 'fas fa-volume-mute' : vol > .5 ? 'fas fa-volume-up' : 'fas fa-volume-down';
+  isMuted = !isMuted;
+  audio.muted = isMuted;
+  document.getElementById('vIco').className = isMuted ? 'fas fa-volume-mute' : vol > .5 ? 'fas fa-volume-up' : 'fas fa-volume-down';
 }
 
 function updAll(){
-    const p = isPlaying && !audio.paused;
-    document.getElementById('cbIco').className = p ? 'fas fa-pause' : 'fas fa-play';
-    document.getElementById('plEq').classList.toggle('on', p);
-    updHeroPlayBtn();
+  const p = isPlaying && !audio.paused;
+  document.getElementById('cbIco').className = p ? 'fas fa-pause' : 'fas fa-play';
+  document.getElementById('plEq').classList.toggle('on', p);
+  updHeroPlayBtn();
 }
 
 function startProg(){
-    clearInterval(progInt);
-    progInt = setInterval(() => {
-        if (audio.duration) {
-            document.getElementById('prfill').style.width = ((audio.currentTime / audio.duration) * 100) + '%';
-            document.getElementById('ptCur').textContent = fmt(audio.currentTime);
-            document.getElementById('ptTot').textContent = fmt(audio.duration);
-        }
-    }, 400);
+  clearInterval(progInt);
+  progInt = setInterval(() => {
+    if (audio.duration) {
+      document.getElementById('prfill').style.width = ((audio.currentTime / audio.duration) * 100) + '%';
+      document.getElementById('ptCur').textContent = fmt(audio.currentTime);
+      document.getElementById('ptTot').textContent = fmt(audio.duration);
+    }
+  }, 400);
 }
 
 function fmt(s){
-    return isNaN(s) ? '0:00' : `${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,'0')}`;
+  return isNaN(s) ? '0:00' : `${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,'0')}`;
 }
 
 function seek(e){
-    const r = document.getElementById('prbar').getBoundingClientRect();
-    const ratio = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width));
-    if (audio.duration) {
-        audio.currentTime = ratio * audio.duration;
-        document.getElementById('prfill').style.width = (ratio * 100) + '%';
-    }
+  const r = document.getElementById('prbar').getBoundingClientRect();
+  const ratio = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width));
+  if (audio.duration) {
+    audio.currentTime = ratio * audio.duration;
+    document.getElementById('prfill').style.width = (ratio * 100) + '%';
+  }
 }
 
 function setVol(e){
-    const r = document.getElementById('vBar').getBoundingClientRect();
-    vol = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width));
-    audio.volume = vol;
-    document.getElementById('vFill').style.width = (vol * 100) + '%';
-    document.getElementById('vIco').className = vol > .5 ? 'fas fa-volume-up' : vol > 0 ? 'fas fa-volume-down' : 'fas fa-volume-mute';
+  const r = document.getElementById('vBar').getBoundingClientRect();
+  vol = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width));
+  audio.volume = vol;
+  document.getElementById('vFill').style.width = (vol * 100) + '%';
+  document.getElementById('vIco').className = vol > .5 ? 'fas fa-volume-up' : vol > 0 ? 'fas fa-volume-down' : 'fas fa-volume-mute';
 }
 
 // Event listeners untuk audio
 audio.addEventListener('play', () => { isPlaying = true; updAll(); startProg(); });
 audio.addEventListener('pause', () => { isPlaying = false; updAll(); });
 audio.addEventListener('ended', () => { 
-    cleanupAudioUrl();
-    isRepeat ? audio.play() : nextTrack(); 
+  cleanupAudioUrl();
+  isRepeat ? audio.play() : nextTrack(); 
 });
 audio.addEventListener('error', (e) => {
-    console.error('Audio error:', audio.error);
-    let msg = 'Gagal memutar audio';
-    switch(audio.error?.code) {
-        case 1: msg = 'Proses dihentikan'; break;
-        case 2: msg = 'Error jaringan'; break;
-        case 3: msg = 'Format tidak didukung'; break;
-        case 4: msg = 'File tidak ditemukan'; break;
-    }
-    toast('❌ ' + msg);
-    isPlaying = false;
-    updAll();
+  console.error('Audio error:', audio.error);
+  let msg = 'Gagal memutar audio';
+  switch(audio.error?.code) {
+    case 1: msg = 'Proses dihentikan'; break;
+    case 2: msg = 'Error jaringan'; break;
+    case 3: msg = 'Format tidak didukung'; break;
+    case 4: msg = 'File tidak ditemukan'; break;
+  }
+  toast('❌ ' + msg);
+  isPlaying = false;
+  updAll();
 });
 
 // Touch swipe progress bar
 (function(){
-    const pb = document.getElementById('prbar');
-    let isDragging = false;
-    
-    pb.addEventListener('touchstart', (e) => {
-        isDragging = true;
-        updateProgressFromTouch(e.touches[0]);
-    }, {passive: false});
-    
-    pb.addEventListener('touchmove', (e) => {
-        if (!isDragging) return;
-        e.preventDefault();
-        updateProgressFromTouch(e.touches[0]);
-    }, {passive: false});
-    
-    pb.addEventListener('touchend', (e) => {
-        if (!isDragging) return;
-        isDragging = false;
-        const r = pb.getBoundingClientRect();
-        const ratio = Math.max(0, Math.min(1, (e.changedTouches[0].clientX - r.left) / r.width));
-        if (audio.duration) audio.currentTime = ratio * audio.duration;
-    });
-    
-    function updateProgressFromTouch(touch) {
-        const r = pb.getBoundingClientRect();
-        const ratio = Math.max(0, Math.min(1, (touch.clientX - r.left) / r.width));
-        document.getElementById('prfill').style.width = (ratio * 100) + '%';
-    }
+  const pb = document.getElementById('prbar');
+  let isDragging = false;
+  
+  pb.addEventListener('touchstart', (e) => {
+    isDragging = true;
+    updateProgressFromTouch(e.touches[0]);
+  }, {passive: false});
+  
+  pb.addEventListener('touchmove', (e) => {
+    if (!isDragging) return;
+    e.preventDefault();
+    updateProgressFromTouch(e.touches[0]);
+  }, {passive: false});
+  
+  pb.addEventListener('touchend', (e) => {
+    if (!isDragging) return;
+    isDragging = false;
+    const r = pb.getBoundingClientRect();
+    const ratio = Math.max(0, Math.min(1, (e.changedTouches[0].clientX - r.left) / r.width));
+    if (audio.duration) audio.currentTime = ratio * audio.duration;
+  });
+  
+  function updateProgressFromTouch(touch) {
+    const r = pb.getBoundingClientRect();
+    const ratio = Math.max(0, Math.min(1, (touch.clientX - r.left) / r.width));
+    document.getElementById('prfill').style.width = (ratio * 100) + '%';
+  }
 })();
-
-// Inisialisasi DB saat startup
-initDB().then(() => {
-    console.log('✅ IndexedDB ready');
-    cleanupOldCache(); // Bersihkan cache lama
-}).catch(err => {
-    console.warn('⚠️ IndexedDB tidak tersedia:', err);
-});
 
 // ════════════════════════════════════════════════════════════════
 //  PROFILE DROPDOWN
@@ -1353,6 +1327,7 @@ function setState(s){
   ['stEmpty','stLoad','stErr'].forEach(id=>document.getElementById(id).classList.remove('show'));
   if(s!=='none')document.getElementById('st'+s.charAt(0).toUpperCase()+s.slice(1)).classList.add('show');
 }
+
 let toastT;
 function toast(m){
   const el=document.getElementById('toast');
@@ -1392,8 +1367,10 @@ function esc(obj){return JSON.stringify(obj).replace(/"/g,'&quot;');}
   document.getElementById('tabActBtn').dataset.t='q';
 
   if(histArr.length){
-    const last=histArr[0]; currentTrack=last;
-    showHero(last,last.source||'db'); setState('none');
+    const last=histArr[0]; 
+    currentTrack=last;
+    showHero(last,last.source||'db'); 
+    setState('none');
     document.getElementById('plImg').src=last.thumbnail||'';
     document.getElementById('plTitle').textContent=last.title;
     document.getElementById('plArt').textContent=last.artist;
