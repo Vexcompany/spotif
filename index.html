@@ -622,22 +622,22 @@ async function doSearch(){
       }
     }
     
-    // 2. Gunakan Backend Spotify Downloader - VERSI POST
+    // 2. Gunakan Backend Spotify Downloader - VERSI GET
     setStLoad(`Mencari "${q}"`,'🎵 Mengunduh dari Spotify...');
     
-    // ✅ VERSI POST (lebih kompatibel dengan backend)
-    const res = await fetch(`${API_BASE_URL}/api/spotify-play`, {
-      method: 'POST',
+    // ✅ VERSI GET dengan parameter 'q'
+    const apiUrl = `${API_BASE_URL}/api/spotify-play?q=${encodeURIComponent(q)}`;
+    
+    const res = await fetch(apiUrl, {
+      method: 'GET',
       headers: {
-        'Content-Type': 'application/json',
         'Accept': 'application/json'
-      },
-      body: JSON.stringify({ query: q })  // Backend mengharapkan 'query' bukan 'q'
+      }
     });
     
     if(!res.ok){
       const errText = await res.text();
-      throw new Error(`HTTP ${res.status}: ${errText}`);
+      throw new Error(`HTTP ${res.status}: ${errText.substring(0, 100)}`);
     }
     
     const data = await res.json();
