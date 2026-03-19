@@ -543,7 +543,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 const SB_URL = 'https://ygwoddwdhelqcwhpqasl.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlnd29kZHdkaGVscWN3aHBxYXNsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE4NTEwNzcsImV4cCI6MjA4NzQyNzA3N30.y0tnci0aWnhWYpxb9v7M7I0X9ss-jAt0JvpOBnZgFzo';
 
-const FAA_BASE = 'https://api-faa.my.id/faa/spotify-play';
+const API_BASE_URL = 'https://spotif-taksaka.vercel.app';
 const SESS_KEY = 'pgsk_v2_session';
 
 // ════════════════════════════════════════════════════════════════
@@ -612,8 +612,8 @@ async function doSearch(){
         saveSug(q); return;
       }
     }
-    setStLoad(`Mencari "${q}"`,'☁️ Mengunduh dari FAA API...');
-    const res=await fetch(`${FAA_BASE}?q=${encodeURIComponent(q)}`);
+    setStLoad(`Mencari "${q}"`,'☁️ Mengunduh dari Spotify...');
+    const res=await fetch(`${API_BASE_URL}/api/spotify-play?q=${encodeURIComponent(q)}`);
     if(!res.ok)throw new Error('FAA API HTTP '+res.status);
     const data=await res.json();
     if(data.status!==true||!data.info||!data.download)throw new Error(data.message||'Format FAA tidak dikenali');
