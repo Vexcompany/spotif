@@ -16,10 +16,7 @@
 }
 html{scroll-behavior:smooth}
 body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-height:100vh;overflow-x:hidden}
-body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
-  background-image:linear-gradient(rgba(29,185,84,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(29,185,84,.03) 1px,transparent 1px);
-  background-size:58px 58px;
-  mask-image:radial-gradient(ellipse 80% 60% at 50% 10%,black 40%,transparent 100%);}
+body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;background-image:linear-gradient(rgba(29,185,84,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(29,185,84,.03) 1px,transparent 1px);background-size:58px 58px;mask-image:radial-gradient(ellipse 80% 60% at 50% 10%,black 40%,transparent 100%);}
 .orb{position:fixed;border-radius:50%;filter:blur(120px);pointer-events:none;z-index:0}
 .o1{width:600px;height:600px;background:rgba(29,185,84,.09);top:-200px;left:-160px;animation:fl 20s ease-in-out infinite}
 .o2{width:500px;height:500px;background:rgba(124,92,191,.07);bottom:-160px;right:-160px;animation:fl 26s ease-in-out infinite reverse}
@@ -113,8 +110,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 .ti-th{width:44px;height:44px;border-radius:7px;overflow:hidden;flex-shrink:0}
 .ti-th img{width:100%;height:100%;object-fit:cover}
 .ti-inf{min-width:0}
-.ti-t{font-size:.82rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:1px}
-.ti.on .ti-t{color:var(--g)}
+.ti-t{font-size:.82rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:1px}.ti.on .ti-t{color:var(--g)}
 .ti-a{font-size:.7rem;color:var(--mt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ti-src{font-size:.58rem;padding:2px 6px;border-radius:6px;font-weight:700;white-space:nowrap}
 .src-db{background:rgba(124,92,191,.15);color:#c09cff;border:1px solid rgba(124,92,191,.25)}
@@ -233,7 +229,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
       <div class="pill-btn" id="dbPill" title="Status Supabase" onclick="loadDBTracks()">
         <span class="dot-pulse" id="dbDot"></span><span id="dbTxt">DB</span>
       </div>
-      <button class="pill-btn" onclick="toggleLikedSec()" title="Lagu Disukai">
+      <button class="pill-btn" onclick="toggleLikedSec()">
         <i class="fas fa-heart" style="color:var(--rd)"></i>
         <span id="likedBadge" class="q-badge" style="display:none">0</span>
       </button>
@@ -262,9 +258,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
     <div class="hero-card">
       <div class="h-art">
         <img id="hImg" src="" alt="">
-        <div class="h-ring" id="hRing">
-          <div class="eq"><span></span><span></span><span></span><span></span><span></span></div>
-        </div>
+        <div class="h-ring" id="hRing"><div class="eq"><span></span><span></span><span></span><span></span><span></span></div></div>
       </div>
       <div class="h-info">
         <div>
@@ -282,8 +276,8 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
           <button class="btn-play" id="hPlayBtn" onclick="playOrToggle()">
             <i class="fas fa-play" id="hPlayIco"></i><span id="hPlayTxt">Putar</span>
           </button>
-          <div class="ico-btn" id="hLike" onclick="toggleLikeCurrent()" title="Suka"><i class="far fa-heart"></i></div>
-          <div class="ico-btn" onclick="addHeroToQueue()" title="Tambah ke Queue"><i class="fas fa-plus"></i></div>
+          <div class="ico-btn" id="hLike" onclick="toggleLikeCurrent()"><i class="far fa-heart"></i></div>
+          <div class="ico-btn" onclick="addHeroToQueue()"><i class="fas fa-plus"></i></div>
           <div class="ico-btn spotify-btn" id="hSpot" style="display:none" onclick="openSpotify()"><i class="fab fa-spotify"></i></div>
         </div>
       </div>
@@ -331,11 +325,8 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
     </div>
   </div>
 </div>
-
 <div class="pdrop" id="pdrop">
-  <div class="pd-info">
-    <div class="pd-name" id="pdName">–</div><div class="pd-sub" id="pdSub">–</div>
-  </div>
+  <div class="pd-info"><div class="pd-name" id="pdName">–</div><div class="pd-sub" id="pdSub">–</div></div>
   <div class="pd-div"></div>
   <div class="pd-item" onclick="loadDBTracks();document.getElementById('dbSec').style.display='block';togglePD()">
     <i class="fas fa-database" style="color:var(--acc)"></i> Musik di Supabase
@@ -346,19 +337,11 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
   <div class="pd-div"></div>
   <div class="pd-item danger" onclick="doLogout()"><i class="fas fa-sign-out-alt"></i> Keluar</div>
 </div>
-
 <div class="pbar" id="pbar">
   <div class="pinner">
     <div class="pl-l">
-      <div class="pl-img">
-        <img id="plImg" src="" alt="">
-        <div class="pl-eq" id="plEq">
-          <div class="eq" style="transform:scale(.5)"><span></span><span></span><span></span><span></span><span></span></div>
-        </div>
-      </div>
-      <div class="pl-tx">
-        <div class="pl-title" id="plTitle">–</div><div class="pl-art" id="plArt">–</div>
-      </div>
+      <div class="pl-img"><img id="plImg" src="" alt=""><div class="pl-eq" id="plEq"><div class="eq" style="transform:scale(.5)"><span></span><span></span><span></span><span></span><span></span></div></div></div>
+      <div class="pl-tx"><div class="pl-title" id="plTitle">–</div><div class="pl-art" id="plArt">–</div></div>
       <button class="pb-like" id="pbLike" onclick="toggleLikeCurrent()"><i class="far fa-heart"></i></button>
     </div>
     <div class="pl-c">
@@ -381,7 +364,6 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
     </div>
   </div>
 </div>
-
 <div class="toast" id="toast"></div>
 <audio id="audioEl"></audio>
 
@@ -389,26 +371,26 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 // ════════════════════════════════════════════════════════════════
 //  KONFIGURASI
 // ════════════════════════════════════════════════════════════════
-const FAA_API      = 'https://api-faa.my.id/faa/spotify-play';
-const PROXY_BASE   = 'https://spotif-taksaka.vercel.app'; // backend Vercel kamu
-const SB_URL       = 'https://ygwoddwdhelqcwhpqasl.supabase.co';
-const SB_KEY       = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlnd29kZHdkaGVscWN3aHBxYXNsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE4NTEwNzcsImV4cCI6MjA4NzQyNzA3N30.y0tnci0aWnhWYpxb9v7M7I0X9ss-jAt0JvpOBnZgFzo';
-const SB_BUCKET    = 'music';
-const SESS_KEY     = 'pgsk_v2_session';
-const PH           = 'https://via.placeholder.com/210x210/0d0d1c/1DB954?text=♪';
+const FAA_API     = 'https://api-faa.my.id/faa/spotify-play';
+const SB_URL      = 'https://ygwoddwdhelqcwhpqasl.supabase.co';
+const SB_KEY      = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlnd29kZHdkaGVscWN3aHBxYXNsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE4NTEwNzcsImV4cCI6MjA4NzQyNzA3N30.y0tnci0aWnhWYpxb9v7M7I0X9ss-jAt0JvpOBnZgFzo';
+const SB_BUCKET   = 'music';
+// Edge Function URL — otomatis dari project Supabase kamu
+const EDGE_FN_URL = `${SB_URL}/functions/v1/save-music`;
+const SESS_KEY    = 'pgsk_v2_session';
+const PH          = 'https://via.placeholder.com/210x210/0d0d1c/1DB954?text=♪';
 
 // ════════════════════════════════════════════════════════════════
 //  SUPABASE CLIENT
 // ════════════════════════════════════════════════════════════════
-const sbOk = true;
 const sb = {
-  _h: { 'Content-Type':'application/json', apikey:SB_KEY, Authorization:'Bearer '+SB_KEY, Prefer:'return=representation' },
-  _b: SB_URL + '/rest/v1/',
-  _s: SB_URL + '/storage/v1/',
+  _h: {'Content-Type':'application/json',apikey:SB_KEY,Authorization:'Bearer '+SB_KEY,Prefer:'return=representation'},
+  _b: SB_URL+'/rest/v1/',
+  _s: SB_URL+'/storage/v1/',
   async req(m,t,q,b){
-    const r = await fetch(this._b+t+(q?'?'+q:''), { method:m, headers:this._h, body:b?JSON.stringify(b):undefined });
-    const tx = await r.text(); let d; try{d=JSON.parse(tx)}catch{d=tx}
-    if(!r.ok) throw new Error(d?.message||d?.error||'HTTP '+r.status);
+    const r=await fetch(this._b+t+(q?'?'+q:''),{method:m,headers:this._h,body:b?JSON.stringify(b):undefined});
+    const tx=await r.text();let d;try{d=JSON.parse(tx)}catch{d=tx}
+    if(!r.ok)throw new Error(d?.message||d?.error||'HTTP '+r.status);
     return d;
   },
   get(t,q){return this.req('GET',t,q)},
@@ -416,41 +398,20 @@ const sb = {
   patch(t,q,b){return this.req('PATCH',t,q,b)},
   del(t,q){return this.req('DELETE',t,q)},
   upsert(t,b,c='id'){return this.req('POST',t,'on_conflict='+c,b)},
-
-  async uploadStorage(filePath, blob) {
-    const r = await fetch(`${this._s}object/${SB_BUCKET}/${filePath}`, {
-      method:  'POST',
-      headers: { apikey:SB_KEY, Authorization:'Bearer '+SB_KEY, 'Content-Type':'audio/mpeg', 'x-upsert':'true' },
-      body:    blob,
-    });
-    if (!r.ok) {
-      const tx = await r.text();
-      throw new Error('Storage upload gagal: ' + tx.substring(0,200));
-    }
+  async deleteStorage(paths){
+    const r=await fetch(`${this._s}object/${SB_BUCKET}`,{method:'DELETE',headers:{apikey:SB_KEY,Authorization:'Bearer '+SB_KEY,'Content-Type':'application/json'},body:JSON.stringify({prefixes:paths})});
     return r.json();
   },
-
-  async deleteStorage(paths) {
-    const r = await fetch(`${this._s}object/${SB_BUCKET}`, {
-      method:  'DELETE',
-      headers: { apikey:SB_KEY, Authorization:'Bearer '+SB_KEY, 'Content-Type':'application/json' },
-      body:    JSON.stringify({ prefixes: paths }),
-    });
-    return r.json();
-  },
-
-  storageUrl(filePath) {
-    return `${SB_URL}/storage/v1/object/public/${SB_BUCKET}/${filePath}`;
-  },
+  storageUrl(f){return `${SB_URL}/storage/v1/object/public/${SB_BUCKET}/${f}`},
 };
 
 // ════════════════════════════════════════════════════════════════
 //  SESSION
 // ════════════════════════════════════════════════════════════════
-const session = JSON.parse(localStorage.getItem(SESS_KEY)||'null');
-if (!session) window.location.href = 'login.html';
-const USER_KEY = session ? `${session.nama}_${session.generasi}` : 'guest';
-function doLogout(){ localStorage.removeItem(SESS_KEY); window.location.href='login.html'; }
+const session=JSON.parse(localStorage.getItem(SESS_KEY)||'null');
+if(!session)window.location.href='login.html';
+const USER_KEY=session?`${session.nama}_${session.generasi}`:'guest';
+function doLogout(){localStorage.removeItem(SESS_KEY);window.location.href='login.html';}
 
 // ════════════════════════════════════════════════════════════════
 //  LOCAL STATE
@@ -466,166 +427,139 @@ let qi=-1,currentTrack=null,isPlaying=false,isShuffle=false,isRepeat=false,isMut
 const audio=document.getElementById('audioEl');
 
 // ════════════════════════════════════════════════════════════════
-//  UPLOAD KE SUPABASE STORAGE
-//  Download via Vercel proxy (bypass CORS uguu.se)
-//  lalu upload blob ke Supabase Storage
+//  EDGE FUNCTION: download uguu → upload ke Storage
+//  Dipanggil setelah lagu mulai diputar (background)
 // ════════════════════════════════════════════════════════════════
-async function uploadMp3ToStorage(uguuUrl, title, artist) {
-  // 1. Download MP3 via Vercel proxy (menghindari CORS uguu.se)
-  const proxyUrl = `${PROXY_BASE}/api/proxy-audio?url=${encodeURIComponent(uguuUrl)}`;
-  console.log('[upload] downloading via proxy:', proxyUrl);
+async function saveMusicViaEdgeFn(audioUrl, title, artist, trackId) {
+  const res = await fetch(EDGE_FN_URL, {
+    method:  'POST',
+    headers: {
+      'Content-Type':  'application/json',
+      'Authorization': 'Bearer ' + SB_KEY,
+      'apikey':        SB_KEY,
+    },
+    body: JSON.stringify({ audioUrl, title, artist, trackId }),
+  });
 
-  const dlRes = await fetch(proxyUrl);
-  if (!dlRes.ok) throw new Error(`Proxy download gagal: ${dlRes.status}`);
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error('Edge Function error: ' + err.substring(0,150));
+  }
 
-  const blob = await dlRes.blob();
-  console.log('[upload] blob size:', blob.size, 'bytes');
+  const data = await res.json();
+  if (!data.status || !data.storageUrl) {
+    throw new Error(data.error || 'Edge Function: tidak return storageUrl');
+  }
 
-  if (blob.size < 10000) throw new Error('File terlalu kecil, kemungkinan download gagal');
-
-  // 2. Buat nama file yang aman
-  const safeTitle  = title.replace(/[^\w\s-]/g,'').replace(/\s+/g,'_').substring(0,60);
-  const safeArtist = artist.replace(/[^\w\s-]/g,'').replace(/\s+/g,'_').substring(0,30);
-  const fileName   = `${safeArtist}_-_${safeTitle}_${Date.now()}.mp3`;
-
-  // 3. Upload ke Supabase Storage bucket "music"
-  console.log('[upload] uploading to storage:', fileName);
-  await sb.uploadStorage(fileName, blob);
-
-  return { storageUrl: sb.storageUrl(fileName), fileName };
+  return { storageUrl: data.storageUrl, fileName: data.fileName };
 }
 
 // ════════════════════════════════════════════════════════════════
 //  SEARCH
 // ════════════════════════════════════════════════════════════════
-document.getElementById('sInput').addEventListener('keydown', e => { if(e.key==='Enter') doSearch(); });
+document.getElementById('sInput').addEventListener('keydown',e=>{if(e.key==='Enter')doSearch();});
 
 async function doSearch() {
-  const q = document.getElementById('sInput').value.trim();
-  if (!q) return;
-
-  setState('load');
-  setStLoad(`Mencari "${q}"`, 'Memeriksa database...');
-  setBtnLoad(true);
+  const q=document.getElementById('sInput').value.trim();
+  if(!q)return;
+  setState('load');setStLoad(`Mencari "${q}"`,'Memeriksa database...');setBtnLoad(true);
 
   try {
-    // ── 1. Cek Supabase cache ──────────────────────────────────
-    const cached = await sb.get(
-      'tracks',
-      `search_query=ilike.${encodeURIComponent('%'+q+'%')}&order=play_count.desc&limit=1`
-    );
-    if (cached?.length) {
-      const t = rowToTrack(cached[0], 'db');
-      showHero(t, 'db'); addToQueue(t); setState('none');
+    // ── 1. Cek cache Supabase ──────────────────────────────────
+    const cached=await sb.get('tracks',`search_query=ilike.${encodeURIComponent('%'+q+'%')}&order=play_count.desc&limit=1`);
+    if(cached?.length){
+      const t=rowToTrack(cached[0],'db');
+      showHero(t,'db');addToQueue(t);setState('none');
       await playTrackObj(t);
-      sb.patch('tracks', `id=eq.${encodeURIComponent(t.id)}`, {
-        play_count: (cached[0].play_count||0)+1, last_played: new Date().toISOString(),
-      }).catch(()=>{});
-      saveSug(q); return;
+      sb.patch('tracks',`id=eq.${encodeURIComponent(t.id)}`,{play_count:(cached[0].play_count||0)+1,last_played:new Date().toISOString()}).catch(()=>{});
+      saveSug(q);return;
     }
 
-    // ── 2. FAA API (langsung dari browser) ────────────────────
-    setStLoad(`Mencari "${q}"`, '🎵 Mengambil dari Spotify...');
-    const faaRes  = await fetch(`${FAA_API}?q=${encodeURIComponent(q)}`);
-    if (!faaRes.ok) throw new Error(`FAA error ${faaRes.status}`);
-    const faaData = await faaRes.json();
-    if (!faaData?.status || !faaData?.download?.url) {
-      throw new Error(faaData?.message || 'FAA: response tidak valid');
-    }
+    // ── 2. FAA API ─────────────────────────────────────────────
+    setStLoad(`Mencari "${q}"`,'🎵 Mengambil dari Spotify...');
+    const faaRes=await fetch(`${FAA_API}?q=${encodeURIComponent(q)}`);
+    if(!faaRes.ok)throw new Error(`FAA error ${faaRes.status}`);
+    const faaData=await faaRes.json();
+    if(!faaData?.status||!faaData?.download?.url)throw new Error(faaData?.message||'FAA: response tidak valid');
 
     const uguuUrl  = faaData.download.url;
-    const trackId  = 'faa_' + Date.now();
+    const trackId  = 'faa_'+Date.now();
     const title    = faaData.info?.title       || q;
     const artist   = faaData.info?.artist      || '–';
     const album    = faaData.info?.album       || '';
     const duration = faaData.info?.duration    || '0:00';
-    const year     = faaData.info?.release_date?.slice(0,4) || '–';
+    const year     = faaData.info?.release_date?.slice(0,4)||'–';
     const thumbnail= faaData.info?.thumbnail   || PH;
     const spotUrl  = faaData.info?.spotify_url || null;
 
-    // ── 3. Play langsung pakai uguu URL (tidak nunggu upload) ──
-    const trackTemp = { id:trackId, title, artist, album, duration, year,
-      thumbnail, audio:uguuUrl, spotifyUrl:spotUrl, searchQuery:q, source:'api', playCount:1 };
-    showHero(trackTemp, 'api'); addToQueue(trackTemp);
-    setState('none');
+    // ── 3. Play langsung (tidak nunggu upload) ─────────────────
+    const trackTemp={id:trackId,title,artist,album,duration,year,thumbnail,audio:uguuUrl,spotifyUrl:spotUrl,searchQuery:q,source:'api',playCount:1};
+    showHero(trackTemp,'api');addToQueue(trackTemp);setState('none');
     await playTrackObj(trackTemp);
     saveSug(q);
 
-    // ── 4. Background: upload ke Storage + simpan ke DB ───────
-    ;(async () => {
-      try {
-        toast('⬆️ Menyimpan audio ke Supabase Storage...');
-        setStLoad('Upload audio...', '☁️ Menyimpan ke Storage');
+    // ── 4. Background: Edge Function download + upload Storage ──
+    ;(async()=>{
+      try{
+        toast('☁️ Menyimpan audio ke Supabase...');
 
-        const { storageUrl, fileName } = await uploadMp3ToStorage(uguuUrl, title, artist);
-        console.log('[upload] done:', storageUrl);
+        const {storageUrl,fileName}=await saveMusicViaEdgeFn(uguuUrl,title,artist,trackId);
+        console.log('[saved]',storageUrl);
 
-        // Update track & queue pakai URL permanen
-        if (currentTrack?.id === trackId) currentTrack.audio = storageUrl;
-        queue = queue.map(t => t.id===trackId ? {...t, audio:storageUrl} : t);
+        // Update track pakai URL permanen
+        if(currentTrack?.id===trackId)currentTrack.audio=storageUrl;
+        queue=queue.map(t=>t.id===trackId?{...t,audio:storageUrl}:t);
         LS.sq(queue);
 
-        // Kalau masih memutar lagu ini, ganti src ke URL permanen
-        if (audio.paused === false && (audio.src.includes('uguu') || audio.src === uguuUrl)) {
-          const pos = audio.currentTime;
-          audio.src = storageUrl;
-          audio.currentTime = pos;
+        // Ganti src audio kalau masih lagu ini yang diputar
+        if(!audio.paused&&audio.src===uguuUrl){
+          const pos=audio.currentTime;
+          audio.src=storageUrl;audio.currentTime=pos;
           audio.play().catch(()=>{});
         }
 
-        // Simpan ke tabel tracks
-        await sb.upsert('tracks', {
-          id: trackId, title, artist, album, duration, year,
-          thumbnail: thumbnail !== PH ? thumbnail : null,
-          audio_url:    storageUrl,   // ← URL permanen
-          spotify_url:  spotUrl,
-          search_query: q,
-          searched_by:  session?.nama || 'guest',
-          play_count:   1,
-          last_played:  new Date().toISOString(),
-          storage_path: fileName,     // ← untuk hapus nanti
+        // Simpan ke tabel tracks dengan URL permanen
+        await sb.upsert('tracks',{
+          id:trackId,title,artist,album,duration,year,
+          thumbnail:thumbnail!==PH?thumbnail:null,
+          audio_url:storageUrl,
+          spotify_url:spotUrl,
+          search_query:q,
+          searched_by:session?.nama||'guest',
+          play_count:1,
+          last_played:new Date().toISOString(),
+          storage_path:fileName,
         });
 
-        toast('✅ Audio tersimpan permanen di Supabase!');
+        toast('✅ Tersimpan permanen di Supabase!');
         loadDBTracks();
 
-      } catch (err) {
-        console.error('[upload error]', err.message);
-        toast('⚠️ Upload gagal: ' + err.message.substring(0,60));
-
-        // Fallback: simpan dengan uguu URL sementara
-        sb.upsert('tracks', {
-          id: trackId, title, artist, album, duration, year,
-          thumbnail: thumbnail !== PH ? thumbnail : null,
-          audio_url:    uguuUrl,
-          spotify_url:  spotUrl,
-          search_query: q,
-          searched_by:  session?.nama || 'guest',
-          play_count:   1,
-          last_played:  new Date().toISOString(),
+      }catch(err){
+        console.error('[save-music edge fn]',err.message);
+        toast('⚠️ Upload gagal: '+err.message.substring(0,50));
+        // Fallback simpan uguu URL sementara
+        sb.upsert('tracks',{
+          id:trackId,title,artist,album,duration,year,
+          thumbnail:thumbnail!==PH?thumbnail:null,
+          audio_url:uguuUrl,spotify_url:spotUrl,
+          search_query:q,searched_by:session?.nama||'guest',
+          play_count:1,last_played:new Date().toISOString(),
         }).catch(()=>{});
       }
     })();
 
-  } catch (err) {
+  }catch(err){
     setState('err');
-    document.getElementById('stErrT').textContent = 'Gagal mengambil lagu';
-    document.getElementById('stErrM').textContent  = err.message;
-    toast('⚠️ ' + err.message);
-    console.error('[doSearch]', err);
-  } finally {
-    setBtnLoad(false);
-  }
+    document.getElementById('stErrT').textContent='Gagal mengambil lagu';
+    document.getElementById('stErrM').textContent=err.message;
+    toast('⚠️ '+err.message);console.error('[doSearch]',err);
+  }finally{setBtnLoad(false);}
 }
 
-function rowToTrack(r,src='db'){return{id:r.id,title:r.title,artist:r.artist,album:r.album||'',duration:r.duration||'0:00',year:r.year||'–',thumbnail:r.thumbnail||PH,audio:r.audio_url,spotifyUrl:r.spotify_url||null,playCount:r.play_count||0,searchQuery:r.search_query||'',searchedBy:r.searched_by||'',storagePath:r.storage_path||null,source:src};}
+function rowToTrack(r,src='db'){return{id:r.id,title:r.title,artist:r.artist,album:r.album||'',duration:r.duration||'0:00',year:r.year||'–',thumbnail:r.thumbnail||PH,audio:r.audio_url,spotifyUrl:r.spotify_url||null,playCount:r.play_count||0,searchQuery:r.search_query||'',storagePath:r.storage_path||null,source:src};}
 function setBtnLoad(on){const b=document.getElementById('sBtn');b.disabled=on;document.getElementById('sBtnIco').className=on?'fas fa-circle-notch spin-lg':'fas fa-search';document.getElementById('sBtnIco').style.fontSize=on?'.78rem':'';document.getElementById('sBtnTxt').textContent=on?'Mencari...':'Cari';}
 function setStLoad(t,m){document.getElementById('stLoadT').textContent=t;document.getElementById('stLoadM').textContent=m;}
-
-// ════════════════════════════════════════════════════════════════
-//  HERO / QUEUE / HISTORY / LIKED / DB / DELETE / PLAYER / etc
-// ════════════════════════════════════════════════════════════════
-function showHero(t,src){currentTrack=t;document.getElementById('hImg').src=t.thumbnail||PH;document.getElementById('hTitle').textContent=t.title;document.getElementById('hArtist').textContent=t.artist;document.getElementById('hAlbum').textContent=t.album||'';document.getElementById('hDur').textContent=t.duration;document.getElementById('hYear').textContent=t.year;const badge=document.getElementById('hBadge');badge.style.display='inline-flex';if(src==='db'){badge.className='h-src-badge badge-db';badge.innerHTML='<i class="fas fa-database"></i> Dari Database';}else{badge.className='h-src-badge badge-api';badge.innerHTML='<i class="fab fa-spotify"></i> Spotify → Disimpan';}if(t.playCount){document.getElementById('hPlays').style.display='flex';document.getElementById('hPlaysN').textContent=t.playCount;}else{document.getElementById('hPlays').style.display='none';}document.getElementById('hSpot').style.display=t.spotifyUrl?'flex':'none';document.getElementById('hero').classList.add('show');updHeroPlayBtn();updHeroLike();}
+function showHero(t,src){currentTrack=t;document.getElementById('hImg').src=t.thumbnail||PH;document.getElementById('hTitle').textContent=t.title;document.getElementById('hArtist').textContent=t.artist;document.getElementById('hAlbum').textContent=t.album||'';document.getElementById('hDur').textContent=t.duration;document.getElementById('hYear').textContent=t.year;const badge=document.getElementById('hBadge');badge.style.display='inline-flex';if(src==='db'){badge.className='h-src-badge badge-db';badge.innerHTML='<i class="fas fa-database"></i> Dari Database';}else{badge.className='h-src-badge badge-api';badge.innerHTML='<i class="fab fa-spotify"></i> Spotify → Disimpan';}if(t.playCount){document.getElementById('hPlays').style.display='flex';document.getElementById('hPlaysN').textContent=t.playCount;}else document.getElementById('hPlays').style.display='none';document.getElementById('hSpot').style.display=t.spotifyUrl?'flex':'none';document.getElementById('hero').classList.add('show');updHeroPlayBtn();updHeroLike();}
 function updHeroPlayBtn(){const p=isPlaying&&!audio.paused;document.getElementById('hPlayIco').className=p?'fas fa-pause':'fas fa-play';document.getElementById('hPlayTxt').textContent=p?'Jeda':'Putar';document.getElementById('hPlayBtn').classList.toggle('pause-state',p);document.getElementById('hRing').classList.toggle('on',p);}
 function playOrToggle(){if(!currentTrack)return;if(audio.src===currentTrack.audio){togglePlay();return;}playTrackObj(currentTrack);}
 function addHeroToQueue(){if(!currentTrack)return;addToQueue(currentTrack);toast('Ditambahkan ke queue');}
@@ -666,7 +600,7 @@ async function loadDBTracks(){
         <div class="dg-meta">
           <span><i class="fas fa-headphones" style="font-size:.5rem"></i> ${r.play_count||0}×</span>
           ${r.duration?`<span>${r.duration}</span>`:''}
-          <span title="${inStorage?'Tersimpan di Supabase Storage':'Link sementara'}">${inStorage?'☁️':'⚡'}</span>
+          <span title="${inStorage?'Tersimpan permanen':'Link sementara'}">${inStorage?'☁️':'⚡'}</span>
         </div>
         ${r.searched_by?`<div class="dg-by">oleh ${r.searched_by}</div>`:''}
       </div>`;
@@ -686,7 +620,7 @@ async function confirmDelete(){
     const storagePath=rows[0]?.storage_path;
     await Promise.allSettled([sb.del('liked',`track_id=eq.${encodeURIComponent(id)}`),sb.del('play_history',`track_id=eq.${encodeURIComponent(id)}`)]);
     await sb.del('tracks',`id=eq.${encodeURIComponent(id)}`);
-    if(storagePath) await sb.deleteStorage([storagePath]).catch(()=>{});
+    if(storagePath)await sb.deleteStorage([storagePath]).catch(()=>{});
     queue=queue.filter(t=>t.id!==id);LS.sq(queue);histArr=histArr.filter(t=>t.id!==id);LS.sh(histArr);likedArr=likedArr.filter(t=>t.id!==id);LS.sl(likedArr);
     renderQueue();renderHistory();renderLiked();updLikedCnt();
     document.getElementById('qBadge').textContent=queue.length;
