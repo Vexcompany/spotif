@@ -282,14 +282,17 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
   display:flex;align-items:center;justify-content:space-between;
   padding:16px 20px 8px;flex-shrink:0;
 }
+.np-handle{width:36px;height:4px;border-radius:2px;background:rgba(255,255,255,.3);margin:10px auto 0;flex-shrink:0;}
 .np-close{
-  width:36px;height:36px;border-radius:50%;
-  background:rgba(255,255,255,.12);border:none;
-  color:#fff;font-size:1rem;cursor:pointer;
+  width:40px;height:40px;border-radius:50%;
+  background:rgba(255,255,255,.18);border:none;
+  color:#fff;font-size:1.1rem;cursor:pointer;
   display:flex;align-items:center;justify-content:center;
   transition:all .2s;backdrop-filter:blur(8px);
+  box-shadow:0 2px 12px rgba(0,0,0,.3);
 }
-.np-close:hover{background:rgba(255,255,255,.22);transform:scale(1.05)}
+.np-close:hover{background:rgba(255,255,255,.28);transform:scale(1.08)}
+.np-close:active{transform:scale(.95)}
 .np-source{font-size:.65rem;color:rgba(255,255,255,.6);letter-spacing:1.5px;text-transform:uppercase;font-weight:600}
 
 /* Vinyl cover */
@@ -617,6 +620,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 <div class="np-screen" id="npScreen">
   <div class="np-bg" id="npBg"></div>
   <div class="np-content" id="npContent">
+    <div class="np-handle"></div>
     <div class="np-header">
       <button class="np-close" onclick="closeNowPlaying()"><i class="fas fa-chevron-down"></i></button>
       <span class="np-source" id="npSource">NOW PLAYING</span>
@@ -909,21 +913,40 @@ function updateNPScreen(){
 
 // Swipe gestures for NP screen
 const npContent=document.getElementById('npContent');
+// Track drag untuk visual feedback swipe down
+let npDragging=false;
+
 npContent.addEventListener('touchstart',e=>{
   touchStartY=e.touches[0].clientY;
   touchStartX=e.touches[0].clientX;
+  npDragging=false;
 },{passive:true});
+
+npContent.addEventListener('touchmove',e=>{
+  const dy=e.touches[0].clientY-touchStartY;
+  const dx=e.touches[0].clientX-touchStartX;
+  // Hanya block scroll kalau gesture horizontal (ganti lagu)
+  // atau swipe down dari posisi paling atas
+  if(Math.abs(dx)>Math.abs(dy) && Math.abs(dx)>20){
+    e.preventDefault(); // block scroll saat swipe horizontal
+  }
+},{passive:false});
+
 npContent.addEventListener('touchend',e=>{
   const dy=e.changedTouches[0].clientY-touchStartY;
   const dx=e.changedTouches[0].clientX-touchStartX;
-  // Swipe down → close (only if at top of scroll)
-  if(dy>80 && Math.abs(dx)<60 && npContent.scrollTop<10){
+
+  // Swipe down → close HANYA kalau:
+  // 1. Sudah di paling atas (scrollTop <= 5)
+  // 2. Gesture lebih vertikal dari horizontal
+  // 3. Jarak cukup jauh (>100px supaya tidak mudah kepencet)
+  if(dy>100 && Math.abs(dx)<80 && npContent.scrollTop<=5){
     closeNowPlaying(); return;
   }
-  // Swipe left → next track
-  if(dx<-80 && Math.abs(dy)<60){ nextTrack(); return; }
-  // Swipe right → prev track
-  if(dx>80 && Math.abs(dy)<60){ prevTrack(); return; }
+  // Swipe left → next (hanya kalau horizontal dominan)
+  if(dx<-80 && Math.abs(dy)<50){ nextTrack(); return; }
+  // Swipe right → prev (hanya kalau horizontal dominan)
+  if(dx>80 && Math.abs(dy)<50){ prevTrack(); return; }
 },{passive:true});
 
 // Double tap cover → like
