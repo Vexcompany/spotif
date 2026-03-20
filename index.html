@@ -269,13 +269,17 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
   background:linear-gradient(to bottom, rgba(0,0,0,.2) 0%, rgba(0,0,0,.5) 100%);
 }
 
+/* np-content sekarang TIDAK scroll — hanya container */
 .np-content{
   position:relative;z-index:1;
   flex:1;display:flex;flex-direction:column;
-  overflow-y:auto;
-  scrollbar-width:none;
+  overflow:hidden;
 }
-.np-content::-webkit-scrollbar{display:none}
+/* Hanya bagian lyric yang scrollable */
+.np-lyrics-wrap{
+  overflow-y:auto !important;
+  -webkit-overflow-scrolling:touch;
+}
 
 /* Header */
 .np-header{
@@ -372,11 +376,15 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 .np-lyrics-wrap{
   margin:8px 20px 20px;
   background:rgba(255,255,255,.06);
-  border-radius:16px;padding:20px;flex-shrink:0;
+  border-radius:16px;padding:16px;flex-shrink:0;
   backdrop-filter:blur(8px);
   border:1px solid rgba(255,255,255,.1);
-  min-height:100px;
+  height:180px;
+  overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
+  scrollbar-width:none;
 }
+.np-lyrics-wrap::-webkit-scrollbar{display:none}
 .np-lyrics-title{font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:rgba(255,255,255,.4);margin-bottom:14px;display:flex;align-items:center;gap:6px}
 .np-lyrics-body{line-height:2;font-size:.9rem;color:rgba(255,255,255,.4)}
 .np-lyrics-body .lrc-line{display:block;transition:all .3s;cursor:pointer;padding:2px 0}
@@ -848,14 +856,19 @@ function startLRCSync(){
     for(let i=0;i<lrcLines.length;i++){
       if(cur>=lrcLines[i].time)activeIdx=i;
     }
-    const lines=document.querySelectorAll('.lrc-line');
+    const wrap=document.getElementById('npLyricsWrap');
+    const lines=wrap.querySelectorAll('.lrc-line');
     lines.forEach((el,i)=>{
       el.classList.toggle('active',i===activeIdx);
-      if(i===activeIdx){
-        // Smooth scroll to active line
-        el.scrollIntoView({behavior:'smooth',block:'center',inline:'nearest'});
-      }
     });
+    // Scroll aktif lyric ke tengah wrap
+    const activeLine=wrap.querySelector('.lrc-line.active');
+    if(activeLine){
+      const lineTop=activeLine.offsetTop;
+      const lineH=activeLine.offsetHeight;
+      const wrapH=wrap.clientHeight;
+      wrap.scrollTo({top:lineTop-wrapH/2+lineH/2, behavior:'smooth'});
+    }
   },300);
 }
 
