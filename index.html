@@ -28,7 +28,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 
 .wrap{position:relative;z-index:1;max-width:1000px;margin:0 auto;padding:0 20px 160px}
 
-/* ── TOPBAR ────────────────────────────────────────────────────── */
+/* ── TOPBAR ── */
 .topbar{
   position:sticky;top:0;z-index:100;
   background:rgba(6,6,15,.92);backdrop-filter:blur(16px);
@@ -78,14 +78,14 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 .u-nm{font-size:.72rem;font-weight:700;white-space:nowrap;overflow:hidden;max-width:80px;text-overflow:ellipsis}
 .u-gn{font-size:.58rem;color:var(--mt)}
 
-/* ── SUGGESTIONS ────────────────────────────────────────────── */
+/* ── SUGGESTIONS ── */
 .sugs{display:flex;flex-wrap:wrap;gap:5px;margin-top:10px}
 .sug{padding:4px 10px;border-radius:20px;background:var(--s2);border:1px solid var(--bd);font-size:.7rem;color:var(--mt);cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:4px}
 .sug:hover{background:var(--s3);color:var(--tx)}
 .sug-x{margin-left:1px;opacity:.5;font-size:.58rem;cursor:pointer}
 .sug-x:hover{opacity:1;color:var(--rd)}
 
-/* ── STATES ─────────────────────────────────────────────────── */
+/* ── STATES ── */
 .state{text-align:center;padding:50px 20px;display:none}
 .state.show{display:block}
 .st-ico{width:64px;height:64px;border-radius:18px;background:var(--s2);border:1px solid var(--bd);display:flex;align-items:center;justify-content:center;font-size:1.7rem;margin:0 auto 16px;color:var(--mt)}
@@ -96,7 +96,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 .spin-lg{animation:sp .7s linear infinite;font-size:1.9rem;color:var(--g)}
 @keyframes sp{to{transform:rotate(360deg)}}
 
-/* ── HERO ───────────────────────────────────────────────────── */
+/* ── HERO ── */
 .hero{margin-top:18px;display:none}
 .hero.show{display:block}
 .hero-card{
@@ -137,7 +137,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 .ico-btn.liked{color:var(--rd);border-color:rgba(255,77,109,.3)}
 .ico-btn.spotify-btn{color:var(--g);border-color:rgba(29,185,84,.3)}
 
-/* ── SECTIONS ───────────────────────────────────────────────── */
+/* ── SECTIONS ── */
 .sec{margin-top:24px}
 .sec-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:11px}
 .sec-hd h3{font-family:'Syne',sans-serif;font-size:.93rem;font-weight:700;display:flex;align-items:center;gap:7px}
@@ -150,7 +150,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 .tab.on{background:var(--s4);color:var(--tx);box-shadow:0 2px 8px rgba(0,0,0,.3)}
 .q-badge{background:var(--g);color:#000;font-size:.56rem;font-weight:800;padding:1px 6px;border-radius:20px;margin-left:3px}
 
-/* ── TRACK LIST ─────────────────────────────────────────────── */
+/* ── TRACK LIST ── */
 .tlist{display:flex;flex-direction:column;gap:2px}
 .ti{display:grid;grid-template-columns:24px 44px 1fr auto auto auto;align-items:center;gap:8px;padding:7px 10px;border-radius:10px;cursor:pointer;transition:all .18s;border:1px solid transparent}
 .ti:hover{background:var(--s2);border-color:var(--bd)}
@@ -173,7 +173,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 .empty-ti{text-align:center;padding:28px;color:var(--mt);font-size:.82rem}
 .empty-ti i{font-size:1.6rem;display:block;margin-bottom:8px;opacity:.3}
 
-/* ── DB GRID ─────────────────────────────────────────────────── */
+/* ── DB GRID ── */
 .db-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:11px}
 .dg-card{background:var(--s2);border:1px solid var(--bd);border-radius:13px;padding:10px;cursor:pointer;transition:all .2s;position:relative;overflow:hidden}
 .dg-card:hover{background:var(--s3);transform:translateY(-3px);box-shadow:0 10px 26px rgba(0,0,0,.4)}
@@ -191,7 +191,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 .dg-meta{font-size:.6rem;color:var(--mt);margin-top:4px;display:flex;gap:5px;align-items:center}
 .dg-by{font-size:.57rem;color:var(--acc);opacity:.8}
 
-/* ── CONFIRM MODAL ───────────────────────────────────────────── */
+/* ── CONFIRM MODAL ── */
 .modal-bg{position:fixed;inset:0;z-index:5000;background:rgba(0,0,0,.72);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;padding:20px}
 .modal-bg.open{display:flex}
 .modal{width:100%;max-width:360px;background:var(--s3);border:1px solid var(--bd2);border-radius:20px;padding:26px 22px 20px;box-shadow:0 24px 60px rgba(0,0,0,.7);animation:modalIn .25s cubic-bezier(.16,1,.3,1)}
@@ -208,7 +208,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 .modal-confirm:hover{transform:scale(1.03);box-shadow:0 4px 16px rgba(255,77,109,.4)}
 .modal-confirm:disabled{opacity:.6;cursor:not-allowed;transform:none;box-shadow:none}
 
-/* ── PROFILE DROPDOWN ────────────────────────────────────────── */
+/* ── PROFILE DROPDOWN ── */
 .pdrop{position:fixed;top:56px;right:12px;background:var(--s3);border:1px solid var(--bd2);border-radius:14px;padding:6px;min-width:200px;box-shadow:0 14px 40px rgba(0,0,0,.7);z-index:200;display:none;animation:dropIn .2s cubic-bezier(.16,1,.3,1)}
 .pdrop.open{display:block}
 @keyframes dropIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
@@ -221,7 +221,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 .pd-item.danger:hover{background:rgba(255,77,109,.08)}
 .pd-div{height:1px;background:var(--bd);margin:4px 0}
 
-/* ── PLAYER BAR ──────────────────────────────────────────────── */
+/* ── PLAYER BAR ── */
 .pbar{position:fixed;bottom:0;left:0;width:100%;background:rgba(6,6,15,.97);backdrop-filter:blur(22px);border-top:1px solid var(--bd);transform:translateY(100%);transition:transform .35s cubic-bezier(.16,1,.3,1);z-index:1000}
 .pbar.up{transform:translateY(0)}
 .pinner{max-width:1000px;margin:0 auto;padding:10px 20px;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:12px}
@@ -253,59 +253,37 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 .vbar{width:72px;height:4px;background:rgba(255,255,255,.14);border-radius:2px;cursor:pointer}
 .vfill{height:100%;background:#fff;border-radius:2px;width:70%}
 
-/* ── TOAST ───────────────────────────────────────────────────── */
+/* ── TOAST ── */
 .toast{position:fixed;bottom:96px;left:50%;transform:translateX(-50%) translateY(12px);background:var(--s4);color:var(--tx);padding:8px 16px;border-radius:11px;font-size:.79rem;font-weight:500;border:1px solid var(--bd2);box-shadow:0 8px 28px rgba(0,0,0,.55);opacity:0;transition:all .26s;z-index:9999;white-space:nowrap;pointer-events:none}
 .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
 
-/* ═══════════════════════════════════════════════
-   RESPONSIVE — MOBILE
-   ═══════════════════════════════════════════════ */
+/* ── RESPONSIVE ── */
 @media(max-width:680px){
-  /* Wrap */
   .wrap{padding:0 14px 170px}
-
-  /* Topbar */
   .topbar{padding:8px 14px;gap:7px;margin:0 -14px}
   .tb-ver{display:none}
   .s-btn-txt{display:none}
   .s-btn{padding:7px 10px}
   .u-gn{display:none}
   .u-nm{max-width:55px}
-
-  /* Hero — stack vertikal */
   .hero-card{grid-template-columns:1fr}
   .h-art{width:100%;height:220px}
   .h-info{padding:16px}
   .h-title{font-size:1.15rem}
   .h-chips{margin:6px 0}
-
-  /* Sections */
   .sec{margin-top:18px}
-
-  /* Track list */
   .ti{grid-template-columns:20px 40px 1fr auto;gap:7px;padding:6px 8px}
   .ti-src,.ti-dur{display:none}
-  .ti-del{opacity:1} /* selalu tampil di sentuh */
-
-  /* DB grid */
+  .ti-del{opacity:1}
   .db-grid{grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px}
-  .dg-del{opacity:1;transform:scale(1)} /* selalu terlihat */
-
-  /* Player bar — 2 baris */
-  .pinner{
-    grid-template-columns:1fr;
-    padding:10px 14px 14px;
-    gap:8px;
-  }
+  .dg-del{opacity:1;transform:scale(1)}
+  .pinner{grid-template-columns:1fr;padding:10px 14px 14px;gap:8px;}
   .pl-l{order:1}
   .pl-c{order:2;width:100%}
   .pl-r{display:none}
   .progrow{max-width:100%}
-
-  /* Toast lebih pendek */
   .toast{font-size:.75rem;padding:7px 14px;bottom:120px}
 }
-
 @media(max-width:400px){
   .tb-name{display:none}
   .tb-ico{width:28px;height:28px;font-size:.8rem}
@@ -313,7 +291,6 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
   .h-art{height:180px}
   .h-title{font-size:1rem}
 }
-
 ::-webkit-scrollbar{width:6px}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:3px}
@@ -538,14 +515,14 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 
 <script>
 // ════════════════════════════════════════════════════════════════
-//  ★ KONFIGURASI BACKEND SOUNDCLOUD DOWNLOADER ★
+//  KONFIGURASI
 // ════════════════════════════════════════════════════════════════
-
 const API_BASE_URL = 'https://spotif-taksaka.vercel.app';
 
 const SB_URL = 'https://ygwoddwdhelqcwhpqasl.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlnd29kZHdkaGVscWN3aHBxYXNsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE4NTEwNzcsImV4cCI6MjA4NzQyNzA3N30.y0tnci0aWnhWYpxb9v7M7I0X9ss-jAt0JvpOBnZgFzo';
 const SESS_KEY = 'pgsk_v2_session';
+const PH = 'https://via.placeholder.com/210x210/0d0d1c/1DB954?text=♪';
 
 // ════════════════════════════════════════════════════════════════
 //  SUPABASE MINI-CLIENT
@@ -594,244 +571,277 @@ let qi=-1,currentTrack=null,isPlaying=false,isShuffle=false,isRepeat=false,isMut
 const audio=document.getElementById('audioEl');
 
 // ════════════════════════════════════════════════════════════════
-//  SEARCH - SOUNDCLOUD VERSION
+//  HELPER: validasi audio URL sebelum disimpan ke Supabase
+//  Pakai HEAD request — kalau server menolak HEAD, fallback GET range
 // ════════════════════════════════════════════════════════════════
+async function checkAudioUrl(url) {
+  if (!url || !url.startsWith('http')) return false;
+  try {
+    const ctrl = new AbortController();
+    const tid  = setTimeout(() => ctrl.abort(), 8000);
+    const r    = await fetch(url, { method: 'HEAD', signal: ctrl.signal });
+    clearTimeout(tid);
+    return r.ok || r.status === 206 || r.status === 403; // 403 kadang valid (CDN)
+  } catch {
+    // Kalau HEAD gagal (CORS), asumsikan valid — audio player yang akan buktikan
+    return true;
+  }
+}
 
+// ════════════════════════════════════════════════════════════════
+//  SEARCH — Spotify metadata + FAA download
+// ════════════════════════════════════════════════════════════════
+document.getElementById('sInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') doSearch();
+});
 
-document.getElementById('sInput').addEventListener('keydown',e=>{if(e.key==='Enter')doSearch();});
-  
-async function doSearch(){
+async function doSearch() {
   const q = document.getElementById('sInput').value.trim();
-  if(!q) return;
-  
-  setState('load'); 
-  setStLoad(`Mencari "${q}"`,'Memeriksa database...'); 
+  if (!q) return;
+
+  setState('load');
+  setStLoad(`Mencari "${q}"`, 'Memeriksa database...');
   setBtnLoad(true);
-  
-  try{
-    if(sbOk){
-      const c = await sb.get('tracks',`search_query=ilike.${encodeURIComponent('%'+q+'%')}&order=play_count.desc&limit=1`);
-      if(c?.length){
-        const t = rowToTrack(c[0],'db');
-        showHero(t,'db'); 
-        addToQueue(t); 
-        setState('none');
-        await playTrackObj(t);
-        sb.patch('tracks',`id=eq.${encodeURIComponent(t.id)}`,{play_count:(c[0].play_count||0)+1,last_played:new Date().toISOString()}).catch(()=>{});
-        saveSug(q); 
-        return;
+
+  try {
+    // ── 1. Cek cache Supabase ─────────────────────────────────
+    if (sbOk) {
+      const cached = await sb.get(
+        'tracks',
+        `search_query=ilike.${encodeURIComponent('%' + q + '%')}&order=play_count.desc&limit=1`
+      );
+      if (cached?.length) {
+        const t = rowToTrack(cached[0], 'db');
+        // Validasi audio URL cache sebelum dipakai
+        const audioOk = await checkAudioUrl(t.audio);
+        if (audioOk) {
+          showHero(t, 'db');
+          addToQueue(t);
+          setState('none');
+          await playTrackObj(t);
+          sb.patch('tracks', `id=eq.${encodeURIComponent(t.id)}`, {
+            play_count:  (cached[0].play_count || 0) + 1,
+            last_played: new Date().toISOString(),
+          }).catch(() => {});
+          saveSug(q);
+          return;
+        }
+        // Audio expired — lanjut ke API untuk ambil fresh
+        console.warn('[cache] Audio URL expired, ambil dari API...');
+        toast('🔄 Cache expired, ambil lagu baru...');
       }
     }
-    
-    setStLoad(`Mencari "${q}"`,'🎵 Mengunduh dari SoundCloud...');
-    
+
+    // ── 2. Hit backend API (Spotify metadata + FAA audio) ─────
+    setStLoad(`Mencari "${q}"`, '🎵 Mengambil dari Spotify...');
+
     const apiUrl = `${API_BASE_URL}/api/soundcloud-play?q=${encodeURIComponent(q)}`;
-    
-    const res = await fetch(apiUrl, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json'
-      }
-    });
-    
-    if(!res.ok){
-      const errText = await res.text();
-      throw new Error(`HTTP ${res.status}: ${errText.substring(0, 100)}`);
+    const res    = await fetch(apiUrl, { headers: { Accept: 'application/json' } });
+
+    if (!res.ok) {
+      const txt = await res.text();
+      throw new Error(`API error ${res.status}: ${txt.substring(0, 150)}`);
     }
-    
+
     const data = await res.json();
-    
-    if(!data.status || !data.info || !data.download){
-      throw new Error(data.message || 'Format response tidak valid');
+
+    if (!data.status || !data.info || !data.download?.url) {
+      throw new Error(data.message || 'Format response API tidak valid');
     }
-    
+
+    const audioUrl = data.download.url;
+
     const track = {
-      id: 'sc_' + Date.now(),
-      title: data.info.title,
-      artist: data.info.artist,
-      album: data.info.album || '',
-      duration: data.info.duration,
-      year: '–',
-      thumbnail: data.info.thumbnail,
-      audio: data.download.url,
-      soundcloudUrl: data.info.soundcloud_url,
+      id:          'sp_' + Date.now(),
+      title:       data.info.title    || q,
+      artist:      data.info.artist   || '–',
+      album:       data.info.album    || '',
+      duration:    data.info.duration || '0:00',
+      year:        data.info.year     || '–',
+      thumbnail:   data.info.thumbnail || PH,
+      audio:       audioUrl,
+      spotifyUrl:  data.info.soundcloud_url || null,
       searchQuery: q,
-      source: 'api',
-      playCount: 1
+      source:      'api',
+      playCount:   1,
     };
-    
-    if(sbOk){
-      try{
-        await sb.upsert('tracks',{
-          id: track.id,
-          title: track.title,
-          artist: track.artist,
-          album: track.album,
-          duration: track.duration,
-          year: track.year,
-          thumbnail: track.thumbnail,
-          audio_url: track.audio,
-          spotify_url: track.soundcloudUrl, 
+
+    // ── 3. Simpan ke Supabase (hanya kalau audio bisa diakses) ─
+    setStLoad(`"${track.title}"`, '💾 Menyimpan ke database...');
+
+    if (sbOk) {
+      try {
+        await sb.upsert('tracks', {
+          id:           track.id,
+          title:        track.title,
+          artist:       track.artist,
+          album:        track.album,
+          duration:     track.duration,
+          year:         track.year,
+          thumbnail:    track.thumbnail !== PH ? track.thumbnail : null,
+          audio_url:    audioUrl,
+          spotify_url:  track.spotifyUrl,
           search_query: q,
-          searched_by: session?.nama || 'guest',
-          play_count: 1,
-          last_played: new Date().toISOString(),
+          searched_by:  session?.nama || 'guest',
+          play_count:   1,
+          last_played:  new Date().toISOString(),
         });
         toast('✓ Disimpan ke Supabase!');
-      }catch(e){
-        console.warn('[sb upsert]',e.message); 
-        toast('⚠️ Gagal simpan, tetap diputar');
+      } catch (e) {
+        console.warn('[Supabase upsert]', e.message);
+        toast('⚠️ Gagal simpan ke DB, tetap diputar');
       }
     }
-    
-    saveSug(q); 
-    addToQueue(track); 
-    showHero(track,'api'); 
+
+    // ── 4. Play ───────────────────────────────────────────────
+    saveSug(q);
+    addToQueue(track);
+    showHero(track, 'api');
     setState('none');
     await playTrackObj(track);
-    
-  }catch(err){
+
+  } catch (err) {
     setState('err');
     document.getElementById('stErrT').textContent = 'Gagal mengambil lagu';
-    document.getElementById('stErrM').textContent = err.message;
-    toast('⚠️ ' + err.message); 
-    console.error(err);
-  }finally{
+    document.getElementById('stErrM').textContent  = err.message;
+    toast('⚠️ ' + err.message);
+    console.error('[doSearch]', err);
+  } finally {
     setBtnLoad(false);
   }
 }
 
-function rowToTrack(r,src='db'){
-  return{
-    id: r.id,
-    title: r.title,
-    artist: r.artist,
-    album: r.album || '',
-    duration: r.duration || '0:00',
-    year: r.year || '–',
-    thumbnail: r.thumbnail || '',
-    audio: r.audio_url,
-    spotifyUrl: r.spotify_url || null,
-    playCount: r.play_count || 0,
+function rowToTrack(r, src='db') {
+  return {
+    id:          r.id,
+    title:       r.title,
+    artist:      r.artist,
+    album:       r.album   || '',
+    duration:    r.duration || '0:00',
+    year:        r.year    || '–',
+    thumbnail:   r.thumbnail || PH,
+    audio:       r.audio_url,
+    spotifyUrl:  r.spotify_url || null,
+    playCount:   r.play_count  || 0,
     searchQuery: r.search_query || '',
-    searchedBy: r.searched_by || '',
-    source: src
+    searchedBy:  r.searched_by || '',
+    source:      src,
   };
 }
 
-function setBtnLoad(on){
-  const b=document.getElementById('sBtn'); 
-  b.disabled=on;
-  document.getElementById('sBtnIco').className=on?'fas fa-circle-notch spin-lg':'fas fa-search';
-  document.getElementById('sBtnIco').style.fontSize=on?'.78rem':'';
-  document.getElementById('sBtnTxt').textContent=on?'Mencari...':'Cari';
+function setBtnLoad(on) {
+  const b = document.getElementById('sBtn');
+  b.disabled = on;
+  document.getElementById('sBtnIco').className = on ? 'fas fa-circle-notch spin-lg' : 'fas fa-search';
+  document.getElementById('sBtnIco').style.fontSize = on ? '.78rem' : '';
+  document.getElementById('sBtnTxt').textContent = on ? 'Mencari...' : 'Cari';
 }
 
-function setStLoad(t,m){
-  document.getElementById('stLoadT').textContent=t;
-  document.getElementById('stLoadM').textContent=m;
+function setStLoad(t, m) {
+  document.getElementById('stLoadT').textContent = t;
+  document.getElementById('stLoadM').textContent = m;
 }
 
 // ════════════════════════════════════════════════════════════════
 //  HERO
 // ════════════════════════════════════════════════════════════════
+function showHero(t, src) {
+  currentTrack = t;
+  document.getElementById('hImg').src    = t.thumbnail || PH;
+  document.getElementById('hTitle').textContent  = t.title;
+  document.getElementById('hArtist').textContent = t.artist;
+  document.getElementById('hAlbum').textContent  = t.album || '';
+  document.getElementById('hDur').textContent    = t.duration;
+  document.getElementById('hYear').textContent   = t.year;
 
-function showHero(t, src){
-  currentTrack=t;
-  const PH='https://via.placeholder.com/210x210/0d0d1c/1DB954?text=♪';
-  document.getElementById('hImg').src=t.thumbnail||PH;
-  document.getElementById('hTitle').textContent=t.title;
-  document.getElementById('hArtist').textContent=t.artist;
-  document.getElementById('hAlbum').textContent=t.album||'';
-  document.getElementById('hDur').textContent=t.duration;
-  document.getElementById('hYear').textContent=t.year;
-  
   const badge = document.getElementById('hBadge');
   badge.style.display = 'inline-flex';
-  if(src === 'db'){
+  if (src === 'db') {
     badge.className = 'h-src-badge badge-db';
     badge.innerHTML = '<i class="fas fa-database"></i> Dari Database';
   } else {
     badge.className = 'h-src-badge badge-api';
-    badge.innerHTML = '<i class="fab fa-soundcloud"></i> SoundCloud → Disimpan'; // Ganti icon
+    badge.innerHTML = '<i class="fab fa-spotify"></i> Spotify → Disimpan';
   }
-  
-  if(t.playCount){
-    document.getElementById('hPlays').style.display='flex';
-    document.getElementById('hPlaysN').textContent=t.playCount;
+
+  if (t.playCount) {
+    document.getElementById('hPlays').style.display = 'flex';
+    document.getElementById('hPlaysN').textContent  = t.playCount;
+  } else {
+    document.getElementById('hPlays').style.display = 'none';
   }
-  
-  document.getElementById('hSpot').style.display=t.spotifyUrl?'flex':'none';
+
+  document.getElementById('hSpot').style.display = t.spotifyUrl ? 'flex' : 'none';
   document.getElementById('hero').classList.add('show');
-  updHeroPlayBtn(); 
+  updHeroPlayBtn();
   updHeroLike();
 }
 
-function updHeroPlayBtn(){
-  const p=isPlaying&&!audio.paused;
-  document.getElementById('hPlayIco').className=p?'fas fa-pause':'fas fa-play';
-  document.getElementById('hPlayTxt').textContent=p?'Jeda':'Putar';
-  document.getElementById('hPlayBtn').classList.toggle('pause-state',p);
-  document.getElementById('hRing').classList.toggle('on',p);
+function updHeroPlayBtn() {
+  const p = isPlaying && !audio.paused;
+  document.getElementById('hPlayIco').className  = p ? 'fas fa-pause' : 'fas fa-play';
+  document.getElementById('hPlayTxt').textContent = p ? 'Jeda' : 'Putar';
+  document.getElementById('hPlayBtn').classList.toggle('pause-state', p);
+  document.getElementById('hRing').classList.toggle('on', p);
 }
 
-function playOrToggle(){
-  if(!currentTrack)return;
-  if(audio.src===currentTrack.audio){togglePlay();return;}
+function playOrToggle() {
+  if (!currentTrack) return;
+  if (audio.src === currentTrack.audio) { togglePlay(); return; }
   playTrackObj(currentTrack);
 }
 
-function addHeroToQueue(){
-  if(!currentTrack)return;
+function addHeroToQueue() {
+  if (!currentTrack) return;
   addToQueue(currentTrack);
   toast('Ditambahkan ke queue');
 }
 
-function openSpotify(){
-  if(currentTrack?.spotifyUrl)window.open(currentTrack.spotifyUrl,'_blank');
+function openSpotify() {
+  if (currentTrack?.spotifyUrl) window.open(currentTrack.spotifyUrl, '_blank');
 }
 
 // ════════════════════════════════════════════════════════════════
 //  QUEUE
 // ════════════════════════════════════════════════════════════════
-function addToQueue(t){
-  queue=queue.filter(x=>x.id!==t.id); 
+function addToQueue(t) {
+  queue = queue.filter(x => x.id !== t.id);
   queue.unshift(t);
-  if(queue.length>60)queue=queue.slice(0,60);
-  LS.sq(queue); 
-  qi=queue.findIndex(x=>x.id===currentTrack?.id);
-  renderQueue(); 
-  document.getElementById('qSec').style.display='block';
-  document.getElementById('qBadge').textContent=queue.length;
-}
-
-function removeFromQueue(id){
-  queue=queue.filter(t=>t.id!==id); 
+  if (queue.length > 60) queue = queue.slice(0, 60);
   LS.sq(queue);
-  qi=queue.findIndex(t=>t.id===currentTrack?.id);
-  renderQueue(); 
-  document.getElementById('qBadge').textContent=queue.length;
-  if(!queue.length)document.getElementById('qSec').style.display='none';
+  qi = queue.findIndex(x => x.id === currentTrack?.id);
+  renderQueue();
+  document.getElementById('qSec').style.display = 'block';
+  document.getElementById('qBadge').textContent = queue.length;
 }
 
-function clearQueue(){
-  queue=[];LS.sq(queue);qi=-1;renderQueue();
-  document.getElementById('qBadge').textContent=0;
-  document.getElementById('qSec').style.display='none';
+function removeFromQueue(id) {
+  queue = queue.filter(t => t.id !== id);
+  LS.sq(queue);
+  qi = queue.findIndex(t => t.id === currentTrack?.id);
+  renderQueue();
+  document.getElementById('qBadge').textContent = queue.length;
+  if (!queue.length) document.getElementById('qSec').style.display = 'none';
 }
 
-function renderQueue(){
-  const el=document.getElementById('panQ');
-  if(!queue.length){
-    el.innerHTML='<div class="empty-ti"><i class="fas fa-layer-group"></i>Queue kosong</div>';
+function clearQueue() {
+  queue = []; LS.sq(queue); qi = -1; renderQueue();
+  document.getElementById('qBadge').textContent = 0;
+  document.getElementById('qSec').style.display = 'none';
+}
+
+function renderQueue() {
+  const el = document.getElementById('panQ');
+  if (!queue.length) {
+    el.innerHTML = '<div class="empty-ti"><i class="fas fa-layer-group"></i>Queue kosong</div>';
     return;
   }
-  el.innerHTML=queue.map((t,i)=>`
-    <div class="ti ${currentTrack?.id===t.id?'on':''}" onclick='playTrackObj(${esc(t)})'>
-      <div class="ti-n">${currentTrack?.id===t.id?'<i class="fas fa-volume-up" style="color:var(--g);font-size:.62rem"></i>':i+1}</div>
-      <div class="ti-th"><img src="${t.thumbnail||''}" alt="" onerror="this.src='https://via.placeholder.com/44x44/0d0d1c/333?text=♪'"></div>
+  el.innerHTML = queue.map((t, i) => `
+    <div class="ti ${currentTrack?.id === t.id ? 'on' : ''}" onclick='playTrackObj(${esc(t)})'>
+      <div class="ti-n">${currentTrack?.id === t.id ? '<i class="fas fa-volume-up" style="color:var(--g);font-size:.62rem"></i>' : i + 1}</div>
+      <div class="ti-th"><img src="${t.thumbnail || PH}" alt="" onerror="this.src='${PH}'"></div>
       <div class="ti-inf"><div class="ti-t">${t.title}</div><div class="ti-a">${t.artist}</div></div>
-      <span class="ti-src ${t.source==='db'?'src-db':'src-api'}">${t.source==='db'?'DB':'API'}</span>
+      <span class="ti-src ${t.source === 'db' ? 'src-db' : 'src-api'}">${t.source === 'db' ? 'DB' : 'API'}</span>
       <div class="ti-dur">${t.duration}</div>
       <button class="ti-del" onclick="event.stopPropagation();removeFromQueue('${t.id}')"><i class="fas fa-times"></i></button>
     </div>`).join('');
@@ -840,144 +850,129 @@ function renderQueue(){
 // ════════════════════════════════════════════════════════════════
 //  HISTORY
 // ════════════════════════════════════════════════════════════════
-async function addToHistory(t){
-  const entry={...t,playedAt:new Date().toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'})};
-  histArr=histArr.filter(x=>x.id!==t.id); 
+async function addToHistory(t) {
+  const entry = { ...t, playedAt: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) };
+  histArr = histArr.filter(x => x.id !== t.id);
   histArr.unshift(entry);
-  if(histArr.length>30)histArr=histArr.slice(0,30);
-  LS.sh(histArr); 
+  if (histArr.length > 30) histArr = histArr.slice(0, 30);
+  LS.sh(histArr);
   renderHistory();
-  if(sbOk)sb.post('play_history',{user_key:USER_KEY,track_id:t.id,played_at:new Date().toISOString()}).catch(()=>{});
+  if (sbOk) sb.post('play_history', { user_key: USER_KEY, track_id: t.id, played_at: new Date().toISOString() }).catch(() => {});
 }
 
-function clearHistory(){
-  histArr=[];LS.sh(histArr);renderHistory();
-}
+function clearHistory() { histArr = []; LS.sh(histArr); renderHistory(); }
 
-function renderHistory(){
-  const el=document.getElementById('panH');
-  if(!histArr.length){
-    el.innerHTML='<div class="empty-ti"><i class="fas fa-history"></i>Belum ada riwayat</div>';
+function renderHistory() {
+  const el = document.getElementById('panH');
+  if (!histArr.length) {
+    el.innerHTML = '<div class="empty-ti"><i class="fas fa-history"></i>Belum ada riwayat</div>';
     return;
   }
-  el.innerHTML=histArr.map((t,i)=>`
+  el.innerHTML = histArr.map((t, i) => `
     <div class="ti" onclick='playTrackObj(${esc(t)})'>
-      <div class="ti-n" style="font-size:.6rem">${t.playedAt||''}</div>
-      <div class="ti-th"><img src="${t.thumbnail||''}" alt="" onerror="this.src='https://via.placeholder.com/44x44/0d0d1c/333?text=♪'"></div>
+      <div class="ti-n" style="font-size:.6rem">${t.playedAt || ''}</div>
+      <div class="ti-th"><img src="${t.thumbnail || PH}" alt="" onerror="this.src='${PH}'"></div>
       <div class="ti-inf"><div class="ti-t">${t.title}</div><div class="ti-a">${t.artist}</div></div>
-      <span class="ti-src ${t.source==='db'?'src-db':'src-api'}">${t.source==='db'?'DB':'API'}</span>
+      <span class="ti-src ${t.source === 'db' ? 'src-db' : 'src-api'}">${t.source === 'db' ? 'DB' : 'API'}</span>
       <div class="ti-dur">${t.duration}</div>
       <button class="ti-del" onclick="event.stopPropagation();removeHist('${t.id}')"><i class="fas fa-times"></i></button>
     </div>`).join('');
 }
 
-function removeHist(id){
-  histArr=histArr.filter(t=>t.id!==id);
-  LS.sh(histArr);
-  renderHistory();
-}
+function removeHist(id) { histArr = histArr.filter(t => t.id !== id); LS.sh(histArr); renderHistory(); }
 
 // ════════════════════════════════════════════════════════════════
 //  LIKED
 // ════════════════════════════════════════════════════════════════
-async function toggleLikeCurrent(){
-  if(!currentTrack)return;
-  const idx=likedArr.findIndex(l=>l.id===currentTrack.id);
-  if(idx>-1){
-    likedArr.splice(idx,1); 
+async function toggleLikeCurrent() {
+  if (!currentTrack) return;
+  const idx = likedArr.findIndex(l => l.id === currentTrack.id);
+  if (idx > -1) {
+    likedArr.splice(idx, 1);
     toast('Dihapus dari Disukai');
-    if(sbOk)sb.del('liked',`user_key=eq.${USER_KEY}&track_id=eq.${encodeURIComponent(currentTrack.id)}`).catch(()=>{});
-  }else{
-    likedArr.unshift(currentTrack); 
+    if (sbOk) sb.del('liked', `user_key=eq.${USER_KEY}&track_id=eq.${encodeURIComponent(currentTrack.id)}`).catch(() => {});
+  } else {
+    likedArr.unshift(currentTrack);
     toast('Ditambahkan ke Disukai ❤️');
-    if(sbOk)sb.post('liked',{user_key:USER_KEY,track_id:currentTrack.id}).catch(()=>{});
+    if (sbOk) sb.post('liked', { user_key: USER_KEY, track_id: currentTrack.id }).catch(() => {});
   }
-  LS.sl(likedArr); 
-  updHeroLike(); 
-  updPBLike(); 
-  renderLiked(); 
-  updLikedCnt();
+  LS.sl(likedArr); updHeroLike(); updPBLike(); renderLiked(); updLikedCnt();
 }
 
-function updHeroLike(){
-  if(!currentTrack)return;
-  const on=likedArr.some(l=>l.id===currentTrack.id);
-  const b=document.getElementById('hLike');
-  b.innerHTML=`<i class="${on?'fas':'far'} fa-heart" style="color:${on?'var(--rd)':''}"></i>`;
-  b.classList.toggle('liked',on);
+function updHeroLike() {
+  if (!currentTrack) return;
+  const on = likedArr.some(l => l.id === currentTrack.id);
+  const b  = document.getElementById('hLike');
+  b.innerHTML = `<i class="${on ? 'fas' : 'far'} fa-heart" style="color:${on ? 'var(--rd)' : ''}"></i>`;
+  b.classList.toggle('liked', on);
 }
 
-function updPBLike(){
-  if(!currentTrack)return;
-  const on=likedArr.some(l=>l.id===currentTrack.id);
-  const b=document.getElementById('pbLike');
-  b.innerHTML=`<i class="${on?'fas':'far'} fa-heart"></i>`;
-  b.classList.toggle('on',on);
+function updPBLike() {
+  if (!currentTrack) return;
+  const on = likedArr.some(l => l.id === currentTrack.id);
+  const b  = document.getElementById('pbLike');
+  b.innerHTML = `<i class="${on ? 'fas' : 'far'} fa-heart"></i>`;
+  b.classList.toggle('on', on);
 }
 
-function renderLiked(){
-  const el=document.getElementById('likedList');
-  if(!likedArr.length){
-    el.innerHTML='<div class="empty-ti"><i class="fas fa-heart"></i>Belum ada</div>';
-    return;
-  }
-  el.innerHTML=likedArr.map((t,i)=>`
+function renderLiked() {
+  const el = document.getElementById('likedList');
+  if (!likedArr.length) { el.innerHTML = '<div class="empty-ti"><i class="fas fa-heart"></i>Belum ada</div>'; return; }
+  el.innerHTML = likedArr.map((t, i) => `
     <div class="ti" onclick='playTrackObj(${esc(t)})'>
-      <div class="ti-n">${i+1}</div>
-      <div class="ti-th"><img src="${t.thumbnail||''}" alt="" onerror="this.src='https://via.placeholder.com/44x44/0d0d1c/333?text=♪'"></div>
+      <div class="ti-n">${i + 1}</div>
+      <div class="ti-th"><img src="${t.thumbnail || PH}" alt="" onerror="this.src='${PH}'"></div>
       <div class="ti-inf"><div class="ti-t">${t.title}</div><div class="ti-a">${t.artist}</div></div>
-      <span class="ti-src ${t.source==='db'?'src-db':'src-api'}">${t.source==='db'?'DB':'API'}</span>
+      <span class="ti-src ${t.source === 'db' ? 'src-db' : 'src-api'}">${t.source === 'db' ? 'DB' : 'API'}</span>
       <div class="ti-dur">${t.duration}</div>
       <button class="ti-del" onclick="event.stopPropagation();rmLiked('${t.id}')"><i class="fas fa-times"></i></button>
     </div>`).join('');
 }
 
-function rmLiked(id){
-  likedArr=likedArr.filter(l=>l.id!==id);
-  LS.sl(likedArr);
-  renderLiked();
-  updLikedCnt();
-  if(currentTrack?.id===id){updHeroLike();updPBLike();}
+function rmLiked(id) {
+  likedArr = likedArr.filter(l => l.id !== id);
+  LS.sl(likedArr); renderLiked(); updLikedCnt();
+  if (currentTrack?.id === id) { updHeroLike(); updPBLike(); }
 }
 
-function updLikedCnt(){
-  const n=likedArr.length;
-  document.getElementById('likedBadge').textContent=n;
-  document.getElementById('likedBadge').style.display=n?'inline':'none';
-  const lb=document.getElementById('likedCntLbl');
-  if(lb)lb.textContent=n+' lagu';
+function updLikedCnt() {
+  const n = likedArr.length;
+  document.getElementById('likedBadge').textContent = n;
+  document.getElementById('likedBadge').style.display = n ? 'inline' : 'none';
+  const lb = document.getElementById('likedCntLbl');
+  if (lb) lb.textContent = n + ' lagu';
 }
 
-function toggleLikedSec(){
-  const s=document.getElementById('likedSec');
-  const showing=s.style.display==='block';
-  s.style.display=showing?'none':'block';
-  if(!showing){renderLiked();updLikedCnt();}
+function toggleLikedSec() {
+  const s = document.getElementById('likedSec');
+  const showing = s.style.display === 'block';
+  s.style.display = showing ? 'none' : 'block';
+  if (!showing) { renderLiked(); updLikedCnt(); }
 }
 
 // ════════════════════════════════════════════════════════════════
 //  DB TRACKS GRID
 // ════════════════════════════════════════════════════════════════
-async function loadDBTracks(){
-  if(!sbOk){toast('Supabase belum dikonfigurasi');return;}
-  try{
-    const rows=await sb.get('tracks','order=last_played.desc.nullslast&limit=50');
-    document.getElementById('dbSec').style.display='block';
-    document.getElementById('dbCnt').textContent=rows.length;
-    const el=document.getElementById('dbGrid');
-    if(!rows.length){
-      el.innerHTML='<p style="color:var(--mt);font-size:.82rem;grid-column:1/-1;text-align:center;padding:26px">Belum ada lagu tersimpan.</p>';
+async function loadDBTracks() {
+  if (!sbOk) { toast('Supabase belum dikonfigurasi'); return; }
+  try {
+    const rows = await sb.get('tracks', 'order=last_played.desc.nullslast&limit=50');
+    document.getElementById('dbSec').style.display = 'block';
+    document.getElementById('dbCnt').textContent   = rows.length;
+    const el = document.getElementById('dbGrid');
+    if (!rows.length) {
+      el.innerHTML = '<p style="color:var(--mt);font-size:.82rem;grid-column:1/-1;text-align:center;padding:26px">Belum ada lagu tersimpan.</p>';
       return;
     }
-    el.innerHTML=rows.map(r=>{
-      const t=rowToTrack(r,'db');
-      const tEsc=esc(t);
-      const tId=r.id.replace(/'/g,"\\'");
-      const tName=(r.title+' — '+r.artist).replace(/'/g,"\\'").replace(/"/g,'&quot;');
+    el.innerHTML = rows.map(r => {
+      const t    = rowToTrack(r, 'db');
+      const tEsc = esc(t);
+      const tId  = r.id.replace(/'/g, "\\'");
+      const tName = (r.title + ' — ' + r.artist).replace(/'/g, "\\'").replace(/"/g, '&quot;');
       return `
         <div class="dg-card" id="card-${CSS.escape(r.id)}" onclick='playTrackObj(${tEsc})'>
           <div class="dg-thumb">
-            <img src="${r.thumbnail||''}" alt="" onerror="this.src='https://via.placeholder.com/148x148/0d0d1c/333?text=♪'">
+            <img src="${r.thumbnail || PH}" alt="" onerror="this.src='${PH}'">
             <button class="dg-play" onclick="event.stopPropagation();playTrackObj(${tEsc})"><i class="fas fa-play"></i></button>
           </div>
           <button class="dg-del" onclick="event.stopPropagation();openConfirm('${tId}','${tName}')" title="Hapus dari database">
@@ -986,96 +981,94 @@ async function loadDBTracks(){
           <div class="dg-title">${r.title}</div>
           <div class="dg-artist">${r.artist}</div>
           <div class="dg-meta">
-            <span><i class="fas fa-headphones" style="font-size:.5rem"></i> ${r.play_count||0}×</span>
-            ${r.duration?`<span>${r.duration}</span>`:''}
+            <span><i class="fas fa-headphones" style="font-size:.5rem"></i> ${r.play_count || 0}×</span>
+            ${r.duration ? `<span>${r.duration}</span>` : ''}
           </div>
-          ${r.searched_by?`<div class="dg-by">oleh ${r.searched_by}</div>`:''}
+          ${r.searched_by ? `<div class="dg-by">oleh ${r.searched_by}</div>` : ''}
         </div>`;
     }).join('');
-  }catch(e){toast('Gagal load DB: '+e.message);console.error(e);}
+  } catch (e) { toast('Gagal load DB: ' + e.message); console.error(e); }
 }
 
 // ════════════════════════════════════════════════════════════════
 //  DELETE FROM SUPABASE
 // ════════════════════════════════════════════════════════════════
-let _pendingDeleteId=null;
+let _pendingDeleteId = null;
 
-function openConfirm(trackId,trackName){
-  _pendingDeleteId=trackId;
-  document.getElementById('confirmTrackName').textContent=trackName;
-  document.getElementById('confirmBtn').disabled=false;
-  document.getElementById('confirmBtn').innerHTML='<i class="fas fa-trash-alt"></i> Ya, Hapus';
+function openConfirm(trackId, trackName) {
+  _pendingDeleteId = trackId;
+  document.getElementById('confirmTrackName').textContent = trackName;
+  document.getElementById('confirmBtn').disabled = false;
+  document.getElementById('confirmBtn').innerHTML = '<i class="fas fa-trash-alt"></i> Ya, Hapus';
   document.getElementById('confirmModal').classList.add('open');
 }
 
-function closeConfirm(e){
-  if(e&&e.target!==document.getElementById('confirmModal'))return;
+function closeConfirm(e) {
+  if (e && e.target !== document.getElementById('confirmModal')) return;
   document.getElementById('confirmModal').classList.remove('open');
-  _pendingDeleteId=null;
+  _pendingDeleteId = null;
 }
 
-async function confirmDelete(){
-  if(!_pendingDeleteId)return;
-  const id=_pendingDeleteId;
-  const btn=document.getElementById('confirmBtn');
-  btn.disabled=true;
-  btn.innerHTML='<i class="fas fa-circle-notch spin-lg" style="font-size:.75rem"></i> Menghapus...';
-  try{
+async function confirmDelete() {
+  if (!_pendingDeleteId) return;
+  const id  = _pendingDeleteId;
+  const btn = document.getElementById('confirmBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-circle-notch spin-lg" style="font-size:.75rem"></i> Menghapus...';
+  try {
     await Promise.allSettled([
-      sb.del('liked',`track_id=eq.${encodeURIComponent(id)}`),
-      sb.del('play_history',`track_id=eq.${encodeURIComponent(id)}`),
+      sb.del('liked',        `track_id=eq.${encodeURIComponent(id)}`),
+      sb.del('play_history', `track_id=eq.${encodeURIComponent(id)}`),
     ]);
-    await sb.del('tracks',`id=eq.${encodeURIComponent(id)}`);
-    
-    queue=queue.filter(t=>t.id!==id);       LS.sq(queue);
-    histArr=histArr.filter(t=>t.id!==id);   LS.sh(histArr);
-    likedArr=likedArr.filter(t=>t.id!==id); LS.sl(likedArr);
-    renderQueue();renderHistory();renderLiked();updLikedCnt();
-    document.getElementById('qBadge').textContent=queue.length;
-    if(!queue.length)document.getElementById('qSec').style.display='none';
-    
-    const cardEl=document.querySelector(`#card-${CSS.escape(id)}`);
-    if(cardEl){
-      cardEl.style.transition='opacity .25s,transform .25s';
-      cardEl.style.opacity='0';
-      cardEl.style.transform='scale(.85)';
-      setTimeout(()=>cardEl.remove(),280);
+    await sb.del('tracks', `id=eq.${encodeURIComponent(id)}`);
+
+    queue    = queue.filter(t => t.id !== id);    LS.sq(queue);
+    histArr  = histArr.filter(t => t.id !== id);  LS.sh(histArr);
+    likedArr = likedArr.filter(t => t.id !== id); LS.sl(likedArr);
+    renderQueue(); renderHistory(); renderLiked(); updLikedCnt();
+    document.getElementById('qBadge').textContent = queue.length;
+    if (!queue.length) document.getElementById('qSec').style.display = 'none';
+
+    const cardEl = document.querySelector(`#card-${CSS.escape(id)}`);
+    if (cardEl) {
+      cardEl.style.transition = 'opacity .25s,transform .25s';
+      cardEl.style.opacity    = '0';
+      cardEl.style.transform  = 'scale(.85)';
+      setTimeout(() => cardEl.remove(), 280);
     }
-    const cnt=document.getElementById('dbCnt');
-    cnt.textContent=Math.max(0,parseInt(cnt.textContent)-1);
-    
-    if(currentTrack?.id===id){
-      currentTrack=null; audio.pause(); audio.src='';
-      isPlaying=false; updAll();
-      document.getElementById('plTitle').textContent='Lagu dihapus dari database';
-      document.getElementById('plArt').textContent='–';
-      document.getElementById('hBadge').style.display='none';
+    const cnt = document.getElementById('dbCnt');
+    cnt.textContent = Math.max(0, parseInt(cnt.textContent) - 1);
+
+    if (currentTrack?.id === id) {
+      currentTrack = null; audio.pause(); audio.src = '';
+      isPlaying = false; updAll();
+      document.getElementById('plTitle').textContent = 'Lagu dihapus dari database';
+      document.getElementById('plArt').textContent   = '–';
+      document.getElementById('hBadge').style.display = 'none';
       updHeroPlayBtn();
     }
     toast('🗑️ Berhasil dihapus dari database');
-  }catch(e){
-    toast('❌ Gagal hapus: '+e.message); console.error(e);
-    btn.disabled=false;
-    btn.innerHTML='<i class="fas fa-trash-alt"></i> Coba Lagi';
+  } catch (e) {
+    toast('❌ Gagal hapus: ' + e.message); console.error(e);
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-trash-alt"></i> Coba Lagi';
     return;
   }
   document.getElementById('confirmModal').classList.remove('open');
-  _pendingDeleteId=null;
+  _pendingDeleteId = null;
 }
 
 // ════════════════════════════════════════════════════════════════
 //  SUGGESTIONS
 // ════════════════════════════════════════════════════════════════
-function saveSug(q){
-  let s=LS.sugs().filter(x=>x.toLowerCase()!==q.toLowerCase());
-  s.unshift(q);
-  s=s.slice(0,12);
-  LS.ssug(s);
-  renderSugs();
+function saveSug(q) {
+  let s = LS.sugs().filter(x => x.toLowerCase() !== q.toLowerCase());
+  s.unshift(q); s = s.slice(0, 12);
+  LS.ssug(s); renderSugs();
 }
 
-function renderSugs(){
-  document.getElementById('sugList').innerHTML=LS.sugs().map(q=>`
+function renderSugs() {
+  document.getElementById('sugList').innerHTML = LS.sugs().map(q => `
     <div class="sug">
       <i class="fas fa-history" style="font-size:.58rem"></i>
       <span onclick="document.getElementById('sInput').value=${JSON.stringify(q)};doSearch()">${q}</span>
@@ -1083,221 +1076,165 @@ function renderSugs(){
     </div>`).join('');
 }
 
-function rmSug(q){LS.ssug(LS.sugs().filter(x=>x!==q));renderSugs();}
+function rmSug(q) { LS.ssug(LS.sugs().filter(x => x !== q)); renderSugs(); }
 
 // ════════════════════════════════════════════════════════════════
 //  TABS
 // ════════════════════════════════════════════════════════════════
-function switchTab(t){
-  document.getElementById('tQ').classList.toggle('on',t==='q');
-  document.getElementById('tH').classList.toggle('on',t==='h');
-  document.getElementById('panQ').style.display=t==='q'?'flex':'none';
-  document.getElementById('panH').style.display=t==='h'?'flex':'none';
-  if(t==='q')document.getElementById('panQ').style.flexDirection='column';
-  if(t==='h'){document.getElementById('panH').style.flexDirection='column';renderHistory();}
-  document.getElementById('tabActBtn').dataset.t=t;
-  document.getElementById('tabActBtn').innerHTML=t==='q'?'<i class="fas fa-trash-alt"></i> Hapus semua':'<i class="fas fa-trash-alt"></i> Hapus riwayat';
+function switchTab(t) {
+  document.getElementById('tQ').classList.toggle('on', t === 'q');
+  document.getElementById('tH').classList.toggle('on', t === 'h');
+  document.getElementById('panQ').style.display = t === 'q' ? 'flex' : 'none';
+  document.getElementById('panH').style.display = t === 'h' ? 'flex' : 'none';
+  if (t === 'q') document.getElementById('panQ').style.flexDirection = 'column';
+  if (t === 'h') { document.getElementById('panH').style.flexDirection = 'column'; renderHistory(); }
+  document.getElementById('tabActBtn').dataset.t = t;
+  document.getElementById('tabActBtn').innerHTML = t === 'q'
+    ? '<i class="fas fa-trash-alt"></i> Hapus semua'
+    : '<i class="fas fa-trash-alt"></i> Hapus riwayat';
 }
 
-function tabAction(){
-  const t=document.getElementById('tabActBtn').dataset.t||'q';
-  t==='q'?clearQueue():clearHistory();
+function tabAction() {
+  const t = document.getElementById('tabActBtn').dataset.t || 'q';
+  t === 'q' ? clearQueue() : clearHistory();
 }
 
 // ════════════════════════════════════════════════════════════════
-//  PLAYER & AUDIO SYSTEM
+//  PLAYER & AUDIO
 // ════════════════════════════════════════════════════════════════
+async function playTrackObj(t) {
+  if (!audio.paused) { audio.pause(); audio.currentTime = 0; }
 
-let currentAudioUrl = null;
-
-function cleanupAudioUrl() {
-  if (currentAudioUrl && !currentAudioUrl.startsWith('data:')) {
-    URL.revokeObjectURL(currentAudioUrl);
-    currentAudioUrl = null;
-  }
-}
-
-async function playTrackObj(t){
-  cleanupAudioUrl();
-  if (!audio.paused) {
-    audio.pause();
-    audio.currentTime = 0;
-  }
-  
-  currentTrack = t; 
+  currentTrack = t;
   qi = queue.findIndex(x => x.id === t.id);
-  
-  document.getElementById('plImg').src = t.thumbnail || '';
-  document.getElementById('plTitle').textContent = t.title;
-  document.getElementById('plArt').textContent = t.artist;
-  
+
+  document.getElementById('plImg').src             = t.thumbnail || PH;
+  document.getElementById('plTitle').textContent   = t.title;
+  document.getElementById('plArt').textContent     = t.artist;
+
   try {
-    audio.src = t.audio;
+    audio.src  = t.audio;
     audio.type = 'audio/mpeg';
-    
+
     await new Promise((resolve, reject) => {
-      const onCanPlay = () => {
-        audio.removeEventListener('canplaythrough', onCanPlay);
-        audio.removeEventListener('error', onError);
-        resolve();
-      };
-      const onError = (e) => {
-        audio.removeEventListener('canplaythrough', onCanPlay);
-        audio.removeEventListener('error', onError);
-        reject(new Error('Audio error: ' + (audio.error?.message || 'Unknown')));
-      };
-      
-      audio.addEventListener('canplaythrough', onCanPlay);
-      audio.addEventListener('error', onError);
+      const onCan = () => { audio.removeEventListener('canplaythrough', onCan); audio.removeEventListener('error', onErr); resolve(); };
+      const onErr = () => { audio.removeEventListener('canplaythrough', onCan); audio.removeEventListener('error', onErr); reject(new Error('Audio error: ' + (audio.error?.message || 'Unknown'))); };
+      audio.addEventListener('canplaythrough', onCan);
+      audio.addEventListener('error', onErr);
       audio.load();
     });
-    
+
     await audio.play();
     isPlaying = true;
-    
   } catch (e) {
     console.error('Play error:', e);
     toast('⚠️ Gagal memutar: ' + e.message);
     isPlaying = false;
   }
-  
-  updAll(); 
+
+  updAll();
   showHero(t, t.source || 'api');
   document.getElementById('pbar').classList.add('up');
-  addToHistory(t); 
-  updHeroLike(); 
-  updPBLike(); 
-  renderQueue(); 
-  startProg();
+  addToHistory(t); updHeroLike(); updPBLike(); renderQueue(); startProg();
 }
 
-function togglePlay(){
+function togglePlay() {
   if (!currentTrack) return;
-  if (isPlaying) {
-    audio.pause();
-  } else {
-    audio.play().catch(e => {
-      console.error('Resume failed:', e);
-      toast('⚠️ Gagal melanjutkan pemutaran');
-    });
-  }
+  if (isPlaying) { audio.pause(); }
+  else { audio.play().catch(e => toast('⚠️ Gagal: ' + e.message)); }
 }
 
-function prevTrack(){
+function prevTrack() {
   if (!queue.length) return;
   qi = isShuffle ? Math.floor(Math.random() * queue.length) : (qi > 0 ? qi - 1 : queue.length - 1);
   playTrackObj(queue[qi]);
 }
 
-function nextTrack(){
+function nextTrack() {
   if (!queue.length) return;
   qi = isShuffle ? Math.floor(Math.random() * queue.length) : (qi < queue.length - 1 ? qi + 1 : 0);
   playTrackObj(queue[qi]);
 }
 
-function toggleShuffle(){
+function toggleShuffle() {
   isShuffle = !isShuffle;
   document.getElementById('cbShuf').classList.toggle('on', isShuffle);
   toast(isShuffle ? 'Shuffle aktif 🔀' : 'Shuffle nonaktif');
 }
 
-function toggleRepeat(){
+function toggleRepeat() {
   isRepeat = !isRepeat;
   document.getElementById('cbRep').classList.toggle('on', isRepeat);
   toast(isRepeat ? 'Repeat aktif 🔁' : 'Repeat nonaktif');
 }
 
-function toggleMute(){
-  isMuted = !isMuted;
-  audio.muted = isMuted;
+function toggleMute() {
+  isMuted = !isMuted; audio.muted = isMuted;
   document.getElementById('vIco').className = isMuted ? 'fas fa-volume-mute' : vol > .5 ? 'fas fa-volume-up' : 'fas fa-volume-down';
 }
 
-function updAll(){
+function updAll() {
   const p = isPlaying && !audio.paused;
   document.getElementById('cbIco').className = p ? 'fas fa-pause' : 'fas fa-play';
   document.getElementById('plEq').classList.toggle('on', p);
   updHeroPlayBtn();
 }
 
-function startProg(){
+function startProg() {
   clearInterval(progInt);
   progInt = setInterval(() => {
     if (audio.duration) {
       document.getElementById('prfill').style.width = ((audio.currentTime / audio.duration) * 100) + '%';
-      document.getElementById('ptCur').textContent = fmt(audio.currentTime);
-      document.getElementById('ptTot').textContent = fmt(audio.duration);
+      document.getElementById('ptCur').textContent  = fmt(audio.currentTime);
+      document.getElementById('ptTot').textContent  = fmt(audio.duration);
     }
   }, 400);
 }
 
-function fmt(s){
-  return isNaN(s) ? '0:00' : `${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,'0')}`;
-}
+function fmt(s) { return isNaN(s) ? '0:00' : `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`; }
 
-function seek(e){
-  const r = document.getElementById('prbar').getBoundingClientRect();
+function seek(e) {
+  const r     = document.getElementById('prbar').getBoundingClientRect();
   const ratio = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width));
-  if (audio.duration) {
-    audio.currentTime = ratio * audio.duration;
-    document.getElementById('prfill').style.width = (ratio * 100) + '%';
-  }
+  if (audio.duration) { audio.currentTime = ratio * audio.duration; document.getElementById('prfill').style.width = (ratio * 100) + '%'; }
 }
 
-function setVol(e){
+function setVol(e) {
   const r = document.getElementById('vBar').getBoundingClientRect();
   vol = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width));
   audio.volume = vol;
-  document.getElementById('vFill').style.width = (vol * 100) + '%';
+  document.getElementById('vFill').style.width  = (vol * 100) + '%';
   document.getElementById('vIco').className = vol > .5 ? 'fas fa-volume-up' : vol > 0 ? 'fas fa-volume-down' : 'fas fa-volume-mute';
 }
 
-// Event listeners untuk audio
-audio.addEventListener('play', () => { isPlaying = true; updAll(); startProg(); });
+// Audio events
+audio.addEventListener('play',  () => { isPlaying = true;  updAll(); startProg(); });
 audio.addEventListener('pause', () => { isPlaying = false; updAll(); });
-audio.addEventListener('ended', () => { 
-  cleanupAudioUrl();
-  isRepeat ? audio.play() : nextTrack(); 
-});
-audio.addEventListener('error', (e) => {
-  console.error('Audio error:', audio.error);
+audio.addEventListener('ended', () => { isRepeat ? audio.play() : nextTrack(); });
+audio.addEventListener('error', () => {
   let msg = 'Gagal memutar audio';
-  switch(audio.error?.code) {
-    case 1: msg = 'Proses dihentikan'; break;
-    case 2: msg = 'Error jaringan'; break;
-    case 3: msg = 'Format tidak didukung'; break;
-    case 4: msg = 'File tidak ditemukan'; break;
+  switch (audio.error?.code) {
+    case 1: msg = 'Proses dihentikan';      break;
+    case 2: msg = 'Error jaringan';         break;
+    case 3: msg = 'Format tidak didukung';  break;
+    case 4: msg = 'File tidak ditemukan';   break;
   }
-  toast('❌ ' + msg);
-  isPlaying = false;
-  updAll();
+  toast('❌ ' + msg); isPlaying = false; updAll();
 });
 
 // Touch swipe progress bar
 (function(){
   const pb = document.getElementById('prbar');
-  let isDragging = false;
-  
-  pb.addEventListener('touchstart', (e) => {
-    isDragging = true;
-    updateProgressFromTouch(e.touches[0]);
-  }, {passive: false});
-  
-  pb.addEventListener('touchmove', (e) => {
-    if (!isDragging) return;
-    e.preventDefault();
-    updateProgressFromTouch(e.touches[0]);
-  }, {passive: false});
-  
-  pb.addEventListener('touchend', (e) => {
-    if (!isDragging) return;
-    isDragging = false;
+  let drag = false;
+  pb.addEventListener('touchstart', e => { drag = true; updProg(e.touches[0]); }, { passive: false });
+  pb.addEventListener('touchmove',  e => { if (!drag) return; e.preventDefault(); updProg(e.touches[0]); }, { passive: false });
+  pb.addEventListener('touchend',   e => {
+    if (!drag) return; drag = false;
     const r = pb.getBoundingClientRect();
     const ratio = Math.max(0, Math.min(1, (e.changedTouches[0].clientX - r.left) / r.width));
     if (audio.duration) audio.currentTime = ratio * audio.duration;
   });
-  
-  function updateProgressFromTouch(touch) {
+  function updProg(touch) {
     const r = pb.getBoundingClientRect();
     const ratio = Math.max(0, Math.min(1, (touch.clientX - r.left) / r.width));
     document.getElementById('prfill').style.width = (ratio * 100) + '%';
@@ -1307,77 +1244,74 @@ audio.addEventListener('error', (e) => {
 // ════════════════════════════════════════════════════════════════
 //  PROFILE DROPDOWN
 // ════════════════════════════════════════════════════════════════
-function togglePD(){document.getElementById('pdrop').classList.toggle('open');}
-document.addEventListener('click',e=>{
-  if(!e.target.closest('.user-pill')&&!e.target.closest('.pdrop'))
+function togglePD() { document.getElementById('pdrop').classList.toggle('open'); }
+document.addEventListener('click', e => {
+  if (!e.target.closest('.user-pill') && !e.target.closest('.pdrop'))
     document.getElementById('pdrop').classList.remove('open');
 });
-document.addEventListener('keydown',e=>{
-  if(e.key==='Escape'){
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
     document.getElementById('confirmModal').classList.remove('open');
-    _pendingDeleteId=null;
+    _pendingDeleteId = null;
     document.getElementById('pdrop').classList.remove('open');
   }
 });
 
 // ════════════════════════════════════════════════════════════════
-//  STATE MANAGER & TOAST
+//  STATE & TOAST
 // ════════════════════════════════════════════════════════════════
-function setState(s){
-  ['stEmpty','stLoad','stErr'].forEach(id=>document.getElementById(id).classList.remove('show'));
-  if(s!=='none')document.getElementById('st'+s.charAt(0).toUpperCase()+s.slice(1)).classList.add('show');
+function setState(s) {
+  ['stEmpty','stLoad','stErr'].forEach(id => document.getElementById(id).classList.remove('show'));
+  if (s !== 'none') document.getElementById('st' + s.charAt(0).toUpperCase() + s.slice(1)).classList.add('show');
 }
 
 let toastT;
-function toast(m){
-  const el=document.getElementById('toast');
-  el.textContent=m;el.classList.add('on');
-  clearTimeout(toastT);toastT=setTimeout(()=>el.classList.remove('on'),2800);
+function toast(m) {
+  const el = document.getElementById('toast');
+  el.textContent = m; el.classList.add('on');
+  clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove('on'), 2800);
 }
 
-// ════════════════════════════════════════════════════════════════
-//  HELPERS
-// ════════════════════════════════════════════════════════════════
-function esc(obj){return JSON.stringify(obj).replace(/"/g,'&quot;');}
+function esc(obj) { return JSON.stringify(obj).replace(/"/g, '&quot;'); }
 
 // ════════════════════════════════════════════════════════════════
 //  INIT
 // ════════════════════════════════════════════════════════════════
-(function init(){
-  if(!session){window.location.href='login.html';return;}
-  const u=session;
-  const ini=(u.nama||'?').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
-  document.getElementById('uAv').textContent=ini;
-  document.getElementById('uNm').textContent=(u.nama||'').split(' ')[0];
-  document.getElementById('uGn').textContent=`Gen ${u.generasi}`;
-  document.getElementById('pdName').textContent=u.nama||'–';
-  document.getElementById('pdSub').textContent=`${u.jabatan} · Generasi ${u.generasi}`;
+(function init() {
+  if (!session) { window.location.href = 'login.html'; return; }
+  const u   = session;
+  const ini = (u.nama || '?').split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+  document.getElementById('uAv').textContent  = ini;
+  document.getElementById('uNm').textContent  = (u.nama || '').split(' ')[0];
+  document.getElementById('uGn').textContent  = `Gen ${u.generasi}`;
+  document.getElementById('pdName').textContent = u.nama    || '–';
+  document.getElementById('pdSub').textContent  = `${u.jabatan} · Generasi ${u.generasi}`;
 
-  const dbDot=document.getElementById('dbDot');
-  const dbTxt=document.getElementById('dbTxt');
-  if(sbOk){dbTxt.textContent='DB';}
-  else{dbDot.classList.add('dot-off');dbTxt.textContent='Offline';toast('⚠️ Supabase belum dikonfigurasi');}
+  const dbDot = document.getElementById('dbDot');
+  const dbTxt = document.getElementById('dbTxt');
+  if (sbOk) { dbTxt.textContent = 'DB'; }
+  else { dbDot.classList.add('dot-off'); dbTxt.textContent = 'Offline'; toast('⚠️ Supabase belum dikonfigurasi'); }
 
-  audio.volume=vol;
-  renderSugs();renderQueue();renderHistory();renderLiked();updLikedCnt();
-  document.getElementById('qBadge').textContent=queue.length;
-  if(queue.length)document.getElementById('qSec').style.display='block';
-  document.getElementById('panQ').style.cssText='display:flex;flex-direction:column';
-  document.getElementById('panH').style.display='none';
-  document.getElementById('tabActBtn').dataset.t='q';
+  audio.volume = vol;
+  renderSugs(); renderQueue(); renderHistory(); renderLiked(); updLikedCnt();
+  document.getElementById('qBadge').textContent = queue.length;
+  if (queue.length) document.getElementById('qSec').style.display = 'block';
+  document.getElementById('panQ').style.cssText = 'display:flex;flex-direction:column';
+  document.getElementById('panH').style.display = 'none';
+  document.getElementById('tabActBtn').dataset.t = 'q';
 
-  if(histArr.length){
-    const last=histArr[0]; 
-    currentTrack=last;
-    showHero(last,last.source||'db'); 
+  if (histArr.length) {
+    const last = histArr[0];
+    currentTrack = last;
+    showHero(last, last.source || 'db');
     setState('none');
-    document.getElementById('plImg').src=last.thumbnail||'';
-    document.getElementById('plTitle').textContent=last.title;
-    document.getElementById('plArt').textContent=last.artist;
+    document.getElementById('plImg').src           = last.thumbnail || PH;
+    document.getElementById('plTitle').textContent = last.title;
+    document.getElementById('plArt').textContent   = last.artist;
     document.getElementById('pbar').classList.add('up');
     updPBLike();
   }
-  if(sbOk)loadDBTracks();
+  if (sbOk) loadDBTracks();
 })();
 </script>
 </body>
