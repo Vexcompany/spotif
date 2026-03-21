@@ -1550,19 +1550,11 @@ function openShareModal(track) {
   selectedShareMembers = [];
 
   // Load member list from DB
-  const rows = await sb.get('user_play_counts', 'order=user_key.asc').catch(()=>[]);
-  const uniqueKeys = [...new Set(rows.map(r=>r.user_key))];
-  const others = uniqueKeys
-    .filter(k => k !== USER_KEY)
-    .map(k => {
-      const parts = k.split('_');
-      const gen = parts[parts.length-1];
-      const nama = parts.slice(0,-1).join(' ');
-      return { nama, generasi: gen, key: k };
-  });
+  const allUsers = window.PAGASKA_DB?.getAllUsers() || [];
+  const others = allUsers.filter(u => `${u.nama}_${u.generasi}` !== USER_KEY);
   
   document.getElementById('shareMemberList').innerHTML = others.slice(0, 30).map(u => {
-    const key = `${u.key}`;
+    const key = `${u.nama}_${u.generasi}`;
     const ini = u.nama.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
     return `<div class="share-member-item" id="sm-${key.replace(/\s/g,'_')}" onclick="toggleShareMember('${key}','${u.nama}')">
       <div class="share-member-av">${ini}</div>
