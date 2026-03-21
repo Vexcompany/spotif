@@ -1562,7 +1562,7 @@ function openShareModal(track) {
   });
   
   document.getElementById('shareMemberList').innerHTML = others.slice(0, 30).map(u => {
-    const key = `${u.nama}_${u.generasi}`;
+    const key = `${u.key}`;
     const ini = u.nama.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
     return `<div class="share-member-item" id="sm-${key.replace(/\s/g,'_')}" onclick="toggleShareMember('${key}','${u.nama}')">
       <div class="share-member-av">${ini}</div>
