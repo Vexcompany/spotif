@@ -767,7 +767,7 @@ async function incrementMyPlayCount(trackId){
     const current=myPlayCounts[trackId]||0;
     myPlayCounts[trackId]=current+1;
     // Upsert ke tabel user_play_counts
-    await fetch(`${SB_URL}/rest/v1/user_play_counts`, {
+    await fetch(`${SB_URL}/rest/v1/user_play_counts?on_conflict=user_key,track_id`, {
       method:'POST',
       headers:{...sb._h, Prefer:'resolution=merge-duplicates,return=representation'},
       body:JSON.stringify({
