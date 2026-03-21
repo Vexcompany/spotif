@@ -1823,18 +1823,18 @@ function renderLyrics(data) {
 
 function startLRC() {
   clearInterval(lrcInt);
-  lrcInt = setInterval(() => {
-    if (!lrcLines.length || !audio.duration) return;
-    const cur = audio.currentTime;
-    let idx = 0;
-    for (let i = 0; i < lrcLines.length; i++) { if (cur >= lrcLines[i].time) idx = i; }
-    const box = document.getElementById('npLyricsBox');
-    box.querySelectorAll('.lrc-line').forEach((el,i) => el.classList.toggle('active', i === idx));
-    const active = box.querySelector('.lrc-line.active');
-    if (active) { const top = active.offsetTop - box.clientHeight/2 + active.offsetHeight/2; box.scrollTo({top, behavior:'smooth'}); }
-  }, 300);
+  lrcInt=setInterval(()=>{
+    if(!lrcLines.length||!audio.duration)return;
+    const cur=audio.currentTime;
+    let idx=0;
+    for(let i=0;i<lrcLines.length;i++){if(cur>=lrcLines[i].time)idx=i;}
+    const box=document.getElementById('npLyricsBox');
+    box.querySelectorAll('.lrc-line').forEach((el,i)=>el.classList.toggle('active',i===idx));
+    const active=box.querySelector('.lrc-line.active');
+    if(active){const top=active.offsetTop-box.clientHeight/2+active.offsetHeight/2;box.scrollTo({top,behavior:'smooth'});}
+  },300);
 }
-function stopLRC() { clearInterval(lrcInt); lrcLines = []; }
+function stopLRC(){clearInterval(lrcInt);lrcLines=[];}
 
 // ════════════════════════════════════════════════════════════════
 //  SEARCH
