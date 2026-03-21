@@ -1243,6 +1243,12 @@ async function playTrackObj(t){
   // Increment per-user play count
   incrementMyPlayCount(t.id);
 
+  sb.patch('tracks',`id=eq.${encodeURIComponent(t.id)}`,{
+  play_count:(t.playCount||0)+1,
+  last_played:new Date().toISOString()
+  }).catch(()=>{});
+  t.playCount=(t.playCount||0)+1;
+  
   updAll();
   showHero(t,t.source||'api');
   document.getElementById('pbar').classList.add('up');
