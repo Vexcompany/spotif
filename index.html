@@ -1201,14 +1201,23 @@ async function doSearch(){
 // Anabot YT Search
 async function _searchAnabot(q){
   try{
-    const r=await fetch(ANABOT_YT_SEARCH(q));
-    if(!r.ok)throw new Error('Anabot search HTTP '+r.status);
-    const d=await r.json();
-    return (d?.data?.result||[])
-      .filter(r=>!r.isLive&&r.duration!=='SHORTS'&&r.videoId)
-      .slice(0,8)
-      .map(r=>({type:'yt',source:'anabot',videoId:r.videoId,title:r.title,channel:r.author?.name||'YouTube',thumbnail:r.thumbnail,duration:r.duration,url:r.url||`https://www.youtube.com/watch?v=${r.videoId}`}));
-  }catch(e){console.warn('[Anabot search]',e.message);return[];}
+    const r = await fetch(ANABOT_YT_SEARCH(q));
+    if(!r.ok) throw new Error('YT search HTTP ' + r.status);
+    const wrapper = await r.json();
+    // Response dari proxy: { success, source, data }
+    const d = wrapper.data || wrapper;
+    const results = d?.data?.result || d?.result || [];
+    return results
+      .filter(r => !r.isLive && r.duration !== 'SHORTS' && r.videoId)
+      .slice(0, 8)
+      .map(r => ({
+        type: 'yt', source: wrapper.source || 'anabot',
+        videoId: r.videoId, title: r.title,
+        channel: r.author?.name || r.channel || 'YouTube',
+        thumbnail: r.thumbnail, duration: r.duration,
+        url: r.url || `https://www.youtube.com/watch?v=${r.videoId}`
+      }));
+  }catch(e){ console.warn('[Anabot search]', e.message); return []; }
 }
 
 // Deline YT Search
