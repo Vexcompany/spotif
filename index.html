@@ -1885,6 +1885,21 @@ audio.addEventListener('error',async()=>{
     toast('❌ Gagal memutar audio');isPlaying=false;updAll();
   }
 });
+// Deteksi preview/snipped audio (durasi < 60 detik = kemungkinan preview)
+audio.addEventListener('loadedmetadata', async () => {
+  if(!currentTrack) return;
+  const dur = audio.duration;
+  // Abaikan kalau memang lagu pendek (< 60 detik tapi sudah pernah tersimpan di DB)
+  if(dur > 0 && dur < 62 && currentTrack.source !== 'db') {
+    console.warn('[preview detected] duration:', dur, 'sec — retrying...');
+    toast('⚠️ Terdeteksi preview, mencari versi full...');
+    // Tandai dulu biar tidak loop
+    if(currentTrack._previewRetried) return;
+    currentTrack._previewRetried = true;
+    safePause();
+    await _fallbackSearchYT(currentTrack);
+  }
+});
 
 // Touch progress
 (function(){const pb=document.getElementById('prbar');let drag=false;pb.addEventListener('touchstart',e=>{drag=true;upd(e.touches[0]);},{passive:true});pb.addEventListener('touchmove',e=>{if(!drag)return;e.preventDefault();upd(e.touches[0]);},{passive:false});pb.addEventListener('touchend',e=>{if(!drag)return;drag=false;const r=pb.getBoundingClientRect();if(audio.duration)audio.currentTime=Math.max(0,Math.min(1,(e.changedTouches[0].clientX-r.left)/r.width))*audio.duration;},{passive:true});function upd(touch){const r=pb.getBoundingClientRect();document.getElementById('prfill').style.width=(Math.max(0,Math.min(1,(touch.clientX-r.left)/r.width))*100)+'%';}})();
