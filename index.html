@@ -2002,6 +2002,13 @@ function initApp(){
   ['panH','panL'].forEach(id => document.getElementById(id).style.display = 'none');
 
   // SPA route — baca URL path
+  const adminSess = JSON.parse(localStorage.getItem('pgsk_admin_session')||'null');
+  if(adminSess?.isAdmin){
+    const ind = document.createElement('div');
+    ind.style.cssText = 'position:fixed;top:62px;right:8px;z-index:9999;background:rgba(255,77,109,.15);border:1px solid rgba(255,77,109,.4);border-radius:8px;padding:3px 10px;font-size:.6rem;font-weight:700;color:#ff4d6d;letter-spacing:1px;pointer-events:none';
+    ind.innerHTML = '🔐 ADMIN MODE';
+    document.body.appendChild(ind);
+  }
   const path = window.location.pathname.replace(/^\//, '');
   const validPages = ['beranda','chart','party','chat','profil'];
   navigate(validPages.includes(path) ? path : 'beranda');
