@@ -1428,7 +1428,9 @@ async function _dlAnabot(ytUrl){
   if(!d?.success&&!d?.data?.result?.success)throw new Error(d?.message||'Anabot: response gagal');
   const result=d?.data?.result;
   const url=result?.urls||result?.url;
-  if(!url)throw new Error('Anabot: tidak ada URL');
+  if(!url) throw new Error('Anabot: tidak ada URL');
+  if(url.includes('.m3u8') || url.includes('stream/hls'))
+  throw new Error('Anabot: HLS stream tidak didukung');
   const m=result?.metadata||{};
   return {audioUrl:url,meta:{title:m.title,artist:m.channel||m.uploader,thumbnail:m.thumbnail,duration:m.duration?fmt(m.duration):null,year:m.upload_date?.slice(0,4)}};
 }
