@@ -1601,19 +1601,17 @@ async function playTrackObj(t){
 
   try{
     audio.src=t.audio;audio.volume=vol;audio.muted=isMuted;
-    // Wait for audio to be ready
-    await new Promise((resolve,reject)=>{
-      const timeout=setTimeout(()=>reject(new Error('Timeout memuat audio')),15000);
-      const onCan=()=>{clearTimeout(timeout);audio.removeEventListener('canplaythrough',onCan);audio.removeEventListener('error',onErr);resolve();};
-      const onErr=()=>{clearTimeout(timeout);audio.removeEventListener('canplaythrough',onCan);audio.removeEventListener('error',onErr);reject(new Error('Format audio tidak didukung'));};
-      audio.addEventListener('canplaythrough',onCan,{once:true});
-      audio.addEventListener('error',onErr,{once:true});
-      audio.load();
-    });
+    // Langsung play — jangan tunggu canplaythrough karena di mobile
+    // canplaythrough sering fire error untuk format Supabase (.mpeg/.m4a)
+    // padahal sebenarnya bisa diputar. Biarkan browser handle sendiri.
     await safePlay();
   }catch(e){
-    if(e.name!=='AbortError'){console.error('[playTrackObj]',e.message);toast('⚠️ Gagal memutar: '+e.message);}
-    isPlaying=false;updAll();return;
+    if(e.name==='AbortError')return; // normal, di-cancel oleh play baru
+    console.error('[playTrackObj]',e.message);
+    // Coba fallback: re-fetch dari YouTube pakai title+artist
+    toast('⚠️ Format tidak didukung, mencari ulang di YouTube...');
+    await _fallbackSearchYT(t);
+    return;
   }
 
   incrementMyPlayCount(t.id);
@@ -1657,10 +1655,20 @@ function setVol(e){const r=document.getElementById('vBar').getBoundingClientRect
 audio.addEventListener('play',()=>{isPlaying=true;updAll();startProg();});
 audio.addEventListener('pause',()=>{isPlaying=false;updAll();});
 audio.addEventListener('ended',()=>{isRepeat?safePlay():nextTrack();});
-audio.addEventListener('error',()=>{
-  let msg='Gagal memutar';
-  switch(audio.error?.code){case 2:msg='Error jaringan';break;case 3:msg='Format tidak didukung';break;case 4:msg='File tidak ditemukan';break;}
-  toast('❌ '+msg);isPlaying=false;updAll();
+audio.addEventListener('error',async()=>{
+  // error event bisa terjadi karena: URL expired, format tidak didukung, network error
+  // Jangan langsung tampilkan error — coba fallback re-fetch dari YouTube dulu
+  if(!currentTrack)return;
+  const errCode=audio.error?.code;
+  const isFormatErr=errCode===3||errCode===4; // DECODE_ERR atau SRC_NOT_SUPPORTED
+  const isNetErr=errCode===2;
+  console.warn('[audio error] code:',errCode,'track:',currentTrack?.title);
+  if(isFormatErr||isNetErr){
+    toast('🔄 Memuat ulang audio...');
+    await _fallbackSearchYT(currentTrack);
+  }else{
+    toast('❌ Gagal memutar audio');isPlaying=false;updAll();
+  }
 });
 
 // Touch progress
@@ -1678,8 +1686,67 @@ function toast(m){const el=document.getElementById('toast');el.textContent=m;el.
 function esc(obj){return JSON.stringify(obj).replace(/"/g,'&quot;');}
 
 // ══════════════════════════════════════════════════════════════
-//  INIT
+//  FALLBACK: Re-fetch audio dari YouTube jika URL expired/rusak
 // ══════════════════════════════════════════════════════════════
+let _fallbackInProgress=false;
+async function _fallbackSearchYT(t){
+  if(_fallbackInProgress)return;
+  _fallbackInProgress=true;
+  try{
+    const q=t.searchQuery||`${t.title} ${t.artist}`;
+    toast(`🔍 Mencari ulang: ${t.title}...`);
+    
+    // Search YouTube
+    const ytRes=await fetch(`${YT_SEARCH}${encodeURIComponent(q)}&apikey=${YT_APIKEY}`);
+    if(!ytRes.ok)throw new Error('YT search gagal');
+    const ytData=await ytRes.json();
+    const results=(ytData?.data?.result||[]).filter(r=>!r.isLive&&r.duration!=='SHORTS'&&r.videoId);
+    if(!results.length)throw new Error('Tidak ada hasil YouTube');
+    
+    // Download audio dari hasil pertama
+    const first=results[0];
+    const dlRes=await fetch(`${YT_DL}${encodeURIComponent(first.url||`https://www.youtube.com/watch?v=${first.videoId}`)}&apikey=${YT_APIKEY}`);
+    if(!dlRes.ok)throw new Error('Download gagal');
+    const dlData=await dlRes.json();
+    const result=dlData?.data?.result;
+    const newAudioUrl=result?.urls||result?.url;
+    if(!newAudioUrl)throw new Error('Tidak ada URL audio');
+    
+    // Update track dengan URL baru
+    const updatedTrack={...t,audio:newAudioUrl};
+    currentTrack=updatedTrack;
+    
+    // Update di queue dan history juga
+    queue=queue.map(x=>x.id===t.id?updatedTrack:x);LS.sq(queue);
+    histArr=histArr.map(x=>x.id===t.id?updatedTrack:x);LS.sh(histArr);
+    
+    // Set audio src baru dan play
+    safePause();
+    audio.src=newAudioUrl;
+    audio.volume=vol;audio.muted=isMuted;
+    await new Promise(r=>setTimeout(r,50));
+    await safePlay();
+    toast('✅ Audio berhasil dimuat ulang!');
+    
+    // Update DB di background dengan URL baru
+    sb.upsert('tracks',{...{id:t.id,title:t.title,artist:t.artist},audio_url:newAudioUrl,last_played:new Date().toISOString()}).catch(()=>{});
+    // Coba simpan permanen via edge function
+    ;(async()=>{
+      try{
+        const saveRes=await fetch(EDGE_FN_URL,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+SB_KEY,apikey:SB_KEY},body:JSON.stringify({audioUrl:newAudioUrl,title:t.title,artist:t.artist,trackId:t.id})});
+        if(saveRes.ok){const sd=await saveRes.json();if(sd.storageUrl){currentTrack.audio=sd.storageUrl;queue=queue.map(x=>x.id===t.id?{...x,audio:sd.storageUrl}:x);LS.sq(queue);sb.patch('tracks',`id=eq.${encodeURIComponent(t.id)}`,{audio_url:sd.storageUrl,storage_path:sd.fileName}).catch(()=>{});}}
+      }catch{}
+    })();
+  }catch(err){
+    console.error('[_fallbackSearchYT]',err.message);
+    toast('❌ Gagal memuat ulang audio. Coba cari manual.');
+    isPlaying=false;updAll();
+  }finally{
+    _fallbackInProgress=false;
+  }
+}
+
+
 (function init(){
   if(!session){window.location.href='login.html';return;}
   const u=session;
