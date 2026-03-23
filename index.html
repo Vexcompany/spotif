@@ -122,6 +122,8 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 .sr-meta{font-size:.67rem;color:var(--mt);display:flex;gap:8px;align-items:center}
 .sr-src{font-size:.58rem;padding:2px 6px;border-radius:6px;font-weight:700;flex-shrink:0}
 .sr-yt{background:rgba(255,0,0,.12);color:#ff4444;border:1px solid rgba(255,0,0,.2)}
+.sr-am{background:rgba(252,61,61,.12);color:#fc3d3d;border:1px solid rgba(252,61,61,.25)}
+.sr-sp{background:rgba(29,185,84,.12);color:var(--g);border:1px solid rgba(29,185,84,.25)}
 .sr-db{background:rgba(124,92,191,.12);color:var(--p2);border:1px solid rgba(124,92,191,.2)}
 .sr-play-btn{width:32px;height:32px;border-radius:50%;border:none;background:linear-gradient(135deg,var(--dyn1),var(--dyn2));color:#000;font-size:.75rem;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s;}
 .sr-play-btn:hover{transform:scale(1.1);box-shadow:0 4px 14px var(--dyn-glow)}
@@ -891,12 +893,8 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 
 <script>
 // ══════════════════════════════════════════════════════════════
-//  CONFIG
+//  CONFIG — MULTI-SOURCE API
 // ══════════════════════════════════════════════════════════════
-const FAA_API     = 'https://api-faa.my.id/faa/spotify-play';
-const YT_SEARCH   = 'https://anabot.my.id/api/search/ytSearch?query=';
-const YT_DL       = 'https://anabot.my.id/api/download/ytmp3?url=';
-const YT_APIKEY   = 'freeApikey';
 const SB_URL      = 'https://ygwoddwdhelqcwhpqasl.supabase.co';
 const SB_KEY      = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlnd29kZHdkaGVscWN3aHBxYXNsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE4NTEwNzcsImV4cCI6MjA4NzQyNzA3N30.y0tnci0aWnhWYpxb9v7M7I0X9ss-jAt0JvpOBnZgFzo';
 const EDGE_FN_URL = `${SB_URL}/functions/v1/save-music`;
@@ -904,6 +902,21 @@ const GENIUS_KEY  = 'JMhlWq2e0u3ixPmj9a5ZAYWvL7nO0OfF2-YoIeriyd5eh_MqWmrFPRAHs4Y
 const SESS_KEY    = 'pgsk_v2_session';
 const ADMIN_PASS  = 'pagaska_admin_2026';
 const PH          = 'https://placehold.co/200x200/0d0d24/1DB954?text=♪';
+
+// ── Search Source: 1. Anabot (YT) ──────────────────────────────
+const ANABOT_YT_SEARCH = q=>`https://anabot.my.id/api/search/ytSearch?query=${encodeURIComponent(q)}&apikey=freeApikey`;
+const ANABOT_YT_DL     = url=>`https://anabot.my.id/api/download/ytmp3?url=${encodeURIComponent(url)}&apikey=freeApikey`;
+// ── Search Source: 2. Deline (YT Search backup) ─────────────────
+const DELINE_YT_SEARCH = q=>`https://api.deline.web.id/search/youtube?q=${encodeURIComponent(q)}`;
+// ── Download Source: 3. Herza/savenow (YT MP3, polling) ─────────
+const SAVENOW_URL = (videoId,fmt)=>`https://p.savenow.to/ajax/download.php?copyright=0&format=${fmt}&url=${encodeURIComponent('https://www.youtube.com/watch?v='+videoId)}&api=dfcb6d76f2f6a9894gjkege8a4ab232222`;
+// ── Search Source: 4. Apocalypse (Apple Music search+dl) ────────
+const APOCALYPSE_SEARCH = q=>`https://api.apocalypse.web.id/search/applemusic?q=${encodeURIComponent(q)}`;
+const APOCALYPSE_DL     = url=>`https://api.apocalypse.web.id/download/applemusic?url=${encodeURIComponent(url)}&quality=320`;
+// ── Search Source: 5. Deline (Apple Music search backup) ────────
+const DELINE_AM_SEARCH = q=>`https://api.deline.web.id/search/applemusic?q=${encodeURIComponent(q)}`;
+// ── Last Resort: 6. FAA (Spotify) ───────────────────────────────
+const FAA_API = q=>`https://api-faa.my.id/faa/spotify-play?q=${encodeURIComponent(q)}`;
 
 // ══════════════════════════════════════════════════════════════
 //  SUPABASE CLIENT
@@ -1110,179 +1123,281 @@ async function loadQuickPlay(){
   }catch(e){console.warn('loadQuickPlay:',e.message);}
 }
 
-// ══════════════════════════════════════════════════════════════
-//  SEARCH — MULTI RESULT with YouTube + DB check
+// ══ SEARCH — MULTI-SOURCE WATERFALL
+// Urutan: DB cache → Anabot YT → Deline YT → Herza/savenow → Apple Music (Apocalypse/Deline) → FAA Spotify
 // ══════════════════════════════════════════════════════════════
 document.getElementById('sInput').addEventListener('keydown',e=>{if(e.key==='Enter')doSearch();});
 
 let _currentSearchQuery='';
 
+// ──────────────────────────────────────
+//  STEP 1: SEARCH — kumpulkan hasil dari semua source
+// ──────────────────────────────────────
 async function doSearch(){
   const q=document.getElementById('sInput').value.trim();
   if(!q)return;
   if(currentPage!=='beranda')navigate('beranda');
   _currentSearchQuery=q;
-  setState('load');setStLoad(`Mencari "${q}"`,'Memeriksa database & YouTube...');setBtnLoad(true);
+  setState('load');setStLoad(`Mencari "${q}"`,"Memeriksa semua sumber...");setBtnLoad(true);
   document.getElementById('searchResultsWrap').style.display='none';
 
   try{
-    // 1. Check DB first
+    // 1. DB cache dulu
     const cached=await sb.get('tracks',`search_query=ilike.${encodeURIComponent('%'+q+'%')}&order=play_count.desc&limit=5`);
-    
-    // 2. Search YouTube
+
+    // 2. Search YT paralel: Anabot + Deline
+    const [anabotResults, delineResults] = await Promise.allSettled([
+      _searchAnabot(q),
+      _searchDeline(q),
+    ]);
+
+    // 3. Gabungkan hasil YT (Anabot prioritas, Deline backup)
     let ytResults=[];
-    try{
-      const ytRes=await fetch(`${YT_SEARCH}${encodeURIComponent(q)}&apikey=${YT_APIKEY}`);
-      if(ytRes.ok){
-        const ytData=await ytRes.json();
-        ytResults=(ytData?.data?.result||[])
-          .filter(r=>!r.isLive&&r.duration!=='SHORTS'&&r.videoId)
-          .slice(0,8);
-      }
-    }catch(e){console.warn('[YT search]',e.message);}
+    if(anabotResults.status==='fulfilled'&&anabotResults.value.length){
+      ytResults=anabotResults.value;
+    } else if(delineResults.status==='fulfilled'&&delineResults.value.length){
+      ytResults=delineResults.value;
+    }
+
+    // 4. Build combined results list
+    const results=[];
+    cached.forEach(r=>{results.push({type:'db',track:rowToTrack(r,'db'),plays:r.play_count||0});});
+    ytResults.forEach(r=>{
+      const titleLow=r.title.toLowerCase();
+      const isDupe=results.some(x=>{
+        const xt=(x.track?.title||x.title||'').toLowerCase();
+        return xt.includes(titleLow.slice(0,15))||titleLow.includes(xt.slice(0,15));
+      });
+      if(!isDupe||results.length<2) results.push(r);
+    });
 
     setState('none');
     saveSug(q);
 
-    // Build combined results
-    const results=[];
-    // DB hits first
-    cached.forEach(r=>{results.push({type:'db',track:rowToTrack(r,'db'),plays:r.play_count||0});});
-    // YT results (skip duplicates by title similarity)
-    ytResults.forEach(r=>{
-      const titleLow=r.title.toLowerCase();
-      const isDupe=results.some(x=>x.track.title.toLowerCase().includes(titleLow.split('-')[0].trim())||titleLow.includes(x.track.title.toLowerCase().split('-')[0].trim()));
-      if(!isDupe||results.length<3){
-        results.push({type:'yt',videoId:r.videoId,title:r.title,channel:r.author?.name||r.channel||'YouTube',thumbnail:r.thumbnail,duration:r.duration,url:r.url});
-      }
-    });
-
-    if(!results.length){setState('err');document.getElementById('stErrT').textContent='Tidak ditemukan';document.getElementById('stErrM').textContent='Coba kata kunci lain';setBtnLoad(false);return;}
+    if(!results.length){
+      setState('err');
+      document.getElementById('stErrT').textContent='Tidak ditemukan';
+      document.getElementById('stErrM').textContent='Coba kata kunci lain';
+      setBtnLoad(false);return;
+    }
 
     renderSearchResults(results,q);
-    // Auto-play the first result
+    // Auto-play first result
     const first=results[0];
-    if(first.type==='db'){
-      await playTrackObj(first.track);
-    }else{
-      await playFromYT(first);
-    }
+    if(first.type==='db') await playTrackObj(first.track);
+    else await playFromYT(first);
+
   }catch(err){
-    setState('err');document.getElementById('stErrT').textContent='Gagal mencari';document.getElementById('stErrM').textContent=err.message;toast('⚠️ '+err.message);
+    setState('err');
+    document.getElementById('stErrT').textContent='Gagal mencari';
+    document.getElementById('stErrM').textContent=err.message;
+    toast('\u26a0\ufe0f '+err.message);
   }finally{setBtnLoad(false);}
+}
+
+// Anabot YT Search
+async function _searchAnabot(q){
+  try{
+    const r=await fetch(ANABOT_YT_SEARCH(q));
+    if(!r.ok)throw new Error('Anabot search HTTP '+r.status);
+    const d=await r.json();
+    return (d?.data?.result||[])
+      .filter(r=>!r.isLive&&r.duration!=='SHORTS'&&r.videoId)
+      .slice(0,8)
+      .map(r=>({type:'yt',source:'anabot',videoId:r.videoId,title:r.title,channel:r.author?.name||'YouTube',thumbnail:r.thumbnail,duration:r.duration,url:r.url||`https://www.youtube.com/watch?v=${r.videoId}`}));
+  }catch(e){console.warn('[Anabot search]',e.message);return[];}
+}
+
+// Deline YT Search
+async function _searchDeline(q){
+  try{
+    const r=await fetch(DELINE_YT_SEARCH(q));
+    if(!r.ok)throw new Error('Deline search HTTP '+r.status);
+    const d=await r.json();
+    return (d?.result||[])
+      .filter(r=>r.link&&r.title)
+      .slice(0,8)
+      .map(r=>{
+        const vidMatch=r.link.match(/[?&v=|youtu\.be\/]([a-zA-Z0-9_-]{11})/);
+        const videoId=vidMatch?vidMatch[1]:null;
+        return {type:'yt',source:'deline',videoId,title:r.title,channel:r.channel||'YouTube',thumbnail:r.imageUrl||PH,duration:r.duration||'–',url:r.link};
+      }).filter(r=>r.videoId);
+  }catch(e){console.warn('[Deline search]',e.message);return[];}
 }
 
 function renderSearchResults(results,q){
   document.getElementById('searchResultsWrap').style.display='block';
   document.getElementById('searchResultsLabel').textContent=`${results.length} hasil untuk "${q}"`;
   document.getElementById('srGrid').innerHTML=results.map((r,i)=>{
-    if(r.type==='db'){
-      const t=r.track;
-      return `<div class="sr-item ${i===0?'selected':''}" id="sr-${i}" onclick="selectSearchResult(${i},${esc({type:'db',track:t})})">
-        <div class="sr-thumb"><img src="${t.thumbnail||PH}" onerror="this.src='${PH}'" loading="lazy"></div>
-        <div class="sr-info">
-          <div class="sr-title">${t.title}</div>
-          <div class="sr-meta"><span>${t.artist}</span><span style="color:var(--mt)">${t.duration}</span></div>
-        </div>
-        <span class="sr-src sr-db">💾 Tersimpan · ${r.plays}×</span>
-      </div>`;
-    }else{
-      return `<div class="sr-item ${i===0?'selected':''}" id="sr-${i}" onclick="selectSearchResult(${i},${esc({type:'yt',videoId:r.videoId,title:r.title,channel:r.channel,thumbnail:r.thumbnail,duration:r.duration,url:r.url})})">
-        <div class="sr-thumb"><img src="${r.thumbnail||PH}" onerror="this.src='${PH}'" loading="lazy"></div>
-        <div class="sr-info">
-          <div class="sr-title">${r.title}</div>
-          <div class="sr-meta"><span>${r.channel}</span><span style="color:var(--mt)">${r.duration||''}</span></div>
-        </div>
-        <span class="sr-src sr-yt">▶ YouTube</span>
-      </div>`;
-    }
+    const srcBadge = r.type==='db'
+      ? `<span class="sr-src sr-db">\ud83d\udcbe Tersimpan &middot; ${r.plays}&times;</span>`
+      : `<span class="sr-src sr-yt">\u25b6 YT &middot; ${r.source||'YouTube'}</span>`;
+    const thumb=r.type==='db'?r.track.thumbnail:r.thumbnail;
+    const title=r.type==='db'?r.track.title:r.title;
+    const sub=r.type==='db'?r.track.artist+' · '+r.track.duration:r.channel+' · '+r.duration;
+    const onclick=r.type==='db'
+      ? `selectSearchResult(${i},${esc({type:'db',track:r.track})})`
+      : `selectSearchResult(${i},${esc({type:'yt',source:r.source,videoId:r.videoId,title:r.title,channel:r.channel,thumbnail:r.thumbnail,duration:r.duration,url:r.url})})`;
+    return `<div class="sr-item ${i===0?'selected':''}" id="sr-${i}" onclick="${onclick}">
+      <div class="sr-thumb"><img src="${thumb||PH}" onerror="this.src='${PH}'" loading="lazy"></div>
+      <div class="sr-info"><div class="sr-title">${title}</div><div class="sr-meta"><span>${sub}</span></div></div>
+      ${srcBadge}
+    </div>`;
   }).join('');
 }
 
 async function selectSearchResult(idx,data){
-  // Highlight selected
   document.querySelectorAll('.sr-item').forEach((el,i)=>el.classList.toggle('selected',i===idx));
-  if(data.type==='db'){
-    await playTrackObj(data.track);
-  }else{
-    await playFromYT(data);
-  }
+  if(data.type==='db') await playTrackObj(data.track);
+  else await playFromYT(data);
 }
 
+// ──────────────────────────────────────
+//  STEP 2: DOWNLOAD — waterfall semua downloader
+// ──────────────────────────────────────
 async function playFromYT(item){
-  // Show loading in hero
-  currentTrack={id:'yt_loading',title:item.title,artist:item.channel,album:'YouTube',duration:item.duration||'–',year:'–',thumbnail:item.thumbnail||PH,audio:null,source:'yt'};
-  showHero(currentTrack,'api');
-  setState('none');
-  document.getElementById('hPlayBtn').disabled=true;
+  // Show loading hero
+  currentTrack={id:'yt_loading',title:item.title,artist:item.channel,album:'',duration:item.duration||'–',year:'–',thumbnail:item.thumbnail||PH,audio:null,source:'yt'};
+  showHero(currentTrack,'api');setState('none');
+  const hBtn=document.getElementById('hPlayBtn');hBtn.disabled=true;
   document.getElementById('hPlayTxt').textContent='Memuat...';
 
-  try{
-    toast('🎵 Mengunduh dari YouTube...');
-    // Download via anabot ytmp3
-    const dlRes=await fetch(`${YT_DL}${encodeURIComponent(item.url||`https://www.youtube.com/watch?v=${item.videoId}`)}&apikey=${YT_APIKEY}`);
-    if(!dlRes.ok)throw new Error('YT download gagal: '+dlRes.status);
-    const dlData=await dlRes.json();
-    if(!dlData?.success&&!dlData?.data?.result?.success)throw new Error(dlData?.message||'Download gagal');
-    const result=dlData?.data?.result;
-    const audioUrl=result?.urls||result?.url;
-    if(!audioUrl)throw new Error('Tidak ada URL audio');
+  const ytUrl=item.url||`https://www.youtube.com/watch?v=${item.videoId}`;
+  let audioUrl=null, meta={};
 
-    const meta=result?.metadata||{};
-    const trackId='yt_'+item.videoId;
-    const title=meta.title||item.title;
-    const artist=meta.channel||meta.uploader||item.channel||'YouTube';
-    const thumbnail=meta.thumbnail||item.thumbnail||PH;
-    const duration=item.duration||fmt(meta.duration)||'–';
+  // Coba semua downloader satu per satu
+  const downloaders=[
+    ()=>_dlAnabot(ytUrl),
+    ()=>_dlSavenow(item.videoId),
+    ()=>_dlAppleMusic(item.title,item.channel), // search + dl di Apple Music
+    ()=>_dlFAA(_currentSearchQuery),
+  ];
 
-    const track={id:trackId,title,artist,album:'YouTube',duration,year:meta.upload_date?.slice(0,4)||'–',thumbnail,audio:audioUrl,source:'api',playCount:1,searchQuery:_currentSearchQuery};
-    await playTrackObj(track);
-    document.getElementById('hPlayBtn').disabled=false;
-
-    // Save to DB in background
-    ;(async()=>{
-      try{
-        toast('☁️ Menyimpan audio...');
-        const saveRes=await fetch(EDGE_FN_URL,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+SB_KEY,apikey:SB_KEY},body:JSON.stringify({audioUrl,title,artist,trackId})});
-        if(!saveRes.ok)throw new Error(await saveRes.text());
-        const saveData=await saveRes.json();
-        if(saveData.storageUrl){
-          if(currentTrack?.id===trackId)currentTrack.audio=saveData.storageUrl;
-          queue=queue.map(t=>t.id===trackId?{...t,audio:saveData.storageUrl}:t);LS.sq(queue);
-        }
-        await sb.upsert('tracks',{id:trackId,title,artist,album:'YouTube',duration,year:track.year,thumbnail:thumbnail!==PH?thumbnail:null,audio_url:saveData.storageUrl||audioUrl,search_query:_currentSearchQuery,searched_by:session?.nama||'guest',play_count:1,last_played:new Date().toISOString(),storage_path:saveData.fileName});
-        toast('✅ Tersimpan permanen!');loadQuickPlay();loadTopChartHome();
-      }catch(err){
-        console.error('[save-music]',err.message);
-        sb.upsert('tracks',{id:trackId,title,artist,album:'YouTube',duration,year:track.year,thumbnail:thumbnail!==PH?thumbnail:null,audio_url:audioUrl,search_query:_currentSearchQuery,searched_by:session?.nama||'guest',play_count:1,last_played:new Date().toISOString()}).catch(()=>{});
+  for(let i=0;i<downloaders.length;i++){
+    const label=['Anabot','Savenow','Apple Music','Spotify'][i];
+    try{
+      setStLoad(`Memuat via ${label}...`,'Mohon tunggu sebentar...');
+      const result=await downloaders[i]();
+      if(result?.audioUrl){
+        audioUrl=result.audioUrl;
+        meta={...result.meta};
+        console.log(`[dl] berhasil via ${label}`);
+        break;
       }
-    })();
-  }catch(err){
-    document.getElementById('hPlayBtn').disabled=false;
-    toast('⚠️ '+err.message);
-    // Fallback to FAA API
-    await doSearchFAA(_currentSearchQuery);
+    }catch(e){
+      console.warn(`[dl] ${label} gagal:`,e.message);
+    }
   }
+
+  hBtn.disabled=false;
+
+  if(!audioUrl){
+    setState('err');
+    document.getElementById('stErrT').textContent='Semua sumber gagal';
+    document.getElementById('stErrM').textContent='Coba cari dengan kata kunci berbeda';
+    toast('\u274c Gagal mendapatkan audio dari semua sumber');
+    return;
+  }
+
+  const trackId='yt_'+(item.videoId||Date.now());
+  const title=meta.title||item.title;
+  const artist=meta.artist||item.channel||'YouTube';
+  const thumbnail=meta.thumbnail||item.thumbnail||PH;
+  const duration=item.duration||meta.duration||'–';
+  const year=meta.year||'–';
+  const spotifyUrl=meta.spotifyUrl||null;
+
+  const track={id:trackId,title,artist,album:meta.album||'',duration,year,thumbnail,audio:audioUrl,spotifyUrl,source:'api',playCount:1,searchQuery:_currentSearchQuery};
+  await playTrackObj(track);
+
+  // Save to DB background
+  ;(async()=>{
+    try{
+      toast('\u2601\ufe0f Menyimpan audio...');
+      const saveRes=await fetch(EDGE_FN_URL,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+SB_KEY,apikey:SB_KEY},body:JSON.stringify({audioUrl,title,artist,trackId})});
+      const saveData=saveRes.ok?await saveRes.json():{};
+      const finalUrl=saveData.storageUrl||audioUrl;
+      if(saveData.storageUrl&&currentTrack?.id===trackId)currentTrack.audio=saveData.storageUrl;
+      queue=queue.map(t=>t.id===trackId?{...t,audio:finalUrl}:t);LS.sq(queue);
+      await sb.upsert('tracks',{id:trackId,title,artist,album:meta.album||'',duration,year,thumbnail:thumbnail!==PH?thumbnail:null,audio_url:finalUrl,spotify_url:spotifyUrl,search_query:_currentSearchQuery,searched_by:session?.nama||'guest',play_count:1,last_played:new Date().toISOString(),storage_path:saveData.fileName||null});
+      toast('\u2705 Tersimpan permanen!');loadQuickPlay();loadTopChartHome();
+    }catch(err){
+      console.error('[save-music]',err.message);
+      sb.upsert('tracks',{id:trackId,title,artist,album:meta.album||'',duration,year,thumbnail:thumbnail!==PH?thumbnail:null,audio_url:audioUrl,search_query:_currentSearchQuery,searched_by:session?.nama||'guest',play_count:1,last_played:new Date().toISOString()}).catch(()=>{});
+    }
+  })();
 }
 
-// FAA fallback (original search method)
-async function doSearchFAA(q){
-  try{
-    setState('load');setStLoad(`Mencari "${q}"`,'🎵 Fallback ke Spotify API...');
-    const faaRes=await fetch(`${FAA_API}?q=${encodeURIComponent(q)}`);
-    if(!faaRes.ok)throw new Error(`FAA error ${faaRes.status}`);
-    const faaData=await faaRes.json();
-    if(!faaData?.status||!faaData?.download?.url)throw new Error(faaData?.message||'FAA: response tidak valid');
-    const uguuUrl=faaData.download.url,trackId='faa_'+Date.now();
-    const title=faaData.info?.title||q,artist=faaData.info?.artist||'–',album=faaData.info?.album||'';
-    const duration=faaData.info?.duration||'0:00',year=faaData.info?.release_date?.slice(0,4)||'–';
-    const thumbnail=faaData.info?.thumbnail||PH,spotUrl=faaData.info?.spotify_url||null;
-    const trackTemp={id:trackId,title,artist,album,duration,year,thumbnail,audio:uguuUrl,spotifyUrl:spotUrl,searchQuery:q,source:'api',playCount:1};
-    showHero(trackTemp,'api');addToQueue(trackTemp);setState('none');
-    await playTrackObj(trackTemp);
-  }catch(err){
-    setState('err');document.getElementById('stErrT').textContent='Gagal';document.getElementById('stErrM').textContent=err.message;
+// Downloader 1: Anabot ytmp3
+async function _dlAnabot(ytUrl){
+  const r=await fetch(ANABOT_YT_DL(ytUrl));
+  if(!r.ok)throw new Error('Anabot dl HTTP '+r.status);
+  const d=await r.json();
+  if(!d?.success&&!d?.data?.result?.success)throw new Error(d?.message||'Anabot: response gagal');
+  const result=d?.data?.result;
+  const url=result?.urls||result?.url;
+  if(!url)throw new Error('Anabot: tidak ada URL');
+  const m=result?.metadata||{};
+  return {audioUrl:url,meta:{title:m.title,artist:m.channel||m.uploader,thumbnail:m.thumbnail,duration:m.duration?fmt(m.duration):null,year:m.upload_date?.slice(0,4)}};
+}
+
+// Downloader 2: Herza/savenow (polling)
+async function _dlSavenow(videoId){
+  if(!videoId)throw new Error('savenow: no videoId');
+  const initRes=await fetch(SAVENOW_URL(videoId,'mp3'),{headers:{'User-Agent':'Mozilla/5.0','Referer':'https://savenow.to/'}});
+  const init=await initRes.json();
+  if(!init.success)throw new Error('savenow init gagal');
+  // Poll progress
+  let dlUrl=null;
+  for(let i=0;i<20;i++){
+    await new Promise(r=>setTimeout(r,1500));
+    const prog=await fetch(init.progress_url,{headers:{'User-Agent':'Mozilla/5.0','Referer':'https://savenow.to/'}}).then(r=>r.json());
+    if(prog.success===1&&prog.download_url){dlUrl=prog.download_url;break;}
   }
+  if(!dlUrl)throw new Error('savenow: timeout polling');
+  const title=init.info?.title||init.title||videoId;
+  const thumbnail=init.info?.image||`https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
+  return {audioUrl:dlUrl,meta:{title,thumbnail}};
+}
+
+// Downloader 3: Apple Music via Apocalypse (search → download)
+async function _dlAppleMusic(title,artist){
+  const q=`${title} ${artist}`.trim();
+  // Try Apocalypse search
+  let songUrl=null;
+  try{
+    const sr=await fetch(APOCALYPSE_SEARCH(q));
+    const sd=sr.ok?await sr.json():null;
+    const songs=(sd?.results||[]).filter(x=>x.artist?.includes('Song')||x.link?.includes('/album/')||x.song);
+    if(songs.length)songUrl=songs[0].link||songs[0].song;
+  }catch(e){console.warn('[AppleMusic search Apocalypse]',e.message);}
+  // Fallback: Deline AM search
+  if(!songUrl){
+    const sr=await fetch(DELINE_AM_SEARCH(q));
+    const sd=sr.ok?await sr.json():null;
+    const songs=(sd?.result||[]).filter(x=>x.song);
+    if(songs.length)songUrl=songs[0].song;
+  }
+  if(!songUrl)throw new Error('Apple Music: tidak ada hasil search');
+  // Download
+  const dlRes=await fetch(APOCALYPSE_DL(songUrl));
+  if(!dlRes.ok)throw new Error('Apple Music dl HTTP '+dlRes.status);
+  const dlData=await dlRes.json();
+  if(!dlData?.status&&!dlData?.result?.success)throw new Error('Apple Music dl gagal');
+  const result=dlData?.result||dlData;
+  const url=result?.download?.url||result?.url;
+  if(!url)throw new Error('Apple Music: tidak ada URL');
+  const m=result?.metadata||{};
+  return {audioUrl:url,meta:{title:m.title||title,artist:m.artist||artist,thumbnail:m.thumbnail,album:m.album}};
+}
+
+// Downloader 4: FAA Spotify (last resort)
+async function _dlFAA(q){
+  const r=await fetch(FAA_API(q));
+  if(!r.ok)throw new Error('FAA HTTP '+r.status);
+  const d=await r.json();
+  if(!d?.status||!d?.download?.url)throw new Error(d?.message||'FAA gagal');
+  return {audioUrl:d.download.url,meta:{title:d.info?.title||q,artist:d.info?.artist,thumbnail:d.info?.thumbnail,album:d.info?.album,year:d.info?.release_date?.slice(0,4),spotifyUrl:d.info?.spotify_url}};
 }
 
 function rowToTrack(r,src='db'){return{id:r.id,title:r.title,artist:r.artist,album:r.album||'',duration:r.duration||'0:00',year:r.year||'–',thumbnail:r.thumbnail||PH,audio:r.audio_url,spotifyUrl:r.spotify_url||null,playCount:r.play_count||0,searchQuery:r.search_query||'',storagePath:r.storage_path||null,source:src};}
@@ -1694,100 +1809,44 @@ async function _fallbackSearchYT(t){
   _fallbackInProgress=true;
   try{
     const q=t.searchQuery||`${t.title} ${t.artist}`;
-    toast(`🔍 Mencari ulang: ${t.title}...`);
-    
-    // Search YouTube
-    const ytRes=await fetch(`${YT_SEARCH}${encodeURIComponent(q)}&apikey=${YT_APIKEY}`);
-    if(!ytRes.ok)throw new Error('YT search gagal');
-    const ytData=await ytRes.json();
-    const results=(ytData?.data?.result||[]).filter(r=>!r.isLive&&r.duration!=='SHORTS'&&r.videoId);
-    if(!results.length)throw new Error('Tidak ada hasil YouTube');
-    
-    // Download audio dari hasil pertama
-    const first=results[0];
-    const dlRes=await fetch(`${YT_DL}${encodeURIComponent(first.url||`https://www.youtube.com/watch?v=${first.videoId}`)}&apikey=${YT_APIKEY}`);
-    if(!dlRes.ok)throw new Error('Download gagal');
-    const dlData=await dlRes.json();
-    const result=dlData?.data?.result;
-    const newAudioUrl=result?.urls||result?.url;
-    if(!newAudioUrl)throw new Error('Tidak ada URL audio');
-    
-    // Update track dengan URL baru
-    const updatedTrack={...t,audio:newAudioUrl};
+    toast('🔄 Memuat ulang: '+t.title+'...');
+    let ytResults=await _searchAnabot(q);
+    if(!ytResults.length)ytResults=await _searchDeline(q);
+    let audioUrl=null,meta={};
+    if(ytResults.length){
+      const first=ytResults[0];
+      const ytUrl=first.url||`https://www.youtube.com/watch?v=${first.videoId}`;
+      const downloaders=[()=>_dlAnabot(ytUrl),()=>_dlSavenow(first.videoId),()=>_dlAppleMusic(t.title,t.artist),()=>_dlFAA(q)];
+      for(let i=0;i<downloaders.length;i++){
+        try{const res=await downloaders[i]();if(res?.audioUrl){audioUrl=res.audioUrl;meta={...res.meta};break;}}
+        catch(e){console.warn('[fallback dl]',i,e.message);}
+      }
+    }else{
+      try{const res=await _dlAppleMusic(t.title,t.artist);if(res?.audioUrl){audioUrl=res.audioUrl;meta={...res.meta};}}catch(e){console.warn(e.message);}
+      if(!audioUrl){try{const res=await _dlFAA(q);if(res?.audioUrl){audioUrl=res.audioUrl;meta={...res.meta};}}catch(e){console.warn(e.message);}}
+    }
+    if(!audioUrl)throw new Error('Semua sumber gagal');
+    const updatedTrack={...t,audio:audioUrl};
     currentTrack=updatedTrack;
-    
-    // Update di queue dan history juga
     queue=queue.map(x=>x.id===t.id?updatedTrack:x);LS.sq(queue);
     histArr=histArr.map(x=>x.id===t.id?updatedTrack:x);LS.sh(histArr);
-    
-    // Set audio src baru dan play
     safePause();
-    audio.src=newAudioUrl;
-    audio.volume=vol;audio.muted=isMuted;
+    audio.src=audioUrl;audio.volume=vol;audio.muted=isMuted;
     await new Promise(r=>setTimeout(r,50));
     await safePlay();
     toast('✅ Audio berhasil dimuat ulang!');
-    
-    // Update DB di background dengan URL baru
-    sb.upsert('tracks',{...{id:t.id,title:t.title,artist:t.artist},audio_url:newAudioUrl,last_played:new Date().toISOString()}).catch(()=>{});
-    // Coba simpan permanen via edge function
+    sb.upsert('tracks',{id:t.id,title:t.title,artist:t.artist,audio_url:audioUrl,last_played:new Date().toISOString()}).catch(()=>{});
     ;(async()=>{
       try{
-        const saveRes=await fetch(EDGE_FN_URL,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+SB_KEY,apikey:SB_KEY},body:JSON.stringify({audioUrl:newAudioUrl,title:t.title,artist:t.artist,trackId:t.id})});
-        if(saveRes.ok){const sd=await saveRes.json();if(sd.storageUrl){currentTrack.audio=sd.storageUrl;queue=queue.map(x=>x.id===t.id?{...x,audio:sd.storageUrl}:x);LS.sq(queue);sb.patch('tracks',`id=eq.${encodeURIComponent(t.id)}`,{audio_url:sd.storageUrl,storage_path:sd.fileName}).catch(()=>{});}}
+        const sr=await fetch(EDGE_FN_URL,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+SB_KEY,apikey:SB_KEY},body:JSON.stringify({audioUrl,title:t.title,artist:t.artist,trackId:t.id})});
+        if(sr.ok){const sd=await sr.json();if(sd.storageUrl){currentTrack.audio=sd.storageUrl;queue=queue.map(x=>x.id===t.id?{...x,audio:sd.storageUrl}:x);LS.sq(queue);sb.patch('tracks',`id=eq.${encodeURIComponent(t.id)}`,{audio_url:sd.storageUrl,storage_path:sd.fileName}).catch(()=>{}); }}
       }catch{}
     })();
   }catch(err){
     console.error('[_fallbackSearchYT]',err.message);
-    toast('❌ Gagal memuat ulang audio. Coba cari manual.');
+    toast('❌ Gagal memuat ulang. Coba cari manual.');
     isPlaying=false;updAll();
   }finally{
     _fallbackInProgress=false;
   }
 }
-
-
-(function init(){
-  if(!session){window.location.href='login.html';return;}
-  const u=session;
-  const ini=(u.nama||'?').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
-  document.getElementById('uAv').textContent=ini;document.getElementById('uNm').textContent=(u.nama||'').split(' ')[0];
-  document.getElementById('pdName').textContent=u.nama||'–';document.getElementById('pdSub').textContent=`${u.jabatan} · Generasi ${u.generasi}`;
-  audio.volume=vol;
-  renderSugs();renderQueue();renderHistory();renderLiked();
-  document.getElementById('qBadge').textContent=queue.length;
-  if(queue.length)document.getElementById('qSec').style.display='block';
-  document.getElementById('panQ').style.cssText='display:flex;flex-direction:column';
-  ['panH','panL'].forEach(id=>document.getElementById(id).style.display='none');
-
-  // Init SPA route
-  const path=window.location.pathname.replace('/','').replace(/^beranda$/,'');
-  const validPages=['beranda','chart','party','chat','profil'];
-  navigate(validPages.includes(path)?path:'beranda');
-
-  // Load data
-  loadMyPlayCounts();
-  loadQuickPlay();
-  loadTopChartHome();
-  loadLiveActivity();
-  connectRealtime();
-
-  // Restore last track display ONLY — do NOT auto-play (fixes page reload bug)
-  if(histArr.length){
-    const last=histArr[0];currentTrack=last;
-    showHero(last,last.source||'db');setState('none');
-    document.getElementById('plImg').src=last.thumbnail||PH;
-    document.getElementById('plTitle').textContent=last.title;
-    document.getElementById('plArt').textContent=last.artist;
-    document.getElementById('pbar').classList.add('up');
-    updPBLike();
-    // Make sure player shows paused state
-    isPlaying=false;updAll();
-  }
-})();
-</script>
-
-<!-- Load DB.js untuk share member list -->
-<script src="_lib/db.js"></script>
-</body>
-</html>
