@@ -891,6 +891,9 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 <div class="toast" id="toast"></div>
 <audio id="audioEl"></audio>
 
+<!-- db.js diload PERTAMA agar window.PAGASKA_DB tersedia saat script utama jalan -->
+<script src="_lib/db.js"></script>
+
 <script>
 // ══════════════════════════════════════════════════════════════
 //  CONFIG — MULTI-SOURCE API
@@ -967,8 +970,8 @@ function handleRealtimeMsg(msg){
 // ══════════════════════════════════════════════════════════════
 //  SESSION
 // ══════════════════════════════════════════════════════════════
+// Session — redirect ke login ditangani initApp()
 const session=JSON.parse(localStorage.getItem(SESS_KEY)||'null');
-if(!session)window.location.href='login.html';
 const USER_KEY=session?`${session.nama}_${session.generasi}`:'guest';
 function doLogout(){localStorage.removeItem(SESS_KEY);localStorage.removeItem('pgsk_admin');window.location.href='login.html';}
 
@@ -1850,3 +1853,73 @@ async function _fallbackSearchYT(t){
     _fallbackInProgress=false;
   }
 }
+
+// ══════════════════════════════════════════════════════════════
+//  INIT — dipanggil setelah DOM ready
+//  db.js sudah diload sebelum script ini via <script src>
+// ══════════════════════════════════════════════════════════════
+function initApp(){
+  // Guard — kalau session tidak ada, redirect ke login
+  if(!session){ window.location.href='login.html'; return; }
+
+  const u = session;
+  const ini = (u.nama||'?').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+
+  // Topbar user info
+  document.getElementById('uAv').textContent  = ini;
+  document.getElementById('uNm').textContent  = (u.nama||'').split(' ')[0];
+  document.getElementById('pdName').textContent = u.nama || '–';
+  document.getElementById('pdSub').textContent  = `${u.jabatan} · Generasi ${u.generasi}`;
+
+  audio.volume = vol;
+
+  // Render local state
+  renderSugs();
+  renderQueue();
+  renderHistory();
+  renderLiked();
+  document.getElementById('qBadge').textContent = queue.length;
+  if(queue.length) document.getElementById('qSec').style.display = 'block';
+  document.getElementById('panQ').style.cssText = 'display:flex;flex-direction:column';
+  ['panH','panL'].forEach(id => document.getElementById(id).style.display = 'none');
+
+  // SPA route — baca URL path
+  const path = window.location.pathname.replace(/^\//, '');
+  const validPages = ['beranda','chart','party','chat','profil'];
+  navigate(validPages.includes(path) ? path : 'beranda');
+
+  // Load remote data
+  loadMyPlayCounts();
+  loadQuickPlay();
+  loadTopChartHome();
+  loadLiveActivity();
+  connectRealtime();
+
+  // Restore last played track (tampil saja, TIDAK autoplay — hindari race condition)
+  if(histArr.length){
+    const last = histArr[0];
+    currentTrack = last;
+    showHero(last, last.source || 'db');
+    setState('none');
+    document.getElementById('plImg').src     = last.thumbnail || PH;
+    document.getElementById('plTitle').textContent = last.title;
+    document.getElementById('plArt').textContent   = last.artist;
+    document.getElementById('pbar').classList.add('up');
+    updPBLike();
+    isPlaying = false;
+    updAll();
+  }
+}
+
+// Jalankan init setelah seluruh DOM + script selesai load
+if(document.readyState === 'loading'){
+  document.addEventListener('DOMContentLoaded', initApp);
+} else {
+  // DOM sudah ready (script defer / module)
+  initApp();
+}
+</script>
+
+
+</body>
+</html>
