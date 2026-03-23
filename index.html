@@ -906,20 +906,20 @@ const SESS_KEY    = 'pgsk_v2_session';
 const ADMIN_PASS  = 'pagaska_admin_2026';
 const PH          = 'https://placehold.co/200x200/0d0d24/1DB954?text=♪';
 
-// ── Backend proxy URL (Vercel) — semua request lewat sini, tidak ada CORS ──
-const PROXY = 'https://music.pagaska.my.id'; // domain Vercel kamu
-
-// Search Sources — semua lewat proxy
-const ANABOT_YT_SEARCH = q   => `${PROXY}/api/yt-search?q=${encodeURIComponent(q)}`;
-const DELINE_YT_SEARCH = q   => `${PROXY}/api/yt-search?q=${encodeURIComponent(q)}`;
-const SAVENOW_URL      = ()  => null; // ditangani di backend
-const APOCALYPSE_SEARCH = q  => `${PROXY}/api/apple-search?q=${encodeURIComponent(q)}`;
-const APOCALYPSE_DL    = url => `${PROXY}/api/apple-dl?url=${encodeURIComponent(url)}`;
-const DELINE_AM_SEARCH = q   => `${PROXY}/api/apple-search?q=${encodeURIComponent(q)}`;
-const FAA_API          = q   => `${PROXY}/api/faa?q=${encodeURIComponent(q)}`;
-
-// Download — semua lewat proxy
-const ANABOT_YT_DL     = url => `${PROXY}/api/yt-dl?url=${encodeURIComponent(url)}`;
+// ── Search Source: 1. Anabot (YT) ──────────────────────────────
+const ANABOT_YT_SEARCH = q=>`https://anabot.my.id/api/search/ytSearch?query=${encodeURIComponent(q)}&apikey=freeApikey`;
+const ANABOT_YT_DL     = url=>`https://anabot.my.id/api/download/ytmp3?url=${encodeURIComponent(url)}&apikey=freeApikey`;
+// ── Search Source: 2. Deline (YT Search backup) ─────────────────
+const DELINE_YT_SEARCH = q=>`https://api.deline.web.id/search/youtube?q=${encodeURIComponent(q)}`;
+// ── Download Source: 3. Herza/savenow (YT MP3, polling) ─────────
+const SAVENOW_URL = (videoId,fmt)=>`https://p.savenow.to/ajax/download.php?copyright=0&format=${fmt}&url=${encodeURIComponent('https://www.youtube.com/watch?v='+videoId)}&api=dfcb6d76f2f6a9894gjkege8a4ab232222`;
+// ── Search Source: 4. Apocalypse (Apple Music search+dl) ────────
+const APOCALYPSE_SEARCH = q=>`https://api.apocalypse.web.id/search/applemusic?q=${encodeURIComponent(q)}`;
+const APOCALYPSE_DL     = url=>`https://api.apocalypse.web.id/download/applemusic?url=${encodeURIComponent(url)}&quality=320`;
+// ── Search Source: 5. Deline (Apple Music search backup) ────────
+const DELINE_AM_SEARCH = q=>`https://api.deline.web.id/search/applemusic?q=${encodeURIComponent(q)}`;
+// ── Last Resort: 6. FAA (Spotify) ───────────────────────────────
+const FAA_API = q=>`https://api-faa.my.id/faa/spotify-play?q=${encodeURIComponent(q)}`;
 
 // ══════════════════════════════════════════════════════════════
 //  SUPABASE CLIENT
@@ -1201,23 +1201,14 @@ async function doSearch(){
 // Anabot YT Search
 async function _searchAnabot(q){
   try{
-    const r = await fetch(ANABOT_YT_SEARCH(q));
-    if(!r.ok) throw new Error('YT search HTTP ' + r.status);
-    const wrapper = await r.json();
-    // Response dari proxy: { success, source, data }
-    const d = wrapper.data || wrapper;
-    const results = d?.data?.result || d?.result || [];
-    return results
-      .filter(r => !r.isLive && r.duration !== 'SHORTS' && r.videoId)
-      .slice(0, 8)
-      .map(r => ({
-        type: 'yt', source: wrapper.source || 'anabot',
-        videoId: r.videoId, title: r.title,
-        channel: r.author?.name || r.channel || 'YouTube',
-        thumbnail: r.thumbnail, duration: r.duration,
-        url: r.url || `https://www.youtube.com/watch?v=${r.videoId}`
-      }));
-  }catch(e){ console.warn('[Anabot search]', e.message); return []; }
+    const r=await fetch(ANABOT_YT_SEARCH(q));
+    if(!r.ok)throw new Error('Anabot search HTTP '+r.status);
+    const d=await r.json();
+    return (d?.data?.result||[])
+      .filter(r=>!r.isLive&&r.duration!=='SHORTS'&&r.videoId)
+      .slice(0,8)
+      .map(r=>({type:'yt',source:'anabot',videoId:r.videoId,title:r.title,channel:r.author?.name||'YouTube',thumbnail:r.thumbnail,duration:r.duration,url:r.url||`https://www.youtube.com/watch?v=${r.videoId}`}));
+  }catch(e){console.warn('[Anabot search]',e.message);return[];}
 }
 
 // Deline YT Search
@@ -1332,18 +1323,28 @@ async function playFromYT(item){
 //  API: POST https://catbox.moe/user/api.php (multipart/form-data)
 // ══════════════════════════════════════════════════════════════
 async function _uploadCatbox(audioUrl, filename){
-  // Upload via backend proxy — tidak ada CORS issue
-  const res = await fetch(`${PROXY}/api/catbox-upload`, {
+  // Step 1: download blob dari sumber sementara
+  const resp = await fetch(audioUrl);
+  if(!resp.ok) throw new Error('Gagal download audio: '+resp.status);
+  const blob = await resp.blob();
+
+  // Step 2: upload ke catbox.moe
+  const form = new FormData();
+  form.append('reqtype', 'fileupload');
+  form.append('userhash', ''); // anonymous upload — permanen selama ada aktivitas
+  form.append('fileToUpload', blob, filename || 'audio.mp3');
+
+  const catRes = await fetch('https://catbox.moe/user/api.php', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ audioUrl, filename }),
+    body: form,
   });
-  if(!res.ok) throw new Error('Catbox proxy HTTP ' + res.status);
-  const data = await res.json();
-  if(!data.success) throw new Error(data.message || 'Catbox upload gagal');
-  return data.catboxUrl;
+  if(!catRes.ok) throw new Error('Catbox upload HTTP '+catRes.status);
+  const catUrl = (await catRes.text()).trim();
+  if(!catUrl.startsWith('https://files.catbox.moe/'))
+    throw new Error('Catbox: response tidak valid: '+catUrl.slice(0,80));
+  return catUrl; // e.g. https://files.catbox.moe/abc123.mp3
 }
-  
+
 // ══════════════════════════════════════════════════════════════
 //  SAVE TRACK PERMANENT — upload Catbox → simpan ke Supabase
 //  Dipanggil di background setelah track mulai diputar
@@ -1427,9 +1428,7 @@ async function _dlAnabot(ytUrl){
   if(!d?.success&&!d?.data?.result?.success)throw new Error(d?.message||'Anabot: response gagal');
   const result=d?.data?.result;
   const url=result?.urls||result?.url;
-  if(!url) throw new Error('Anabot: tidak ada URL');
-  if(url.includes('.m3u8') || url.includes('stream/hls'))
-  throw new Error('Anabot: HLS stream tidak didukung');
+  if(!url)throw new Error('Anabot: tidak ada URL');
   const m=result?.metadata||{};
   return {audioUrl:url,meta:{title:m.title,artist:m.channel||m.uploader,thumbnail:m.thumbnail,duration:m.duration?fmt(m.duration):null,year:m.upload_date?.slice(0,4)}};
 }
@@ -1886,21 +1885,6 @@ audio.addEventListener('error',async()=>{
     toast('❌ Gagal memutar audio');isPlaying=false;updAll();
   }
 });
-// Deteksi preview/snipped audio (durasi < 60 detik = kemungkinan preview)
-audio.addEventListener('loadedmetadata', async () => {
-  if(!currentTrack) return;
-  const dur = audio.duration;
-  // Abaikan kalau memang lagu pendek (< 60 detik tapi sudah pernah tersimpan di DB)
-  if(dur > 0 && dur < 62 && currentTrack.source !== 'db') {
-    console.warn('[preview detected] duration:', dur, 'sec — retrying...');
-    toast('⚠️ Terdeteksi preview, mencari versi full...');
-    // Tandai dulu biar tidak loop
-    if(currentTrack._previewRetried) return;
-    currentTrack._previewRetried = true;
-    safePause();
-    await _fallbackSearchYT(currentTrack);
-  }
-});
 
 // Touch progress
 (function(){const pb=document.getElementById('prbar');let drag=false;pb.addEventListener('touchstart',e=>{drag=true;upd(e.touches[0]);},{passive:true});pb.addEventListener('touchmove',e=>{if(!drag)return;e.preventDefault();upd(e.touches[0]);},{passive:false});pb.addEventListener('touchend',e=>{if(!drag)return;drag=false;const r=pb.getBoundingClientRect();if(audio.duration)audio.currentTime=Math.max(0,Math.min(1,(e.changedTouches[0].clientX-r.left)/r.width))*audio.duration;},{passive:true});function upd(touch){const r=pb.getBoundingClientRect();document.getElementById('prfill').style.width=(Math.max(0,Math.min(1,(touch.clientX-r.left)/r.width))*100)+'%';}})();
@@ -1926,13 +1910,8 @@ async function _fallbackSearchYT(t){
   try{
     const q=t.searchQuery||`${t.title} ${t.artist}`;
     toast('🔄 Memuat ulang: '+t.title+'...');
-    let ytResults = await _searchAnabot(q);
-    if(!ytResults.length) ytResults = await _searchDeline(q);
-    // Filter out shorts dan preview
-    ytResults = ytResults.filter(r => {
-      const t = (r.title||'').toLowerCase();
-      return !t.includes('preview') && !t.includes('snippet') && r.duration !== 'SHORTS';
-    });
+    let ytResults=await _searchAnabot(q);
+    if(!ytResults.length)ytResults=await _searchDeline(q);
     let audioUrl=null,meta={};
     if(ytResults.length){
       const first=ytResults[0];
@@ -2001,13 +1980,6 @@ function initApp(){
   ['panH','panL'].forEach(id => document.getElementById(id).style.display = 'none');
 
   // SPA route — baca URL path
-  const adminSess = JSON.parse(localStorage.getItem('pgsk_admin_session')||'null');
-  if(adminSess?.isAdmin){
-    const ind = document.createElement('div');
-    ind.style.cssText = 'position:fixed;top:62px;right:8px;z-index:9999;background:rgba(255,77,109,.15);border:1px solid rgba(255,77,109,.4);border-radius:8px;padding:3px 10px;font-size:.6rem;font-weight:700;color:#ff4d6d;letter-spacing:1px;pointer-events:none';
-    ind.innerHTML = '🔐 ADMIN MODE';
-    document.body.appendChild(ind);
-  }
   const path = window.location.pathname.replace(/^\//, '');
   const validPages = ['beranda','chart','party','chat','profil'];
   navigate(validPages.includes(path) ? path : 'beranda');
