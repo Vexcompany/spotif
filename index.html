@@ -1323,28 +1323,18 @@ async function playFromYT(item){
 //  API: POST https://catbox.moe/user/api.php (multipart/form-data)
 // ══════════════════════════════════════════════════════════════
 async function _uploadCatbox(audioUrl, filename){
-  // Step 1: download blob dari sumber sementara
-  const resp = await fetch(audioUrl);
-  if(!resp.ok) throw new Error('Gagal download audio: '+resp.status);
-  const blob = await resp.blob();
-
-  // Step 2: upload ke catbox.moe
-  const form = new FormData();
-  form.append('reqtype', 'fileupload');
-  form.append('userhash', ''); // anonymous upload — permanen selama ada aktivitas
-  form.append('fileToUpload', blob, filename || 'audio.mp3');
-
-  const catRes = await fetch('https://catbox.moe/user/api.php', {
+  // Upload via backend proxy — tidak ada CORS issue
+  const res = await fetch(`${PROXY}/api/catbox-upload`, {
     method: 'POST',
-    body: form,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ audioUrl, filename }),
   });
-  if(!catRes.ok) throw new Error('Catbox upload HTTP '+catRes.status);
-  const catUrl = (await catRes.text()).trim();
-  if(!catUrl.startsWith('https://files.catbox.moe/'))
-    throw new Error('Catbox: response tidak valid: '+catUrl.slice(0,80));
-  return catUrl; // e.g. https://files.catbox.moe/abc123.mp3
+  if(!res.ok) throw new Error('Catbox proxy HTTP ' + res.status);
+  const data = await res.json();
+  if(!data.success) throw new Error(data.message || 'Catbox upload gagal');
+  return data.catboxUrl;
 }
-
+  
 // ══════════════════════════════════════════════════════════════
 //  SAVE TRACK PERMANENT — upload Catbox → simpan ke Supabase
 //  Dipanggil di background setelah track mulai diputar
