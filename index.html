@@ -1925,8 +1925,13 @@ async function _fallbackSearchYT(t){
   try{
     const q=t.searchQuery||`${t.title} ${t.artist}`;
     toast('🔄 Memuat ulang: '+t.title+'...');
-    let ytResults=await _searchAnabot(q);
-    if(!ytResults.length)ytResults=await _searchDeline(q);
+    let ytResults = await _searchAnabot(q);
+    if(!ytResults.length) ytResults = await _searchDeline(q);
+    // Filter out shorts dan preview
+    ytResults = ytResults.filter(r => {
+      const t = (r.title||'').toLowerCase();
+      return !t.includes('preview') && !t.includes('snippet') && r.duration !== 'SHORTS';
+    });
     let audioUrl=null,meta={};
     if(ytResults.length){
       const first=ytResults[0];
