@@ -906,20 +906,20 @@ const SESS_KEY    = 'pgsk_v2_session';
 const ADMIN_PASS  = 'pagaska_admin_2026';
 const PH          = 'https://placehold.co/200x200/0d0d24/1DB954?text=♪';
 
-// ── Search Source: 1. Anabot (YT) ──────────────────────────────
-const ANABOT_YT_SEARCH = q=>`https://anabot.my.id/api/search/ytSearch?query=${encodeURIComponent(q)}&apikey=freeApikey`;
-const ANABOT_YT_DL     = url=>`https://anabot.my.id/api/download/ytmp3?url=${encodeURIComponent(url)}&apikey=freeApikey`;
-// ── Search Source: 2. Deline (YT Search backup) ─────────────────
-const DELINE_YT_SEARCH = q=>`https://api.deline.web.id/search/youtube?q=${encodeURIComponent(q)}`;
-// ── Download Source: 3. Herza/savenow (YT MP3, polling) ─────────
-const SAVENOW_URL = (videoId,fmt)=>`https://p.savenow.to/ajax/download.php?copyright=0&format=${fmt}&url=${encodeURIComponent('https://www.youtube.com/watch?v='+videoId)}&api=dfcb6d76f2f6a9894gjkege8a4ab232222`;
-// ── Search Source: 4. Apocalypse (Apple Music search+dl) ────────
-const APOCALYPSE_SEARCH = q=>`https://api.apocalypse.web.id/search/applemusic?q=${encodeURIComponent(q)}`;
-const APOCALYPSE_DL     = url=>`https://api.apocalypse.web.id/download/applemusic?url=${encodeURIComponent(url)}&quality=320`;
-// ── Search Source: 5. Deline (Apple Music search backup) ────────
-const DELINE_AM_SEARCH = q=>`https://api.deline.web.id/search/applemusic?q=${encodeURIComponent(q)}`;
-// ── Last Resort: 6. FAA (Spotify) ───────────────────────────────
-const FAA_API = q=>`https://api-faa.my.id/faa/spotify-play?q=${encodeURIComponent(q)}`;
+// ── Backend proxy URL (Vercel) — semua request lewat sini, tidak ada CORS ──
+const PROXY = 'https://music.pagaska.my.id'; // domain Vercel kamu
+
+// Search Sources — semua lewat proxy
+const ANABOT_YT_SEARCH = q   => `${PROXY}/api/yt-search?q=${encodeURIComponent(q)}`;
+const DELINE_YT_SEARCH = q   => `${PROXY}/api/yt-search?q=${encodeURIComponent(q)}`;
+const SAVENOW_URL      = ()  => null; // ditangani di backend
+const APOCALYPSE_SEARCH = q  => `${PROXY}/api/apple-search?q=${encodeURIComponent(q)}`;
+const APOCALYPSE_DL    = url => `${PROXY}/api/apple-dl?url=${encodeURIComponent(url)}`;
+const DELINE_AM_SEARCH = q   => `${PROXY}/api/apple-search?q=${encodeURIComponent(q)}`;
+const FAA_API          = q   => `${PROXY}/api/faa?q=${encodeURIComponent(q)}`;
+
+// Download — semua lewat proxy
+const ANABOT_YT_DL     = url => `${PROXY}/api/yt-dl?url=${encodeURIComponent(url)}`;
 
 // ══════════════════════════════════════════════════════════════
 //  SUPABASE CLIENT
