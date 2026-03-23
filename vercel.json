@@ -11,6 +11,6 @@
     { "source": "/capsule", "destination": "/index.html" },
     { "source": "/explore", "destination": "/index.html" },
     { "source": "/profil", "destination": "/index.html" },
-    { "source": "/admin", "destination": "/index.html" }
+    { "source": "/admin", "destination": "/admin.html" }
   ]
 }
