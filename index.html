@@ -1313,22 +1313,111 @@ async function playFromYT(item){
   const track={id:trackId,title,artist,album:meta.album||'',duration,year,thumbnail,audio:audioUrl,spotifyUrl,source:'api',playCount:1,searchQuery:_currentSearchQuery};
   await playTrackObj(track);
 
-  // Save to DB background
-  ;(async()=>{
-    try{
-      toast('\u2601\ufe0f Menyimpan audio...');
-      const saveRes=await fetch(EDGE_FN_URL,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+SB_KEY,apikey:SB_KEY},body:JSON.stringify({audioUrl,title,artist,trackId})});
-      const saveData=saveRes.ok?await saveRes.json():{};
-      const finalUrl=saveData.storageUrl||audioUrl;
-      if(saveData.storageUrl&&currentTrack?.id===trackId)currentTrack.audio=saveData.storageUrl;
-      queue=queue.map(t=>t.id===trackId?{...t,audio:finalUrl}:t);LS.sq(queue);
-      await sb.upsert('tracks',{id:trackId,title,artist,album:meta.album||'',duration,year,thumbnail:thumbnail!==PH?thumbnail:null,audio_url:finalUrl,spotify_url:spotifyUrl,search_query:_currentSearchQuery,searched_by:session?.nama||'guest',play_count:1,last_played:new Date().toISOString(),storage_path:saveData.fileName||null});
-      toast('\u2705 Tersimpan permanen!');loadQuickPlay();loadTopChartHome();
-    }catch(err){
-      console.error('[save-music]',err.message);
-      sb.upsert('tracks',{id:trackId,title,artist,album:meta.album||'',duration,year,thumbnail:thumbnail!==PH?thumbnail:null,audio_url:audioUrl,search_query:_currentSearchQuery,searched_by:session?.nama||'guest',play_count:1,last_played:new Date().toISOString()}).catch(()=>{});
+  // Save ke DB + upload ke Catbox (background, tidak blokir playback)
+  _saveTrackPermanent({trackId,title,artist,album:meta.album||'',duration,year,thumbnail,audioUrl,spotifyUrl});
+}
+
+// ══════════════════════════════════════════════════════════════
+//  CATBOX UPLOAD — simpan audio permanen ke catbox.moe
+//  Catbox: gratis, permanen, no-login, support CORS, max 200MB
+//  API: POST https://catbox.moe/user/api.php (multipart/form-data)
+// ══════════════════════════════════════════════════════════════
+async function _uploadCatbox(audioUrl, filename){
+  // Step 1: download blob dari sumber sementara
+  const resp = await fetch(audioUrl);
+  if(!resp.ok) throw new Error('Gagal download audio: '+resp.status);
+  const blob = await resp.blob();
+
+  // Step 2: upload ke catbox.moe
+  const form = new FormData();
+  form.append('reqtype', 'fileupload');
+  form.append('userhash', ''); // anonymous upload — permanen selama ada aktivitas
+  form.append('fileToUpload', blob, filename || 'audio.mp3');
+
+  const catRes = await fetch('https://catbox.moe/user/api.php', {
+    method: 'POST',
+    body: form,
+  });
+  if(!catRes.ok) throw new Error('Catbox upload HTTP '+catRes.status);
+  const catUrl = (await catRes.text()).trim();
+  if(!catUrl.startsWith('https://files.catbox.moe/'))
+    throw new Error('Catbox: response tidak valid: '+catUrl.slice(0,80));
+  return catUrl; // e.g. https://files.catbox.moe/abc123.mp3
+}
+
+// ══════════════════════════════════════════════════════════════
+//  SAVE TRACK PERMANENT — upload Catbox → simpan ke Supabase
+//  Dipanggil di background setelah track mulai diputar
+// ══════════════════════════════════════════════════════════════
+async function _saveTrackPermanent({trackId,title,artist,album,duration,year,thumbnail,audioUrl,spotifyUrl}){
+  // Simpan dulu ke DB dengan URL sementara supaya anggota lain bisa langsung lihat
+  try{
+    await sb.upsert('tracks',{
+      id:trackId, title, artist, album, duration, year,
+      thumbnail: thumbnail!==PH ? thumbnail : null,
+      audio_url: audioUrl,
+      spotify_url: spotifyUrl||null,
+      search_query: _currentSearchQuery,
+      searched_by: session?.nama||'guest',
+      play_count: 1,
+      last_played: new Date().toISOString(),
+    });
+    loadQuickPlay(); loadTopChartHome();
+  }catch(e){ console.warn('[saveTrack] DB insert awal gagal:', e.message); }
+
+  // Upload ke Catbox di background
+  toast('\u2601\ufe0f Menyimpan permanen ke Catbox...');
+  try{
+    const ext = audioUrl.split('?')[0].split('.').pop()?.toLowerCase() || 'mp3';
+    const safeName = (title+'-'+artist).replace(/[^a-zA-Z0-9]/g,'-').slice(0,40)+'.'+ext;
+    const catboxUrl = await _uploadCatbox(audioUrl, safeName);
+    console.log('[Catbox] uploaded:', catboxUrl);
+
+    // Update DB dengan URL Catbox permanen
+    await sb.patch('tracks', `id=eq.${encodeURIComponent(trackId)}`, {
+      catbox_url: catboxUrl,
+      audio_url:  catboxUrl, // juga update audio_url supaya backward-compatible
+    });
+
+    // Update track di memory supaya langsung pakai Catbox
+    if(currentTrack?.id === trackId){
+      currentTrack.audio    = catboxUrl;
+      currentTrack.catboxUrl = catboxUrl;
     }
-  })();
+    queue    = queue.map(t => t.id===trackId ? {...t, audio:catboxUrl, catboxUrl} : t);
+    histArr  = histArr.map(t => t.id===trackId ? {...t, audio:catboxUrl, catboxUrl} : t);
+    LS.sq(queue); LS.sh(histArr);
+
+    toast('\u2705 Tersimpan permanen di Catbox!');
+    loadQuickPlay(); loadTopChartHome();
+  }catch(catErr){
+    console.warn('[Catbox] upload gagal, coba Supabase Edge Fn:', catErr.message);
+    // Fallback: coba simpan via Supabase Edge Function
+    try{
+      const saveRes = await fetch(EDGE_FN_URL, {
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':'Bearer '+SB_KEY, apikey:SB_KEY},
+        body: JSON.stringify({audioUrl,title,artist,trackId})
+      });
+      if(saveRes.ok){
+        const sd = await saveRes.json();
+        if(sd.storageUrl){
+          await sb.patch('tracks',`id=eq.${encodeURIComponent(trackId)}`,{
+            catbox_url: sd.storageUrl,
+            audio_url:  sd.storageUrl,
+            storage_path: sd.fileName||null,
+          });
+          if(currentTrack?.id===trackId) currentTrack.audio=sd.storageUrl;
+          queue   = queue.map(t=>t.id===trackId?{...t,audio:sd.storageUrl}:t);
+          histArr = histArr.map(t=>t.id===trackId?{...t,audio:sd.storageUrl}:t);
+          LS.sq(queue); LS.sh(histArr);
+          toast('\u2705 Tersimpan via Supabase!');
+        }
+      }
+    }catch(sbErr){ console.warn('[save] Supabase fallback juga gagal:', sbErr.message); }
+    // Tetap lanjut dengan URL sementara — user masih bisa dengarkan sekarang
+    toast('\u26a0\ufe0f Tersimpan sementara, permanen gagal');
+  }
 }
 
 // Downloader 1: Anabot ytmp3
@@ -1403,7 +1492,15 @@ async function _dlFAA(q){
   return {audioUrl:d.download.url,meta:{title:d.info?.title||q,artist:d.info?.artist,thumbnail:d.info?.thumbnail,album:d.info?.album,year:d.info?.release_date?.slice(0,4),spotifyUrl:d.info?.spotify_url}};
 }
 
-function rowToTrack(r,src='db'){return{id:r.id,title:r.title,artist:r.artist,album:r.album||'',duration:r.duration||'0:00',year:r.year||'–',thumbnail:r.thumbnail||PH,audio:r.audio_url,spotifyUrl:r.spotify_url||null,playCount:r.play_count||0,searchQuery:r.search_query||'',storagePath:r.storage_path||null,source:src};}
+function rowToTrack(r,src='db'){
+  // Prioritas audio: catbox_url (permanen) > audio_url (bisa temporary)
+  const audioSrc = r.catbox_url || r.audio_url || null;
+  return{id:r.id,title:r.title,artist:r.artist,album:r.album||'',duration:r.duration||'0:00',
+    year:r.year||'–',thumbnail:r.thumbnail||PH,audio:audioSrc,
+    catboxUrl:r.catbox_url||null,audioUrl:r.audio_url||null,
+    spotifyUrl:r.spotify_url||null,playCount:r.play_count||0,
+    searchQuery:r.search_query||'',storagePath:r.storage_path||null,source:src};
+}
 function setBtnLoad(on){const b=document.getElementById('sBtn');b.disabled=on;document.getElementById('sBtnIco').className=on?'fas fa-circle-notch spin':'fas fa-search';document.getElementById('sBtnTxt').textContent=on?'':'Cari';}
 function setStLoad(t,m){document.getElementById('stLoadT').textContent=t;document.getElementById('stLoadM').textContent=m;}
 
@@ -1838,13 +1935,12 @@ async function _fallbackSearchYT(t){
     await new Promise(r=>setTimeout(r,50));
     await safePlay();
     toast('✅ Audio berhasil dimuat ulang!');
-    sb.upsert('tracks',{id:t.id,title:t.title,artist:t.artist,audio_url:audioUrl,last_played:new Date().toISOString()}).catch(()=>{});
-    ;(async()=>{
-      try{
-        const sr=await fetch(EDGE_FN_URL,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+SB_KEY,apikey:SB_KEY},body:JSON.stringify({audioUrl,title:t.title,artist:t.artist,trackId:t.id})});
-        if(sr.ok){const sd=await sr.json();if(sd.storageUrl){currentTrack.audio=sd.storageUrl;queue=queue.map(x=>x.id===t.id?{...x,audio:sd.storageUrl}:x);LS.sq(queue);sb.patch('tracks',`id=eq.${encodeURIComponent(t.id)}`,{audio_url:sd.storageUrl,storage_path:sd.fileName}).catch(()=>{}); }}
-      }catch{}
-    })();
+    // Upload ke Catbox dan simpan permanen
+    _saveTrackPermanent({
+      trackId:t.id, title:t.title, artist:t.artist,
+      album:t.album||'', duration:t.duration||'–', year:t.year||'–',
+      thumbnail:t.thumbnail||PH, audioUrl, spotifyUrl:t.spotifyUrl||null
+    });
   }catch(err){
     console.error('[_fallbackSearchYT]',err.message);
     toast('❌ Gagal memuat ulang. Coba cari manual.');
@@ -1919,7 +2015,5 @@ if(document.readyState === 'loading'){
   initApp();
 }
 </script>
-
-
 </body>
 </html>
