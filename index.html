@@ -672,6 +672,10 @@ body::before{
     <div class="tb-search">
       <i class="fas fa-search" style="color:var(--mt);font-size:.75rem;flex-shrink:0"></i>
       <input type="text" id="sInput" placeholder="Cari lagu..." autocomplete="off">
+      <select id="searchSource" style="background:var(--s3);border:none;color:var(--tx);font-size:.7rem;padding:4px 6px;border-radius:6px;margin-right:4px;outline:none">
+        <option value="spotify">Spotify</option>
+        <option value="apple">Apple Music</option>
+      </select>
       <button class="search-btn" id="sBtn" onclick="doSearch()">
         <i class="fas fa-search" id="sBtnIco"></i><span id="sBtnTxt" style="display:inline">Cari</span>
       </button>
@@ -1073,6 +1077,8 @@ body::before{
 //  CONFIG
 // ════════════════════════════════════════════════════════════════
 const FAA_API     = 'https://api-faa.my.id/faa/spotify-play';
+const APPLE_SEARCH_API = 'https://api.deline.web.id/search/applemusic?q=';
+const APPLE_DOWNLOAD_API = 'https://api.deline.web.id/downloader/applemusic';
 const SB_URL      = 'https://ygwoddwdhelqcwhpqasl.supabase.co';
 const SB_KEY      = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlnd29kZHdkaGVscWN3aHBxYXNsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE4NTEwNzcsImV4cCI6MjA4NzQyNzA3N30.y0tnci0aWnhWYpxb9v7M7I0X9ss-jAt0JvpOBnZgFzo';
 const EDGE_FN_URL = `${SB_URL}/functions/v1/save-music`;
@@ -1844,6 +1850,7 @@ document.getElementById('sInput').addEventListener('keydown', e => { if(e.key===
 
 async function doSearch() {
   const q = document.getElementById('sInput').value.trim();
+  const source = document.getElementById('searchSource')?.value || 'spotify';
   if (!q) return;
   // Navigate to beranda if not already there
   if (currentPage !== 'beranda') navigate('beranda');
@@ -1857,35 +1864,130 @@ async function doSearch() {
       sb.patch('tracks', `id=eq.${encodeURIComponent(t.id)}`, {play_count:(cached[0].play_count||0)+1,last_played:new Date().toISOString()}).catch(()=>{});
       saveSug(q); return;
     }
-    setStLoad(`Mencari "${q}"`, '🎵 Mengambil dari Spotify...');
-    const faaRes = await fetch(`${FAA_API}?q=${encodeURIComponent(q)}`);
-    if (!faaRes.ok) throw new Error(`FAA error ${faaRes.status}`);
-    const faaData = await faaRes.json();
-    if (!faaData?.status || !faaData?.download?.url) throw new Error(faaData?.message || 'FAA: response tidak valid');
-    const uguuUrl = faaData.download.url, trackId = 'faa_'+Date.now();
-    const title = faaData.info?.title||q, artist = faaData.info?.artist||'–', album = faaData.info?.album||'';
-    const duration = faaData.info?.duration||'0:00', year = faaData.info?.release_date?.slice(0,4)||'–';
-    const thumbnail = faaData.info?.thumbnail||PH, spotUrl = faaData.info?.spotify_url||null;
-    const trackTemp = {id:trackId,title,artist,album,duration,year,thumbnail,audio:uguuUrl,spotifyUrl:spotUrl,searchQuery:q,source:'api',playCount:1};
-    showHero(trackTemp,'api'); addToQueue(trackTemp); setState('none');
-    await playTrackObj(trackTemp); saveSug(q);
-    ;(async()=>{
+    
+    // Search based on selected source
+    if (source === 'apple') {
+      setStLoad(`Mencari "${q}"`, '🎵 Mengambil dari Apple Music...');
       try {
-        toast('☁️ Menyimpan audio...');
-        const res = await fetch(EDGE_FN_URL, {method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+SB_KEY,apikey:SB_KEY},body:JSON.stringify({audioUrl:uguuUrl,title,artist,trackId})});
-        if (!res.ok) throw new Error(await res.text());
-        const data = await res.json();
-        if (!data.status||!data.storageUrl) throw new Error(data.error||'No storageUrl');
-        // Update DB dengan permanent URL — tidak ganti src saat sedang diputar
-        if (currentTrack?.id === trackId) currentTrack.audio = data.storageUrl;
-        queue = queue.map(t => t.id===trackId ? {...t, audio:data.storageUrl} : t); LS.sq(queue);
-        await sb.upsert('tracks', {id:trackId,title,artist,album,duration,year,thumbnail:thumbnail!==PH?thumbnail:null,audio_url:data.storageUrl,spotify_url:spotUrl,search_query:q,searched_by:session?.nama||'guest',play_count:1,last_played:new Date().toISOString(),storage_path:data.fileName});
-        toast('✅ Tersimpan permanen!'); loadDBTracks(); loadTopChartHome();
-      } catch(err) {
-        console.error('[save-music]', err.message); toast('⚠️ Upload gagal: '+err.message.substring(0,50));
-        sb.upsert('tracks',{id:trackId,title,artist,album,duration,year,thumbnail:thumbnail!==PH?thumbnail:null,audio_url:uguuUrl,spotify_url:spotUrl,search_query:q,searched_by:session?.nama||'guest',play_count:1,last_played:new Date().toISOString()}).catch(()=>{});
+        const appleRes = await fetch(`${APPLE_SEARCH_API}${encodeURIComponent(q)}`);
+        if (!appleRes.ok) throw new Error(`Apple Music error ${appleRes.status}`);
+        const appleData = await appleRes.json();
+        
+        // Check if we got valid results
+        if (!appleData || !Array.isArray(appleData) || appleData.length === 0) {
+          throw new Error('Tidak ada hasil dari Apple Music');
+        }
+        
+        // Get first result
+        const firstResult = appleData[0];
+        const trackId = 'apple_'+Date.now();
+        const title = firstResult.title || q;
+        const artist = firstResult.artist || '–';
+        const album = firstResult.album || '';
+        const duration = firstResult.duration || '0:00';
+        const thumbnail = firstResult.thumbnail || firstResult.image || PH;
+        const appleUrl = firstResult.url || null;
+        
+        // Download the audio
+        setStLoad(`Mencari "${q}"`, '⬇️ Mendownload dari Apple Music...');
+        const downloadRes = await fetch(APPLE_DOWNLOAD_API, {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({url: appleUrl})
+        });
+        
+        if (!downloadRes.ok) throw new Error(`Download error ${downloadRes.status}`);
+        const downloadData = await downloadRes.json();
+        
+        if (!downloadData?.result?.url && !downloadData?.url) {
+          throw new Error('Gagal mendapatkan link audio');
+        }
+        
+        const audioUrl = downloadData.result?.url || downloadData.url;
+        const trackTemp = {id:trackId,title,artist,album,duration,year:new Date().getFullYear(),thumbnail,audio:audioUrl,appleUrl:appleUrl,searchQuery:q,source:'apple',playCount:1};
+        showHero(trackTemp,'apple'); addToQueue(trackTemp); setState('none');
+        await playTrackObj(trackTemp); saveSug(q);
+        
+        // Save to database
+        ;(async()=>{
+          try {
+            toast('☁️ Menyimpan audio...');
+            const res = await fetch(EDGE_FN_URL, {method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+SB_KEY,apikey:SB_KEY},body:JSON.stringify({audioUrl,title,artist,trackId})});
+            if (!res.ok) throw new Error(await res.text());
+            const data = await res.json();
+            if (!data.status||!data.storageUrl) throw new Error(data.error||'No storageUrl');
+            if (currentTrack?.id === trackId) currentTrack.audio = data.storageUrl;
+            queue = queue.map(t => t.id===trackId ? {...t, audio:data.storageUrl} : t); LS.sq(queue);
+            await sb.upsert('tracks', {id:trackId,title,artist,album,duration,year:new Date().getFullYear(),thumbnail:thumbnail!==PH?thumbnail:null,audio_url:data.storageUrl,apple_url:appleUrl,search_query:q,searched_by:session?.nama||'guest',play_count:1,last_played:new Date().toISOString(),storage_path:data.fileName});
+            toast('✅ Tersimpan permanen!'); loadDBTracks(); loadTopChartHome();
+          } catch(err) {
+            console.error('[save-music]', err.message); toast('⚠️ Upload gagal: '+err.message.substring(0,50));
+            sb.upsert('tracks',{id:trackId,title,artist,album,duration,year:new Date().getFullYear(),thumbnail:thumbnail!==PH?thumbnail:null,audio_url:audioUrl,apple_url:appleUrl,search_query:q,searched_by:session?.nama||'guest',play_count:1,last_played:new Date().toISOString()}).catch(()=>{});
+          }
+        })();
+      } catch(appleErr) {
+        // If Apple Music fails, try Spotify as fallback
+        console.warn('Apple Music failed, trying Spotify:', appleErr.message);
+        setStLoad(`Mencari "${q}"`, '🎵 Mengambil dari Spotify...');
+        const faaRes = await fetch(`${FAA_API}?q=${encodeURIComponent(q)}`);
+        if (!faaRes.ok) throw new Error(`Spotify error: ${faaRes.status}. Apple Music: ${appleErr.message}`);
+        const faaData = await faaRes.json();
+        if (!faaData?.status || !faaData?.download?.url) throw new Error(faaData?.message || 'FAA: response tidak valid');
+        const uguuUrl = faaData.download.url, trackId = 'faa_'+Date.now();
+        const title = faaData.info?.title||q, artist = faaData.info?.artist||'–', album = faaData.info?.album||'';
+        const duration = faaData.info?.duration||'0:00', year = faaData.info?.release_date?.slice(0,4)||'–';
+        const thumbnail = faaData.info?.thumbnail||PH, spotUrl = faaData.info?.spotify_url||null;
+        const trackTemp = {id:trackId,title,artist,album,duration,year,thumbnail,audio:uguuUrl,spotifyUrl:spotUrl,searchQuery:q,source:'api',playCount:1};
+        showHero(trackTemp,'api'); addToQueue(trackTemp); setState('none');
+        await playTrackObj(trackTemp); saveSug(q);
+        ;(async()=>{
+          try {
+            toast('☁️ Menyimpan audio...');
+            const res = await fetch(EDGE_FN_URL, {method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+SB_KEY,apikey:SB_KEY},body:JSON.stringify({audioUrl:uguuUrl,title,artist,trackId})});
+            if (!res.ok) throw new Error(await res.text());
+            const data = await res.json();
+            if (!data.status||!data.storageUrl) throw new Error(data.error||'No storageUrl');
+            if (currentTrack?.id === trackId) currentTrack.audio = data.storageUrl;
+            queue = queue.map(t => t.id===trackId ? {...t, audio:data.storageUrl} : t); LS.sq(queue);
+            await sb.upsert('tracks', {id:trackId,title,artist,album,duration,year,thumbnail:thumbnail!==PH?thumbnail:null,audio_url:data.storageUrl,spotify_url:spotUrl,search_query:q,searched_by:session?.nama||'guest',play_count:1,last_played:new Date().toISOString(),storage_path:data.fileName});
+            toast('✅ Tersimpan permanen!'); loadDBTracks(); loadTopChartHome();
+          } catch(err) {
+            console.error('[save-music]', err.message); toast('⚠️ Upload gagal: '+err.message.substring(0,50));
+            sb.upsert('tracks',{id:trackId,title,artist,album,duration,year,thumbnail:thumbnail!==PH?thumbnail:null,audio_url:uguuUrl,spotify_url:spotUrl,search_query:q,searched_by:session?.nama||'guest',play_count:1,last_played:new Date().toISOString()}).catch(()=>{});
+          }
+        })();
       }
-    })();
+    } else {
+      // Spotify search (default)
+      setStLoad(`Mencari "${q}"`, '🎵 Mengambil dari Spotify...');
+      const faaRes = await fetch(`${FAA_API}?q=${encodeURIComponent(q)}`);
+      if (!faaRes.ok) throw new Error(`FAA error ${faaRes.status}`);
+      const faaData = await faaRes.json();
+      if (!faaData?.status || !faaData?.download?.url) throw new Error(faaData?.message || 'FAA: response tidak valid');
+      const uguuUrl = faaData.download.url, trackId = 'faa_'+Date.now();
+      const title = faaData.info?.title||q, artist = faaData.info?.artist||'–', album = faaData.info?.album||'';
+      const duration = faaData.info?.duration||'0:00', year = faaData.info?.release_date?.slice(0,4)||'–';
+      const thumbnail = faaData.info?.thumbnail||PH, spotUrl = faaData.info?.spotify_url||null;
+      const trackTemp = {id:trackId,title,artist,album,duration,year,thumbnail,audio:uguuUrl,spotifyUrl:spotUrl,searchQuery:q,source:'api',playCount:1};
+      showHero(trackTemp,'api'); addToQueue(trackTemp); setState('none');
+      await playTrackObj(trackTemp); saveSug(q);
+      ;(async()=>{
+        try {
+          toast('☁️ Menyimpan audio...');
+          const res = await fetch(EDGE_FN_URL, {method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+SB_KEY,apikey:SB_KEY},body:JSON.stringify({audioUrl:uguuUrl,title,artist,trackId})});
+          if (!res.ok) throw new Error(await res.text());
+          const data = await res.json();
+          if (!data.status||!data.storageUrl) throw new Error(data.error||'No storageUrl');
+          if (currentTrack?.id === trackId) currentTrack.audio = data.storageUrl;
+          queue = queue.map(t => t.id===trackId ? {...t, audio:data.storageUrl} : t); LS.sq(queue);
+          await sb.upsert('tracks', {id:trackId,title,artist,album,duration,year,thumbnail:thumbnail!==PH?thumbnail:null,audio_url:data.storageUrl,spotify_url:spotUrl,search_query:q,searched_by:session?.nama||'guest',play_count:1,last_played:new Date().toISOString(),storage_path:data.fileName});
+          toast('✅ Tersimpan permanen!'); loadDBTracks(); loadTopChartHome();
+        } catch(err) {
+          console.error('[save-music]', err.message); toast('⚠️ Upload gagal: '+err.message.substring(0,50));
+          sb.upsert('tracks',{id:trackId,title,artist,album,duration,year,thumbnail:thumbnail!==PH?thumbnail:null,audio_url:uguuUrl,spotify_url:spotUrl,search_query:q,searched_by:session?.nama||'guest',play_count:1,last_played:new Date().toISOString()}).catch(()=>{});
+        }
+      })();
+    }
   } catch(err) {
     setState('err'); document.getElementById('stErrT').textContent = 'Gagal mengambil lagu';
     document.getElementById('stErrM').textContent = err.message; toast('⚠️ '+err.message);
