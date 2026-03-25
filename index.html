@@ -2131,8 +2131,9 @@ fetch(`${SB_URL}/rest/v1/play_history`, {
   sb.del('play_history', `user_key=eq.${encodeURIComponent(USER_KEY)}&track_id=eq.${encodeURIComponent(t.id)}`)
     .then(() => sb.post('play_history', { user_key: USER_KEY, track_id: t.id, played_at: new Date().toISOString() }))
     .catch(() => {});
-});
+ });
 }
+  
 function renderHistory(){const el=document.getElementById('panH');if(!histArr.length){el.innerHTML='<div class="empty-ti"><i class="fas fa-history"></i>Belum ada riwayat</div>';return;}el.innerHTML=histArr.map(t=>`<div class="ti" onclick='playTrackObj(${esc(t)})'><div class="ti-n" style="font-size:.58rem">${t.playedAt||''}</div><div class="ti-th"><img src="${t.thumbnail||PH}" onerror="this.src='${PH}'"></div><div class="ti-inf"><div class="ti-t">${t.title}</div><div class="ti-a">${t.artist}</div></div><div class="ti-dur">${t.duration}</div><button class="ti-del" onclick="event.stopPropagation();removeHist('${t.id}')"><i class="fas fa-times"></i></button></div>`).join('');}
 function removeHist(id){histArr=histArr.filter(t=>t.id!==id);LS.sh(histArr);renderHistory();}
 function renderLiked(){const el=document.getElementById('panL');if(!likedArr.length){el.innerHTML='<div class="empty-ti"><i class="fas fa-heart"></i>Belum ada lagu disukai</div>';return;}el.innerHTML=likedArr.map((t,i)=>`<div class="ti" onclick='playTrackObj(${esc(t)})'><div class="ti-n">${i+1}</div><div class="ti-th"><img src="${t.thumbnail||PH}" onerror="this.src='${PH}'"></div><div class="ti-inf"><div class="ti-t">${t.title}</div><div class="ti-a">${t.artist}</div></div><div class="ti-dur">${t.duration}</div><button class="ti-del" onclick="event.stopPropagation();rmLiked('${t.id}')"><i class="fas fa-times"></i></button></div>`).join('');}
