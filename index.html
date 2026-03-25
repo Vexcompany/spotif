@@ -2142,6 +2142,7 @@ async function toggleLikeCurrent(){if(!currentTrack)return;const idx=likedArr.fi
 function updHeroLike(){if(!currentTrack)return;const on=likedArr.some(l=>l.id===currentTrack.id);const b=document.getElementById('hLike');b.innerHTML=`<i class="${on?'fas':'far'} fa-heart" style="color:${on?'var(--rd)':''}"></i>`;b.classList.toggle('liked',on);}
 function updPBLike(){if(!currentTrack)return;const on=likedArr.some(l=>l.id===currentTrack.id);const b=document.getElementById('pbLike');b.innerHTML=`<i class="${on?'fas':'far'} fa-heart"></i>`;b.classList.toggle('on',on);}
 function updLikedCnt(){}
+}
 
 function switchTab(t){
   ['q','h','l'].forEach(x=>{
