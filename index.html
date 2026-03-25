@@ -2114,27 +2114,26 @@ function addToQueue(t){queue=queue.filter(x=>x.id!==t.id);queue.unshift(t);if(qu
 function removeFromQueue(id){queue=queue.filter(t=>t.id!==id);LS.sq(queue);qi=queue.findIndex(t=>t.id===currentTrack?.id);renderQueue();document.getElementById('qBadge').textContent=queue.length;if(!queue.length)document.getElementById('qSec').style.display='none';}
 function clearQueue(){queue=[];LS.sq(queue);qi=-1;renderQueue();document.getElementById('qBadge').textContent=0;document.getElementById('qSec').style.display='none';}
 function renderQueue(){const el=document.getElementById('panQ');if(!queue.length){el.innerHTML='<div class="empty-ti"><i class="fas fa-layer-group"></i>Queue kosong</div>';return;}el.innerHTML=queue.map((t,i)=>`<div class="ti ${currentTrack?.id===t.id?'on':''}" onclick='playTrackObj(${esc(t)})'><div class="ti-n">${currentTrack?.id===t.id?'<i class="fas fa-volume-up" style="color:var(--dyn1);font-size:.6rem"></i>':i+1}</div><div class="ti-th"><img src="${t.thumbnail||PH}" onerror="this.src='${PH}'"></div><div class="ti-inf"><div class="ti-t">${t.title}</div><div class="ti-a">${t.artist}</div></div><div class="ti-dur">${t.duration}</div><button class="ti-del" onclick="event.stopPropagation();removeFromQueue('${t.id}')"><i class="fas fa-times"></i></button></div>`).join('');}
-async function addToHistory(t){const e={...t,playedAt:new Date().toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'})};histArr=histArr.filter(x=>x.id!==t.id);histArr.unshift(e);if(histArr.length>30)histArr=histArr.slice(0,30);LS.sh(histArr);renderHistory();
-fetch(`${SB_URL}/rest/v1/play_history`, {
-  method: 'POST',
-  headers: {
-    ...sb._h,
-    'Prefer': 'resolution=merge-duplicates,return=minimal',
-    'on_conflict': 'user_key,track_id'
-  },
-  body: JSON.stringify({
-    user_key:   USER_KEY,
-    track_id:   t.id,
-    played_at:  new Date().toISOString()
-  })
-}).catch(() => {
-  sb.del('play_history', `user_key=eq.${encodeURIComponent(USER_KEY)}&track_id=eq.${encodeURIComponent(t.id)}`)
-    .then(() => sb.post('play_history', { user_key: USER_KEY, track_id: t.id, played_at: new Date().toISOString() }))
-    .catch(() => {});
- });
-function renderHistory(){const el=document.getElementById('panH');if(!histArr.length){el.innerHTML='<div class="empty-ti"><i class="fas fa-history"></i>Belum ada riwayat</div>';return;}el.innerHTML=histArr.map(t=>`<div class="ti" onclick='playTrackObj(${esc(t)})'><div class="ti-n" style="font-size:.58rem">${t.playedAt||''}</div><div class="ti-th"><img src="${t.thumbnail||PH}" onerror="this.src='${PH}'"></div><div class="ti-inf"><div class="ti-t">${t.title}</div><div class="ti-a">${t.artist}</div></div><div class="ti-dur">${t.duration}</div><button class="ti-del" onclick="event.stopPropagation();removeHist('${t.id}')"><i class="fas fa-times"></i></button></div>`).join('');}
+
+async function addToHistory(t){
+  const e={...t,playedAt:new Date().toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'})};
+  histArr=histArr.filter(x=>x.id!==t.id);
+  histArr.unshift(e);
+  if(histArr.length>30)histArr=histArr.slice(0,30);
+  LS.sh(histArr);
+  fetch(`${SB_URL}/rest/v1/play_history`,{
+    method:'POST',
+    headers:{...sb._h,'Prefer':'resolution=merge-duplicates,return=minimal','on_conflict':'user_key,track_id'},
+    body:JSON.stringify({user_key:USER_KEY,track_id:t.id,played_at:new Date().toISOString()})
+  }).catch(()=>{
+    sb.del('play_history',`user_key=eq.${encodeURIComponent(USER_KEY)}&track_id=eq.${encodeURIComponent(t.id)}`)
+      .then(()=>sb.post('play_history',{user_key:USER_KEY,track_id:t.id,played_at:new Date().toISOString()}))
+      .catch(()=>{});
+  });
+  renderHistory();
 }
 
+function renderHistory(){const el=document.getElementById('panH');if(!histArr.length){el.innerHTML='<div class="empty-ti"><i class="fas fa-history"></i>Belum ada riwayat</div>';return;}el.innerHTML=histArr.map(t=>`<div class="ti" onclick='playTrackObj(${esc(t)})'><div class="ti-n" style="font-size:.58rem">${t.playedAt||''}</div><div class="ti-th"><img src="${t.thumbnail||PH}" onerror="this.src='${PH}'"></div><div class="ti-inf"><div class="ti-t">${t.title}</div><div class="ti-a">${t.artist}</div></div><div class="ti-dur">${t.duration}</div><button class="ti-del" onclick="event.stopPropagation();removeHist('${t.id}')"><i class="fas fa-times"></i></button></div>`).join('');}
 function removeHist(id){histArr=histArr.filter(t=>t.id!==id);LS.sh(histArr);renderHistory();}
 function renderLiked(){const el=document.getElementById('panL');if(!likedArr.length){el.innerHTML='<div class="empty-ti"><i class="fas fa-heart"></i>Belum ada lagu disukai</div>';return;}el.innerHTML=likedArr.map((t,i)=>`<div class="ti" onclick='playTrackObj(${esc(t)})'><div class="ti-n">${i+1}</div><div class="ti-th"><img src="${t.thumbnail||PH}" onerror="this.src='${PH}'"></div><div class="ti-inf"><div class="ti-t">${t.title}</div><div class="ti-a">${t.artist}</div></div><div class="ti-dur">${t.duration}</div><button class="ti-del" onclick="event.stopPropagation();rmLiked('${t.id}')"><i class="fas fa-times"></i></button></div>`).join('');}
 function rmLiked(id){likedArr=likedArr.filter(l=>l.id!==id);LS.sl(likedArr);renderLiked();updLikedCnt();if(currentTrack?.id===id){updHeroLike();updPBLike();if(npOpen)updateNP();}}
@@ -2142,7 +2141,6 @@ async function toggleLikeCurrent(){if(!currentTrack)return;const idx=likedArr.fi
 function updHeroLike(){if(!currentTrack)return;const on=likedArr.some(l=>l.id===currentTrack.id);const b=document.getElementById('hLike');b.innerHTML=`<i class="${on?'fas':'far'} fa-heart" style="color:${on?'var(--rd)':''}"></i>`;b.classList.toggle('liked',on);}
 function updPBLike(){if(!currentTrack)return;const on=likedArr.some(l=>l.id===currentTrack.id);const b=document.getElementById('pbLike');b.innerHTML=`<i class="${on?'fas':'far'} fa-heart"></i>`;b.classList.toggle('on',on);}
 function updLikedCnt(){}
-}
 
 function switchTab(t){
   ['q','h','l'].forEach(x=>{
@@ -2153,7 +2151,7 @@ function switchTab(t){
   if(t==='h')renderHistory();
   if(t==='l')renderLiked();
 }
-
+  
 // ════════════════════════════════════════════════════════════════
 //  DB TRACKS
 // ════════════════════════════════════════════════════════════════
