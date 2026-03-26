@@ -918,8 +918,8 @@ const PH          = 'https://placehold.co/200x200/0d0d24/1DB954?text=♪';
 
 const PROXY = 'https://music.pagaska.my.id';
 
-const APPLE_SEARCH_API = q => `https://api.deline.web.id/search/applemusic?q=${encodeURIComponent(q)}`;
-const APPLE_DOWNLOAD_API = q => `https://api.deline.web.id/downloader/applemusic?q=${encodeURIComponent(q)}`;
+const APPLE_SEARCH_API = 'https://api.deline.web.id/search/applemusic?q=';
+const APPLE_DOWNLOAD_API = 'https://api.deline.web.id/downloader/applemusic';
 const ANABOT_YT_SEARCH = q   => `${PROXY}/api/yt-search?q=${encodeURIComponent(q)}`;
 const DELINE_YT_SEARCH = q   => `${PROXY}/api/yt-search?q=${encodeURIComponent(q)}`;
 const SAVENOW_URL      = ()  => null;
@@ -1238,10 +1238,18 @@ async function searchAppleMusic(q) {
   setStLoad(`Mencari "${q}"`, '🎵 Mengambil dari Apple Music...');
   
   try {
-    const searchUrl = `${APPLE_SEARCH_API}${encodeURIComponent(q)}`;
+    // FIX: Gunakan URL absolut, bukan relative
+    const searchUrl = APPLE_SEARCH_API + encodeURIComponent(q);
     console.log('[Apple Music] Search URL:', searchUrl);
     
-    const appleRes = await fetch(searchUrl);
+    const appleRes = await fetch(searchUrl, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      }
+    });
+    
     console.log('[Apple Music] Response status:', appleRes.status);
     
     if (!appleRes.ok) {
@@ -1251,77 +1259,56 @@ async function searchAppleMusic(q) {
     const appleData = await appleRes.json();
     console.log('[Apple Music] Raw response:', appleData);
     
-    // FIX: Ambil dari appleData.result (bukan appleData langsung!)
+    // FIX: Ambil dari appleData.result
     const resultsArray = appleData?.result;
     
     if (!Array.isArray(resultsArray) || resultsArray.length === 0) {
       throw new Error('Tidak ada hasil dari Apple Music');
     }
     
-    // Ambil elemen pertama
     const firstResult = resultsArray[0];
     console.log('[Apple Music] First result:', firstResult);
     
-    // FIX: Struktur artist adalah object dengan name dan url
+    // FIX: Sesuai struktur JSON Deline
     const trackId = 'apple_' + Date.now();
     const title = firstResult?.title || q;
-    const artist = firstResult?.artist?.name || '–';  // <-- artist.name
-    const artistUrl = firstResult?.artist?.url || '';
-    const appleUrl = firstResult?.song;  // <-- URL lagu ada di field "song"
+    const artist = firstResult?.artist?.name || '–';
+    const appleUrl = firstResult?.song?.trim(); // <-- URL di field "song"
     
     if (!appleUrl) {
-      throw new Error('Tidak ada URL lagu di hasil Apple Music');
+      throw new Error('Tidak ada URL lagu');
     }
     
-    // Download dari Apple Music
-    setStLoad(`Mencari "${q}"`, '⬇️ Mendownload dari Apple Music...');
+    // Download
+    setStLoad(`Mencari "${q}"`, '⬇️ Mendownload...');
     
-    console.log('[Apple Music] Downloading from:', appleUrl);
+    const downloadRes = await fetch(APPLE_DOWNLOAD_API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url: appleUrl })
+    });
     
-    let downloadData = null;
-    try {
-      const downloadRes = await fetch(APPLE_DOWNLOAD_API, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: appleUrl.trim() })  // <-- trim whitespace!
-      });
-      
-      console.log('[Apple Music] Download response status:', downloadRes.status);
-      
-      if (!downloadRes.ok) {
-        throw new Error(`Apple Music download HTTP ${downloadRes.status}`);
-      }
-      
-      downloadData = await downloadRes.json();
-      console.log('[Apple Music] Download data:', downloadData);
-      
-    } catch (e) {
-      console.warn('[Apple Music] Download failed:', e.message);
-      return await searchSpotify(q);
+    if (!downloadRes.ok) {
+      throw new Error(`Download HTTP ${downloadRes.status}`);
     }
     
-    // FIX: Cek struktur response download (sesuaikan dengan response Deline downloader)
-    let audioUrl = downloadData?.result?.url || 
-                   downloadData?.url || 
-                   downloadData?.data?.url ||
-                   downloadData?.download?.url;
+    const downloadData = await downloadRes.json();
+    const audioUrl = downloadData?.result?.url || downloadData?.url;
     
     if (!audioUrl) {
-      console.warn('[Apple Music] No audio URL found, response:', downloadData);
-      return await searchSpotify(q);
+      throw new Error('Tidak ada URL audio');
     }
     
     const trackTemp = {
       id: trackId,
       title,
       artist,
-      album: '',  // API Deline tidak menyediakan album
-      duration: '0:00',  // API Deline tidak menyediakan duration
+      album: '',
+      duration: '0:00',
       year: new Date().getFullYear(),
-      thumbnail: PH,  // API Deline tidak menyediakan thumbnail
+      thumbnail: PH,
       audio: audioUrl,
-      appleUrl: appleUrl.trim(),
-      artistUrl: artistUrl,
+      appleUrl: appleUrl,
       searchQuery: q,
       source: 'apple',
       playCount: 1
@@ -1333,11 +1320,11 @@ async function searchAppleMusic(q) {
     await playTrackObj(trackTemp);
     saveSug(q);
     
-    // Simpan ke database di background
-    saveTrackToStorage(trackTemp, audioUrl, PH, q, trackId, appleUrl.trim());
+    // Background save
+    saveTrackToStorage(trackTemp, audioUrl, PH, q, trackId, appleUrl);
     
   } catch (e) {
-    console.warn('[Apple Music] Search failed:', e.message);
+    console.warn('[Apple Music] Failed:', e.message);
     return await searchSpotify(q);
   }
 }
