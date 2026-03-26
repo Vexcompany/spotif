@@ -1237,9 +1237,6 @@ async function doSearch() {
 async function searchAppleMusic(q) {
   setStLoad(`Mencari "${q}"`, '🎵 Mengambil dari Apple Music...');
   
-  let appleData = null;
-  
-  // Coba Apple Music API
   try {
     const searchUrl = `${APPLE_SEARCH_API}${encodeURIComponent(q)}`;
     console.log('[Apple Music] Search URL:', searchUrl);
@@ -1251,73 +1248,29 @@ async function searchAppleMusic(q) {
       throw new Error(`Apple Music HTTP error ${appleRes.status}`);
     }
     
-    appleData = await appleRes.json();
+    const appleData = await appleRes.json();
     console.log('[Apple Music] Raw response:', appleData);
     
-    // FIX: Cek berbagai kemungkinan struktur data
-    // Kadang API mengembalikan {data: [...]} atau langsung [...]
-    let resultsArray = null;
+    // FIX: Ambil dari appleData.result (bukan appleData langsung!)
+    const resultsArray = appleData?.result;
     
-    if (Array.isArray(appleData)) {
-      resultsArray = appleData;
-    } else if (appleData && Array.isArray(appleData.data)) {
-      resultsArray = appleData.data;
-    } else if (appleData && Array.isArray(appleData.result)) {
-      resultsArray = appleData.result;
-    } else if (appleData && Array.isArray(appleData.results)) {
-      resultsArray = appleData.results;
+    if (!Array.isArray(resultsArray) || resultsArray.length === 0) {
+      throw new Error('Tidak ada hasil dari Apple Music');
     }
     
-    console.log('[Apple Music] Parsed results:', resultsArray);
-    
-    if (!resultsArray || resultsArray.length === 0) {
-      throw new Error('Tidak ada hasil dari Apple Music (array kosong)');
-    }
-    
-    // Ambil elemen pertama yang valid
+    // Ambil elemen pertama
     const firstResult = resultsArray[0];
     console.log('[Apple Music] First result:', firstResult);
     
-    if (!firstResult || typeof firstResult !== 'object') {
-      throw new Error('Format hasil Apple Music tidak valid');
-    }
-    
-    // FIX: Normalisasi field - API mungkin menggunakan nama field berbeda
+    // FIX: Struktur artist adalah object dengan name dan url
     const trackId = 'apple_' + Date.now();
-    const title = firstResult.title || firstResult.name || firstResult.trackName || q;
-    const artist = firstResult.artist || firstResult.artistName || firstResult.creator || '–';
-    const album = firstResult.album || firstResult.collectionName || '';
-    const duration = firstResult.duration || firstResult.trackTimeMillis || '0:00';
-    const thumbnail = firstResult.thumbnail || firstResult.image || firstResult.cover || firstResult.artworkUrl || PH;
-    
-    // FIX: URL bisa di berbagai field
-    let appleUrl = firstResult.url || firstResult.trackUrl || firstResult.previewUrl || firstResult.trackViewUrl;
-    
-    // Jika tidak ada URL tapi ada trackId, coba bangun URL
-    if (!appleUrl && firstResult.trackId) {
-      appleUrl = `https://music.apple.com/us/song/${firstResult.trackId}`;
-    }
-    
-    console.log('[Apple Music] Parsed track:', { title, artist, appleUrl });
+    const title = firstResult?.title || q;
+    const artist = firstResult?.artist?.name || '–';  // <-- artist.name
+    const artistUrl = firstResult?.artist?.url || '';
+    const appleUrl = firstResult?.song;  // <-- URL lagu ada di field "song"
     
     if (!appleUrl) {
-      console.warn('[Apple Music] No URL found, trying alternative...');
-      // Coba cari di result lain
-      for (let i = 1; i < resultsArray.length; i++) {
-        const alt = resultsArray[i];
-        const altUrl = alt?.url || alt?.trackUrl || alt?.previewUrl;
-        if (altUrl) {
-          console.log('[Apple Music] Found alternative at index', i);
-          // Gunakan alternative ini
-          Object.assign(firstResult, alt);
-          appleUrl = altUrl;
-          break;
-        }
-      }
-    }
-    
-    if (!appleUrl) {
-      throw new Error('Tidak ada URL valid di semua hasil Apple Music');
+      throw new Error('Tidak ada URL lagu di hasil Apple Music');
     }
     
     // Download dari Apple Music
@@ -1330,7 +1283,7 @@ async function searchAppleMusic(q) {
       const downloadRes = await fetch(APPLE_DOWNLOAD_API, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: appleUrl })
+        body: JSON.stringify({ url: appleUrl.trim() })  // <-- trim whitespace!
       });
       
       console.log('[Apple Music] Download response status:', downloadRes.status);
@@ -1344,31 +1297,17 @@ async function searchAppleMusic(q) {
       
     } catch (e) {
       console.warn('[Apple Music] Download failed:', e.message);
-      // Fallback ke Spotify
       return await searchSpotify(q);
     }
     
-    // FIX: Cek berbagai kemungkinan struktur response download
-    let audioUrl = null;
-    
-    if (downloadData?.result?.url) {
-      audioUrl = downloadData.result.url;
-    } else if (downloadData?.url) {
-      audioUrl = downloadData.url;
-    } else if (downloadData?.data?.url) {
-      audioUrl = downloadData.data.url;
-    } else if (downloadData?.download?.url) {
-      audioUrl = downloadData.download.url;
-    } else if (downloadData?.audioUrl) {
-      audioUrl = downloadData.audioUrl;
-    } else if (downloadData?.link) {
-      audioUrl = downloadData.link;
-    }
-    
-    console.log('[Apple Music] Extracted audio URL:', audioUrl);
+    // FIX: Cek struktur response download (sesuaikan dengan response Deline downloader)
+    let audioUrl = downloadData?.result?.url || 
+                   downloadData?.url || 
+                   downloadData?.data?.url ||
+                   downloadData?.download?.url;
     
     if (!audioUrl) {
-      console.warn('[Apple Music] No audio URL found in response');
+      console.warn('[Apple Music] No audio URL found, response:', downloadData);
       return await searchSpotify(q);
     }
     
@@ -1376,12 +1315,13 @@ async function searchAppleMusic(q) {
       id: trackId,
       title,
       artist,
-      album,
-      duration,
+      album: '',  // API Deline tidak menyediakan album
+      duration: '0:00',  // API Deline tidak menyediakan duration
       year: new Date().getFullYear(),
-      thumbnail,
+      thumbnail: PH,  // API Deline tidak menyediakan thumbnail
       audio: audioUrl,
-      appleUrl: appleUrl,
+      appleUrl: appleUrl.trim(),
+      artistUrl: artistUrl,
       searchQuery: q,
       source: 'apple',
       playCount: 1
@@ -1394,11 +1334,10 @@ async function searchAppleMusic(q) {
     saveSug(q);
     
     // Simpan ke database di background
-    saveTrackToStorage(trackTemp, audioUrl, thumbnail, q, trackId, appleUrl);
+    saveTrackToStorage(trackTemp, audioUrl, PH, q, trackId, appleUrl.trim());
     
   } catch (e) {
     console.warn('[Apple Music] Search failed:', e.message);
-    console.log('[Apple Music] Falling back to Spotify...');
     return await searchSpotify(q);
   }
 }
