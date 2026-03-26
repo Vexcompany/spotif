@@ -518,9 +518,10 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
     <div class="tb-search">
       <i class="fas fa-search" style="color:var(--mt);font-size:.75rem;flex-shrink:0"></i>
       <input type="text" id="sInput" placeholder="Cari lagu..." autocomplete="off">
-      <button class="search-btn" id="sBtn" onclick="doSearch()">
-        <i class="fas fa-search" id="sBtnIco"></i><span id="sBtnTxt" style="display:inline">Cari</span>
-      </button>
+        <select id="searchSource" style="background:var(--s3);border:none;color:var(--tx);font-size:.7rem;padding:4px 6px;border-radius:6px;margin-right:4px;outline:none">
+        <option value="spotify">Spotify</option>
+        <option value="apple">Apple Music</option>
+      </select>
     </div>
     <div class="tb-right">
       <div class="tb-notif" onclick="navigate('chat')" title="Chat">
