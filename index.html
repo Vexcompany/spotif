@@ -43,6 +43,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 .tb-search:focus-within{border-color:var(--dyn1);box-shadow:0 0 0 3px var(--dyn-bg)}
 .tb-search input{flex:1;background:transparent;border:none;outline:none;color:var(--tx);font-size:.85rem;font-family:inherit}
 .tb-search input::placeholder{color:var(--mt)}
+/* FIX #1: search-btn diberi id="sBtn" via HTML, style tetap sama */
 .search-btn{background:linear-gradient(135deg,var(--dyn1),var(--dyn2));border:none;border-radius:9px;padding:6px 12px;color:#000;font-weight:700;font-size:.75rem;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:5px;font-family:inherit;white-space:nowrap;}
 .search-btn:hover{transform:scale(1.04);box-shadow:0 4px 16px var(--dyn-glow)}
 .search-btn:disabled{opacity:.6;cursor:not-allowed;transform:none}
@@ -85,6 +86,9 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 .pill-purple{background:rgba(124,92,191,.12);color:var(--p2);border:1px solid rgba(124,92,191,.25)}
 .pill-blue{background:rgba(61,142,248,.12);color:var(--b2);border:1px solid rgba(61,142,248,.25)}
 .pill-red{background:rgba(255,77,109,.12);color:var(--rd);border:1px solid rgba(255,77,109,.25)}
+
+/* FIX #8: Tambah badge-blue yang hilang */
+.badge-blue{background:rgba(61,142,248,.15);color:var(--b2);border:1px solid rgba(61,142,248,.3)}
 
 /* SUGGESTIONS */
 .sugs{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:14px}
@@ -510,6 +514,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 <div class="app">
 
   <!-- TOPBAR -->
+  <!-- FIX #1: Tambah id="sBtn" pada button search, id="sBtnIco" dan id="sBtnTxt" pada elemen di dalamnya -->
   <div class="topbar">
     <a class="tb-brand" href="#" onclick="navigate('beranda');return false">
       <div class="tb-logo"><i class="fab fa-spotify"></i></div>
@@ -518,10 +523,14 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
     <div class="tb-search">
       <i class="fas fa-search" style="color:var(--mt);font-size:.75rem;flex-shrink:0"></i>
       <input type="text" id="sInput" placeholder="Cari lagu..." autocomplete="off">
-        <select id="searchSource" style="background:var(--s3);border:none;color:var(--tx);font-size:.7rem;padding:4px 6px;border-radius:6px;margin-right:4px;outline:none">
+      <select id="searchSource" style="background:var(--s3);border:none;color:var(--tx);font-size:.7rem;padding:4px 6px;border-radius:6px;margin-right:4px;outline:none">
         <option value="spotify">Spotify</option>
         <option value="apple">Apple Music</option>
       </select>
+      <button class="search-btn" id="sBtn" onclick="doSearch()">
+        <i id="sBtnIco" class="fas fa-search"></i>
+        <span id="sBtnTxt">Cari</span>
+      </button>
     </div>
     <div class="tb-right">
       <div class="tb-notif" onclick="navigate('chat')" title="Chat">
@@ -907,21 +916,17 @@ const SESS_KEY    = 'pgsk_v2_session';
 const ADMIN_PASS  = 'pagaska_admin_2026';
 const PH          = 'https://placehold.co/200x200/0d0d24/1DB954?text=♪';
 
-// ── Backend proxy URL (Vercel) — semua request lewat sini, tidak ada CORS ──
-const PROXY = 'https://music.pagaska.my.id'; // domain Vercel kamu
+const PROXY = 'https://music.pagaska.my.id';
 
-// Search Sources — semua lewat proxy
 const APPLE_SEARCH_API = 'https://api.deline.web.id/search/applemusic?q=';
 const APPLE_DOWNLOAD_API = 'https://api.deline.web.id/downloader/applemusic';
 const ANABOT_YT_SEARCH = q   => `${PROXY}/api/yt-search?q=${encodeURIComponent(q)}`;
 const DELINE_YT_SEARCH = q   => `${PROXY}/api/yt-search?q=${encodeURIComponent(q)}`;
-const SAVENOW_URL      = ()  => null; // ditangani di backend
+const SAVENOW_URL      = ()  => null;
 const APOCALYPSE_SEARCH = q  => `${PROXY}/api/apple-search?q=${encodeURIComponent(q)}`;
 const APOCALYPSE_DL    = url => `${PROXY}/api/apple-dl?url=${encodeURIComponent(url)}`;
 const DELINE_AM_SEARCH = q   => `${PROXY}/api/apple-search?q=${encodeURIComponent(q)}`;
 const FAA_API          = q   => `https://api-faa.my.id/faa/spotify-play?q=${encodeURIComponent(q)}`;
-
-// Download — semua lewat proxy
 const ANABOT_YT_DL     = url => `${PROXY}/api/yt-dl?url=${encodeURIComponent(url)}`;
 
 // ══════════════════════════════════════════════════════════════
@@ -973,7 +978,6 @@ function handleRealtimeMsg(msg){
 // ══════════════════════════════════════════════════════════════
 //  SESSION
 // ══════════════════════════════════════════════════════════════
-// Session — redirect ke login ditangani initApp()
 const session=JSON.parse(localStorage.getItem(SESS_KEY)||'null');
 const USER_KEY=session?`${session.nama}_${session.generasi}`:'guest';
 function doLogout(){localStorage.removeItem(SESS_KEY);localStorage.removeItem('pgsk_admin');window.location.href='login.html';}
@@ -1015,14 +1019,11 @@ const audio=document.getElementById('audioEl');
 
 // ══════════════════════════════════════════════════════════════
 //  AUDIO PLAY — RACE CONDITION FIX
-//  Semua play/pause harus lewat sini, bukan langsung ke audio
 // ══════════════════════════════════════════════════════════════
-let _playAbort=null; // track pending play promise
+let _playAbort=null;
 
 async function safePlay(){
-  // Cancel any pending play first, wait for it
   if(_playAbort){_playAbort();_playAbort=null;}
-  // Debounce: let pause settle
   await new Promise(r=>setTimeout(r,30));
   let cancelled=false;
   _playAbort=()=>{cancelled=true;};
@@ -1035,7 +1036,6 @@ async function safePlay(){
     else{isPlaying=true;updAll();}
   }catch(e){
     if(e.name==='AbortError'||e.name==='NotAllowedError'){
-      // Autoplay blocked or aborted — not a real error
       console.warn('[safePlay] blocked/aborted:',e.name);
     }else{
       toast('⚠️ Gagal memutar: '+e.message);
@@ -1102,7 +1102,7 @@ function renderChartList(rows,elId){
 }
 
 // ══════════════════════════════════════════════════════════════
-//  QUICK PLAY — HOME SCREEN (all DB tracks, all members can use)
+//  QUICK PLAY
 // ══════════════════════════════════════════════════════════════
 async function loadQuickPlay(){
   try{
@@ -1129,23 +1129,37 @@ async function loadQuickPlay(){
   }catch(e){console.warn('loadQuickPlay:',e.message);}
 }
 
-// ══ SEARCH — MULTI-SOURCE WATERFALL
-// Urutan: DB cache → Anabot YT → Deline YT → Herza/savenow → Apple Music (Apocalypse/Deline) → FAA Spotify
+// FIX #4: Tambah fungsi loadDBTracks() yang sebelumnya dipanggil tapi tidak didefinisikan
+function loadDBTracks(){
+  // Alias untuk loadQuickPlay — dipanggil setelah save track baru
+  loadQuickPlay();
+}
+
+// ══════════════════════════════════════════════════════════════
+//  SEARCH
 // ══════════════════════════════════════════════════════════════
 document.getElementById('sInput').addEventListener('keydown',e=>{if(e.key==='Enter')doSearch();});
 
+// FIX #6: _currentSearchQuery sekarang di-set dengan benar di awal doSearch()
 let _currentSearchQuery='';
 
-// ──────────────────────────────────────
-//  STEP 1: SEARCH — kumpulkan hasil dari semua source
-// ──────────────────────────────────────
-document.getElementById('sInput').addEventListener('keydown', e => { if(e.key==='Enter') doSearch(); });
+// FIX #2: setBtnLoad() sekarang bekerja karena elemen id="sBtn","sBtnIco","sBtnTxt" sudah ada di HTML
+function setBtnLoad(on){
+  const b=document.getElementById('sBtn');
+  if(!b)return; // guard null safety
+  b.disabled=on;
+  document.getElementById('sBtnIco').className=on?'fas fa-circle-notch spin':'fas fa-search';
+  document.getElementById('sBtnTxt').textContent=on?'':'Cari';
+}
+
+function setStLoad(t,m){document.getElementById('stLoadT').textContent=t;document.getElementById('stLoadM').textContent=m;}
 
 async function doSearch() {
   const q = document.getElementById('sInput').value.trim();
   const source = document.getElementById('searchSource')?.value || 'spotify';
   if (!q) return;
-  // Navigate to beranda if not already there
+  // FIX #6: Set _currentSearchQuery sebelum dipakai oleh fungsi lain
+  _currentSearchQuery = q;
   if (currentPage !== 'beranda') navigate('beranda');
   setState('load'); setStLoad(`Mencari "${q}"`, 'Memeriksa database...'); setBtnLoad(true);
   try {
@@ -1158,20 +1172,15 @@ async function doSearch() {
       saveSug(q); return;
     }
     
-    // Search based on selected source
     if (source === 'apple') {
       setStLoad(`Mencari "${q}"`, '🎵 Mengambil dari Apple Music...');
       try {
         const appleRes = await fetch(`${APPLE_SEARCH_API}${encodeURIComponent(q)}`);
         if (!appleRes.ok) throw new Error(`Apple Music error ${appleRes.status}`);
         const appleData = await appleRes.json();
-        
-        // Check if we got valid results
         if (!appleData || !Array.isArray(appleData) || appleData.length === 0) {
           throw new Error('Tidak ada hasil dari Apple Music');
         }
-        
-        // Get first result
         const firstResult = appleData[0];
         const trackId = 'apple_'+Date.now();
         const title = firstResult.title || q;
@@ -1180,28 +1189,21 @@ async function doSearch() {
         const duration = firstResult.duration || '0:00';
         const thumbnail = firstResult.thumbnail || firstResult.image || PH;
         const appleUrl = firstResult.url || null;
-        
-        // Download the audio
         setStLoad(`Mencari "${q}"`, '⬇️ Mendownload dari Apple Music...');
         const downloadRes = await fetch(APPLE_DOWNLOAD_API, {
           method: 'POST',
           headers: {'Content-Type': 'application/json'},
           body: JSON.stringify({url: appleUrl})
         });
-        
         if (!downloadRes.ok) throw new Error(`Download error ${downloadRes.status}`);
         const downloadData = await downloadRes.json();
-        
         if (!downloadData?.result?.url && !downloadData?.url) {
           throw new Error('Gagal mendapatkan link audio');
         }
-        
         const audioUrl = downloadData.result?.url || downloadData.url;
         const trackTemp = {id:trackId,title,artist,album,duration,year:new Date().getFullYear(),thumbnail,audio:audioUrl,appleUrl:appleUrl,searchQuery:q,source:'apple',playCount:1};
         showHero(trackTemp,'apple'); addToQueue(trackTemp); setState('none');
         await playTrackObj(trackTemp); saveSug(q);
-        
-        // Save to database
         ;(async()=>{
           try {
             toast('☁️ Menyimpan audio...');
@@ -1219,7 +1221,6 @@ async function doSearch() {
           }
         })();
       } catch(appleErr) {
-        // If Apple Music fails, try Spotify as fallback
         console.warn('Apple Music failed, trying Spotify:', appleErr.message);
         setStLoad(`Mencari "${q}"`, '🎵 Mengambil dari Spotify...');
         const faaRes = await fetch(`${FAA_API}?q=${encodeURIComponent(q)}`);
@@ -1251,9 +1252,9 @@ async function doSearch() {
         })();
       }
     } else {
-      // Spotify search (default)
+      // Spotify (default)
       setStLoad(`Mencari "${q}"`, '🎵 Mengambil dari Spotify...');
-      const faaRes = await fetch(`${FAA_API}?q=${encodeURIComponent(q)}`);
+      const faaRes = await fetch(FAA_API(q));
       if (!faaRes.ok) throw new Error(`FAA error ${faaRes.status}`);
       const faaData = await faaRes.json();
       if (!faaData?.status || !faaData?.download?.url) throw new Error(faaData?.message || 'FAA: response tidak valid');
@@ -1296,7 +1297,6 @@ async function _searchAnabot(q){
     const r = await fetch(ANABOT_YT_SEARCH(q));
     if(!r.ok) throw new Error('YT search HTTP ' + r.status);
     const wrapper = await r.json();
-    // Response dari proxy: { success, source, data }
     const d = wrapper.data || wrapper;
     const results = d?.data?.result || d?.result || [];
     return results
@@ -1356,11 +1356,10 @@ async function selectSearchResult(idx,data){
   else await playFromYT(data);
 }
 
-// ──────────────────────────────────────
-//  STEP 2: DOWNLOAD — waterfall semua downloader
-// ──────────────────────────────────────
+// ══════════════════════════════════════════════════════════════
+//  PLAY FROM YT
+// ══════════════════════════════════════════════════════════════
 async function playFromYT(item){
-  // Show loading hero
   currentTrack={id:'yt_loading',title:item.title,artist:item.channel,album:'',duration:item.duration||'–',year:'–',thumbnail:item.thumbnail||PH,audio:null,source:'yt'};
   showHero(currentTrack,'api');setState('none');
   const hBtn=document.getElementById('hPlayBtn');hBtn.disabled=true;
@@ -1369,11 +1368,10 @@ async function playFromYT(item){
   const ytUrl=item.url||`https://www.youtube.com/watch?v=${item.videoId}`;
   let audioUrl=null, meta={};
 
-  // Coba semua downloader satu per satu
   const downloaders=[
     ()=>_dlAnabot(ytUrl),
     ()=>_dlSavenow(item.videoId),
-    ()=>_dlAppleMusic(item.title,item.channel), // search + dl di Apple Music
+    ()=>_dlAppleMusic(item.title,item.channel),
     ()=>_dlFAA(_currentSearchQuery),
   ];
 
@@ -1414,17 +1412,13 @@ async function playFromYT(item){
   const track={id:trackId,title,artist,album:meta.album||'',duration,year,thumbnail,audio:audioUrl,spotifyUrl,source:'api',playCount:1,searchQuery:_currentSearchQuery};
   await playTrackObj(track);
 
-  // Save ke DB + upload ke Catbox (background, tidak blokir playback)
   _saveTrackPermanent({trackId,title,artist,album:meta.album||'',duration,year,thumbnail,audioUrl,spotifyUrl});
 }
 
 // ══════════════════════════════════════════════════════════════
-//  CATBOX UPLOAD — simpan audio permanen ke catbox.moe
-//  Catbox: gratis, permanen, no-login, support CORS, max 200MB
-//  API: POST https://catbox.moe/user/api.php (multipart/form-data)
+//  CATBOX UPLOAD
 // ══════════════════════════════════════════════════════════════
 async function _uploadCatbox(audioUrl, filename){
-  // Upload via backend proxy — tidak ada CORS issue
   const res = await fetch(`${PROXY}/api/catbox-upload`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -1435,13 +1429,11 @@ async function _uploadCatbox(audioUrl, filename){
   if(!data.success) throw new Error(data.message || 'Catbox upload gagal');
   return data.catboxUrl;
 }
-  
+
 // ══════════════════════════════════════════════════════════════
-//  SAVE TRACK PERMANENT — upload Catbox → simpan ke Supabase
-//  Dipanggil di background setelah track mulai diputar
+//  SAVE TRACK PERMANENT
 // ══════════════════════════════════════════════════════════════
 async function _saveTrackPermanent({trackId,title,artist,album,duration,year,thumbnail,audioUrl,spotifyUrl}){
-  // Simpan dulu ke DB dengan URL sementara supaya anggota lain bisa langsung lihat
   try{
     await sb.upsert('tracks',{
       id:trackId, title, artist, album, duration, year,
@@ -1456,21 +1448,16 @@ async function _saveTrackPermanent({trackId,title,artist,album,duration,year,thu
     loadQuickPlay(); loadTopChartHome();
   }catch(e){ console.warn('[saveTrack] DB insert awal gagal:', e.message); }
 
-  // Upload ke Catbox di background
   toast('\u2601\ufe0f Menyimpan permanen ke Catbox...');
   try{
     const ext = audioUrl.split('?')[0].split('.').pop()?.toLowerCase() || 'mp3';
     const safeName = (title+'-'+artist).replace(/[^a-zA-Z0-9]/g,'-').slice(0,40)+'.'+ext;
     const catboxUrl = await _uploadCatbox(audioUrl, safeName);
     console.log('[Catbox] uploaded:', catboxUrl);
-
-    // Update DB dengan URL Catbox permanen
     await sb.patch('tracks', `id=eq.${encodeURIComponent(trackId)}`, {
       catbox_url: catboxUrl,
-      audio_url:  catboxUrl, // juga update audio_url supaya backward-compatible
+      audio_url:  catboxUrl,
     });
-
-    // Update track di memory supaya langsung pakai Catbox
     if(currentTrack?.id === trackId){
       currentTrack.audio    = catboxUrl;
       currentTrack.catboxUrl = catboxUrl;
@@ -1478,12 +1465,10 @@ async function _saveTrackPermanent({trackId,title,artist,album,duration,year,thu
     queue    = queue.map(t => t.id===trackId ? {...t, audio:catboxUrl, catboxUrl} : t);
     histArr  = histArr.map(t => t.id===trackId ? {...t, audio:catboxUrl, catboxUrl} : t);
     LS.sq(queue); LS.sh(histArr);
-
     toast('\u2705 Tersimpan permanen di Catbox!');
     loadQuickPlay(); loadTopChartHome();
   }catch(catErr){
     console.warn('[Catbox] upload gagal, coba Supabase Edge Fn:', catErr.message);
-    // Fallback: coba simpan via Supabase Edge Function
     try{
       const saveRes = await fetch(EDGE_FN_URL, {
         method:'POST',
@@ -1506,12 +1491,11 @@ async function _saveTrackPermanent({trackId,title,artist,album,duration,year,thu
         }
       }
     }catch(sbErr){ console.warn('[save] Supabase fallback juga gagal:', sbErr.message); }
-    // Tetap lanjut dengan URL sementara — user masih bisa dengarkan sekarang
     toast('\u26a0\ufe0f Tersimpan sementara, permanen gagal');
   }
 }
 
-// Downloader 1: Anabot ytmp3
+// Downloaders
 async function _dlAnabot(ytUrl){
   const r=await fetch(ANABOT_YT_DL(ytUrl));
   if(!r.ok)throw new Error('Anabot dl HTTP '+r.status);
@@ -1526,13 +1510,11 @@ async function _dlAnabot(ytUrl){
   return {audioUrl:url,meta:{title:m.title,artist:m.channel||m.uploader,thumbnail:m.thumbnail,duration:m.duration?fmt(m.duration):null,year:m.upload_date?.slice(0,4)}};
 }
 
-// Downloader 2: Herza/savenow (polling)
 async function _dlSavenow(videoId){
   if(!videoId)throw new Error('savenow: no videoId');
   const initRes=await fetch(SAVENOW_URL(videoId,'mp3'),{headers:{'User-Agent':'Mozilla/5.0','Referer':'https://savenow.to/'}});
   const init=await initRes.json();
   if(!init.success)throw new Error('savenow init gagal');
-  // Poll progress
   let dlUrl=null;
   for(let i=0;i<20;i++){
     await new Promise(r=>setTimeout(r,1500));
@@ -1545,10 +1527,8 @@ async function _dlSavenow(videoId){
   return {audioUrl:dlUrl,meta:{title,thumbnail}};
 }
 
-// Downloader 3: Apple Music via Apocalypse (search → download)
 async function _dlAppleMusic(title,artist){
   const q=`${title} ${artist}`.trim();
-  // Try Apocalypse search
   let songUrl=null;
   try{
     const sr=await fetch(APOCALYPSE_SEARCH(q));
@@ -1556,7 +1536,6 @@ async function _dlAppleMusic(title,artist){
     const songs=(sd?.results||[]).filter(x=>x.artist?.includes('Song')||x.link?.includes('/album/')||x.song);
     if(songs.length)songUrl=songs[0].link||songs[0].song;
   }catch(e){console.warn('[AppleMusic search Apocalypse]',e.message);}
-  // Fallback: Deline AM search
   if(!songUrl){
     const sr=await fetch(DELINE_AM_SEARCH(q));
     const sd=sr.ok?await sr.json():null;
@@ -1564,7 +1543,6 @@ async function _dlAppleMusic(title,artist){
     if(songs.length)songUrl=songs[0].song;
   }
   if(!songUrl)throw new Error('Apple Music: tidak ada hasil search');
-  // Download
   const dlRes=await fetch(APOCALYPSE_DL(songUrl));
   if(!dlRes.ok)throw new Error('Apple Music dl HTTP '+dlRes.status);
   const dlData=await dlRes.json();
@@ -1576,7 +1554,6 @@ async function _dlAppleMusic(title,artist){
   return {audioUrl:url,meta:{title:m.title||title,artist:m.artist||artist,thumbnail:m.thumbnail,album:m.album}};
 }
 
-// Downloader 4: FAA Spotify (last resort)
 async function _dlFAA(q){
   const r=await fetch(FAA_API(q));
   if(!r.ok)throw new Error('FAA HTTP '+r.status);
@@ -1586,7 +1563,6 @@ async function _dlFAA(q){
 }
 
 function rowToTrack(r,src='db'){
-  // Prioritas audio: catbox_url (permanen) > audio_url (bisa temporary)
   const audioSrc = r.catbox_url || r.audio_url || null;
   return{id:r.id,title:r.title,artist:r.artist,album:r.album||'',duration:r.duration||'0:00',
     year:r.year||'–',thumbnail:r.thumbnail||PH,audio:audioSrc,
@@ -1594,8 +1570,6 @@ function rowToTrack(r,src='db'){
     spotifyUrl:r.spotify_url||null,playCount:r.play_count||0,
     searchQuery:r.search_query||'',storagePath:r.storage_path||null,source:src};
 }
-function setBtnLoad(on){const b=document.getElementById('sBtn');b.disabled=on;document.getElementById('sBtnIco').className=on?'fas fa-circle-notch spin':'fas fa-search';document.getElementById('sBtnTxt').textContent=on?'':'Cari';}
-function setStLoad(t,m){document.getElementById('stLoadT').textContent=t;document.getElementById('stLoadM').textContent=m;}
 
 // ══════════════════════════════════════════════════════════════
 //  HERO
@@ -1610,6 +1584,7 @@ function showHero(t,src){
   document.getElementById('hYear').textContent=t.year;
   const badge=document.getElementById('hBadge');badge.style.display='inline-flex';
   if(src==='db'){badge.className='h-src-badge badge-db';badge.innerHTML='<i class="fas fa-database"></i> Dari Database';}
+  // FIX #8: gunakan badge-blue yang sudah didefinisikan di CSS
   else if (src==='apple') { badge.className='h-src-badge badge-blue'; badge.innerHTML='<i class="fab fa-apple"></i> Apple Music → Disimpan'; }
   else{badge.className='h-src-badge badge-api';badge.innerHTML='<i class="fab fa-youtube"></i> YouTube → Disimpan';}
   if(t.playCount){document.getElementById('hPlays').style.display='flex';document.getElementById('hPlaysN').textContent=t.playCount;}else document.getElementById('hPlays').style.display='none';
@@ -1618,7 +1593,6 @@ function showHero(t,src){
   document.getElementById('hSpot').style.display=t.spotifyUrl?'flex':'none';
   document.getElementById('hero').classList.add('show');
   updHeroPlayBtn();updHeroLike();
-  // Update quick play card highlight
   document.querySelectorAll('.qp-card').forEach(c=>c.classList.remove('playing'));
   const qpc=document.getElementById(`qpc-${CSS.escape(t.id)}`);if(qpc)qpc.classList.add('playing');
   if(npOpen)updateNP();
@@ -1680,7 +1654,17 @@ function rmLiked(id){likedArr=likedArr.filter(l=>l.id!==id);LS.sl(likedArr);rend
 async function toggleLikeCurrent(){if(!currentTrack)return;const idx=likedArr.findIndex(l=>l.id===currentTrack.id);if(idx>-1){likedArr.splice(idx,1);toast('Dihapus dari Disukai');sb.del('liked',`user_key=eq.${USER_KEY}&track_id=eq.${encodeURIComponent(currentTrack.id)}`).catch(()=>{});}else{likedArr.unshift(currentTrack);toast('❤️ Ditambahkan ke Disukai');sb.post('liked',{user_key:USER_KEY,track_id:currentTrack.id}).catch(()=>{});}LS.sl(likedArr);updHeroLike();updPBLike();renderLiked();if(npOpen)updateNP();}
 function updHeroLike(){if(!currentTrack)return;const on=likedArr.some(l=>l.id===currentTrack.id);const b=document.getElementById('hLike');b.innerHTML=`<i class="${on?'fas':'far'} fa-heart" style="color:${on?'var(--rd)':''}"></i>`;b.classList.toggle('liked',on);}
 function updPBLike(){if(!currentTrack)return;const on=likedArr.some(l=>l.id===currentTrack.id);const b=document.getElementById('pbLike');b.innerHTML=`<i class="${on?'fas':'far'} fa-heart"></i>`;b.classList.toggle('on',on);}
-function switchTab(t){['q','h','l'].forEach(x=>{document.getElementById(`t${x.toUpperCase()}`).classList.toggle('on',x===t);document.getElementById(`pan${x.toUpperCase()}`).style.display=x===t?'flex':'none';if(x===t)document.getElementById(`pan${x.toUpperCase()}`).style.flexDirection='column';});if(t==='h')renderHistory();if(t==='l')renderLiked();}
+// FIX #9: switchTab menggunakan display:flex untuk panel yang aktif agar .tlist bekerja benar
+function switchTab(t){
+  ['q','h','l'].forEach(x=>{
+    document.getElementById(`t${x.toUpperCase()}`).classList.toggle('on',x===t);
+    // FIX: gunakan 'flex' untuk panel aktif (bukan hanya 'none' untuk yang tidak aktif)
+    document.getElementById(`pan${x.toUpperCase()}`).style.display = x===t ? 'flex' : 'none';
+    if(x===t) document.getElementById(`pan${x.toUpperCase()}`).style.flexDirection = 'column';
+  });
+  if(t==='h')renderHistory();
+  if(t==='l')renderLiked();
+}
 
 // ══════════════════════════════════════════════════════════════
 //  DELETE
@@ -1766,7 +1750,9 @@ function updateChatBadge(count){const badge=document.getElementById('chatBadge')
 function shareCurrentTrack(){if(!currentTrack){toast('Tidak ada lagu yang sedang diputar');return;}openShareModal(currentTrack);}
 function openShareModal(track){
   pendingShareTrack=track;selectedShareMembers=[];
-  const allUsers=window.PAGASKA_DB?.getAllUsers()||[];const others=allUsers.filter(u=>`${u.nama}_${u.generasi}`!==USER_KEY);
+  // FIX #10: Guard null safety untuk getAllUsers()
+  const allUsers=(window.PAGASKA_DB?.getAllUsers&&window.PAGASKA_DB.getAllUsers())||[];
+  const others=allUsers.filter(u=>`${u.nama}_${u.generasi}`!==USER_KEY);
   document.getElementById('shareMemberList').innerHTML=others.slice(0,30).map(u=>{const key=`${u.nama}_${u.generasi}`;const ini=u.nama.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);return `<div class="share-member-item" id="sm-${key.replace(/\s/g,'_')}" onclick="toggleShareMember('${key}','${u.nama}')"><div class="share-member-av">${ini}</div><div class="share-member-name">${u.nama}</div><div class="share-member-gen">Gen ${u.generasi}</div><i class="fas fa-check share-check"></i></div>`;}).join('')||'<div style="text-align:center;color:var(--mt);padding:20px">Tidak ada anggota lain</div>';
   document.getElementById('shareModal').classList.add('open');
 }
@@ -1785,7 +1771,7 @@ async function playFromChat(trackId){
 }
 
 // ══════════════════════════════════════════════════════════════
-//  PARTY MODE — FIXED: lagu dari antrian bisa diputar
+//  PARTY MODE
 // ══════════════════════════════════════════════════════════════
 let inParty=false,partyQueue=[],partyVotes=0;
 
@@ -1798,7 +1784,7 @@ async function updatePartyStatus(){
       document.getElementById('partyTrackTitle').textContent=rows[0].title||'–';
       document.getElementById('partyTrackArtist').textContent=rows[0].artist||'–';
     }
-  }catch{}
+  }catch(e){console.warn('updatePartyStatus:',e.message);}
 }
 
 async function loadPartyQueue(){
@@ -1809,8 +1795,6 @@ async function loadPartyQueue(){
     if(!rows.length){el.innerHTML='<div class="empty-ti"><i class="fas fa-music"></i>Antrian kosong</div>';return;}
     el.innerHTML=rows.map((r,i)=>{
       const addedBy=r.added_by?.split('_').slice(0,-1).join(' ')||r.added_by;
-      // Build track object inline so onclick can use it
-      const track={id:r.track_id,title:r.title||r.track_id,artist:r.artist||'–',album:'',duration:'–',year:'–',thumbnail:r.thumbnail||PH,audio:null,source:'party'};
       return `<div class="party-qi" onclick='playPartyTrack(${esc(r)})'>
         <div class="party-qi-img"><img src="${r.thumbnail||PH}" onerror="this.src='${PH}'"></div>
         <div class="party-qi-inf">
@@ -1824,12 +1808,9 @@ async function loadPartyQueue(){
   }catch(e){console.warn('loadPartyQueue:',e.message);}
 }
 
-// Play from party queue — fetch full track from DB first
 async function playPartyTrack(partyItem){
   toast('🎉 Memutar dari Party Queue...');
-  // partyItem has track_id, title, artist, thumbnail, audio_url maybe
   try{
-    // Try to get full track with audio_url from DB
     const rows=await sb.get('tracks',`id=eq.${encodeURIComponent(partyItem.track_id)}`);
     if(rows?.length&&rows[0].audio_url){
       const t=rowToTrack(rows[0],'db');
@@ -1839,14 +1820,12 @@ async function playPartyTrack(partyItem){
     }
   }catch(e){console.warn('[playPartyTrack] DB lookup failed:',e.message);}
   
-  // If not in DB or no audio_url, try to find in local queue/history
   const local=queue.find(q=>q.id===partyItem.track_id)||histArr.find(h=>h.id===partyItem.track_id);
   if(local){await playTrackObj(local);navigate('beranda');return;}
 
-  // Fallback: search by title
   if(partyItem.title){
     toast('🔍 Mencari lagu di YouTube...');
-    document.getElementById('sInput').value=partyItem.title+' '+partyItem.artist;
+    document.getElementById('sInput').value=partyItem.title+' '+(partyItem.artist||'');
     navigate('beranda');
     await doSearch();
   }else{
@@ -1891,16 +1870,14 @@ function startLRC(){clearInterval(lrcInt);lrcInt=setInterval(()=>{if(!lrcLines.l
 function stopLRC(){clearInterval(lrcInt);lrcLines=[];}
 
 // ══════════════════════════════════════════════════════════════
-//  PLAYER — CORE (with race condition fix)
+//  PLAYER — CORE
 // ══════════════════════════════════════════════════════════════
 async function playTrackObj(t){
   if(!t?.audio){toast('⚠️ Audio tidak tersedia untuk lagu ini');return;}
   
-  // Stop current playback cleanly
   safePause();
   audio.src='';
   
-  // Small delay to let browser settle
   await new Promise(r=>setTimeout(r,50));
   
   currentTrack=t;qi=queue.findIndex(x=>x.id===t.id);
@@ -1910,14 +1887,10 @@ async function playTrackObj(t){
 
   try{
     audio.src=t.audio;audio.volume=vol;audio.muted=isMuted;
-    // Langsung play — jangan tunggu canplaythrough karena di mobile
-    // canplaythrough sering fire error untuk format Supabase (.mpeg/.m4a)
-    // padahal sebenarnya bisa diputar. Biarkan browser handle sendiri.
     await safePlay();
   }catch(e){
-    if(e.name==='AbortError')return; // normal, di-cancel oleh play baru
+    if(e.name==='AbortError')return;
     console.error('[playTrackObj]',e.message);
-    // Coba fallback: re-fetch dari YouTube pakai title+artist
     toast('⚠️ Format tidak didukung, mencari ulang di YouTube...');
     await _fallbackSearchYT(t);
     return;
@@ -1960,16 +1933,13 @@ function fmt(s){return isNaN(s)?'0:00':`${Math.floor(s/60)}:${String(Math.floor(
 function seek(e){const r=document.getElementById('prbar').getBoundingClientRect();const ratio=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width));if(audio.duration){audio.currentTime=ratio*audio.duration;document.getElementById('prfill').style.width=(ratio*100)+'%';}}
 function setVol(e){const r=document.getElementById('vBar').getBoundingClientRect();vol=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width));audio.volume=vol;document.getElementById('vFill').style.width=(vol*100)+'%';document.getElementById('vIco').className=vol>.5?'fas fa-volume-up':vol>0?'fas fa-volume-down':'fas fa-volume-mute';}
 
-// Audio event listeners — only update UI, don't call play/pause directly
 audio.addEventListener('play',()=>{isPlaying=true;updAll();startProg();});
 audio.addEventListener('pause',()=>{isPlaying=false;updAll();});
 audio.addEventListener('ended',()=>{isRepeat?safePlay():nextTrack();});
 audio.addEventListener('error',async()=>{
-  // error event bisa terjadi karena: URL expired, format tidak didukung, network error
-  // Jangan langsung tampilkan error — coba fallback re-fetch dari YouTube dulu
   if(!currentTrack)return;
   const errCode=audio.error?.code;
-  const isFormatErr=errCode===3||errCode===4; // DECODE_ERR atau SRC_NOT_SUPPORTED
+  const isFormatErr=errCode===3||errCode===4;
   const isNetErr=errCode===2;
   console.warn('[audio error] code:',errCode,'track:',currentTrack?.title);
   if(isFormatErr||isNetErr){
@@ -1979,15 +1949,12 @@ audio.addEventListener('error',async()=>{
     toast('❌ Gagal memutar audio');isPlaying=false;updAll();
   }
 });
-// Deteksi preview/snipped audio (durasi < 60 detik = kemungkinan preview)
 audio.addEventListener('loadedmetadata', async () => {
   if(!currentTrack) return;
   const dur = audio.duration;
-  // Abaikan kalau memang lagu pendek (< 60 detik tapi sudah pernah tersimpan di DB)
   if(dur > 0 && dur < 62 && currentTrack.source !== 'db') {
     console.warn('[preview detected] duration:', dur, 'sec — retrying...');
     toast('⚠️ Terdeteksi preview, mencari versi full...');
-    // Tandai dulu biar tidak loop
     if(currentTrack._previewRetried) return;
     currentTrack._previewRetried = true;
     safePause();
@@ -2018,13 +1985,14 @@ async function _fallbackSearchYT(t){
   _fallbackInProgress=true;
   try{
     const q=t.searchQuery||`${t.title} ${t.artist}`;
+    // Update _currentSearchQuery supaya downloaders punya konteks yang benar
+    _currentSearchQuery = q;
     toast('🔄 Memuat ulang: '+t.title+'...');
     let ytResults = await _searchAnabot(q);
     if(!ytResults.length) ytResults = await _searchDeline(q);
-    // Filter out shorts dan preview
     ytResults = ytResults.filter(r => {
-      const t = (r.title||'').toLowerCase();
-      return !t.includes('preview') && !t.includes('snippet') && r.duration !== 'SHORTS';
+      const tt = (r.title||'').toLowerCase();
+      return !tt.includes('preview') && !tt.includes('snippet') && r.duration !== 'SHORTS';
     });
     let audioUrl=null,meta={};
     if(ytResults.length){
@@ -2049,7 +2017,6 @@ async function _fallbackSearchYT(t){
     await new Promise(r=>setTimeout(r,50));
     await safePlay();
     toast('✅ Audio berhasil dimuat ulang!');
-    // Upload ke Catbox dan simpan permanen
     _saveTrackPermanent({
       trackId:t.id, title:t.title, artist:t.artist,
       album:t.album||'', duration:t.duration||'–', year:t.year||'–',
@@ -2065,17 +2032,14 @@ async function _fallbackSearchYT(t){
 }
 
 // ══════════════════════════════════════════════════════════════
-//  INIT — dipanggil setelah DOM ready
-//  db.js sudah diload sebelum script ini via <script src>
+//  INIT
 // ══════════════════════════════════════════════════════════════
 function initApp(){
-  // Guard — kalau session tidak ada, redirect ke login
   if(!session){ window.location.href='login.html'; return; }
 
   const u = session;
   const ini = (u.nama||'?').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
 
-  // Topbar user info
   document.getElementById('uAv').textContent  = ini;
   document.getElementById('uNm').textContent  = (u.nama||'').split(' ')[0];
   document.getElementById('pdName').textContent = u.nama || '–';
@@ -2083,17 +2047,18 @@ function initApp(){
 
   audio.volume = vol;
 
-  // Render local state
   renderSugs();
   renderQueue();
   renderHistory();
   renderLiked();
   document.getElementById('qBadge').textContent = queue.length;
   if(queue.length) document.getElementById('qSec').style.display = 'block';
-  document.getElementById('panQ').style.cssText = 'display:flex;flex-direction:column';
-  ['panH','panL'].forEach(id => document.getElementById(id).style.display = 'none');
+  // FIX #9: gunakan display:flex untuk panel aktif
+  document.getElementById('panQ').style.display = 'flex';
+  document.getElementById('panQ').style.flexDirection = 'column';
+  document.getElementById('panH').style.display = 'none';
+  document.getElementById('panL').style.display = 'none';
 
-  // SPA route — baca URL path
   const adminSess = JSON.parse(localStorage.getItem('pgsk_admin_session')||'null');
   if(adminSess?.isAdmin){
     const ind = document.createElement('div');
@@ -2101,18 +2066,17 @@ function initApp(){
     ind.innerHTML = '🔐 ADMIN MODE';
     document.body.appendChild(ind);
   }
+
   const path = window.location.pathname.replace(/^\//, '');
   const validPages = ['beranda','chart','party','chat','profil'];
   navigate(validPages.includes(path) ? path : 'beranda');
 
-  // Load remote data
   loadMyPlayCounts();
   loadQuickPlay();
   loadTopChartHome();
   loadLiveActivity();
   connectRealtime();
 
-  // Restore last played track (tampil saja, TIDAK autoplay — hindari race condition)
   if(histArr.length){
     const last = histArr[0];
     currentTrack = last;
@@ -2128,11 +2092,9 @@ function initApp(){
   }
 }
 
-// Jalankan init setelah seluruh DOM + script selesai load
 if(document.readyState === 'loading'){
   document.addEventListener('DOMContentLoaded', initApp);
 } else {
-  // DOM sudah ready (script defer / module)
   initApp();
 }
 </script>
