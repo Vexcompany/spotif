@@ -918,8 +918,8 @@ const PH          = 'https://placehold.co/200x200/0d0d24/1DB954?text=♪';
 
 const PROXY = 'https://music.pagaska.my.id';
 
-const APPLE_SEARCH_API = q => 'https://api.deline.web.id/search/applemusic?q=${encodeURIComponent(q)};
-const APPLE_DOWNLOAD_API = q => 'https://api.deline.web.id/downloader/applemusic?q=${encodeURIComponent(q)}';
+const APPLE_SEARCH_API = q => `https://api.deline.web.id/search/applemusic?q=${encodeURIComponent(q)}`;
+const APPLE_DOWNLOAD_API = q => `https://api.deline.web.id/downloader/applemusic?q=${encodeURIComponent(q)}`;
 const ANABOT_YT_SEARCH = q   => `${PROXY}/api/yt-search?q=${encodeURIComponent(q)}`;
 const DELINE_YT_SEARCH = q   => `${PROXY}/api/yt-search?q=${encodeURIComponent(q)}`;
 const SAVENOW_URL      = ()  => null;
