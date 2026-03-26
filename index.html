@@ -919,7 +919,7 @@ const SAVENOW_URL      = ()  => null; // ditangani di backend
 const APOCALYPSE_SEARCH = q  => `${PROXY}/api/apple-search?q=${encodeURIComponent(q)}`;
 const APOCALYPSE_DL    = url => `${PROXY}/api/apple-dl?url=${encodeURIComponent(url)}`;
 const DELINE_AM_SEARCH = q   => `${PROXY}/api/apple-search?q=${encodeURIComponent(q)}`;
-const FAA_API          = q   => `${PROXY}/api/faa?q=${encodeURIComponent(q)}`;
+const FAA_API          = q   => `https://api-faa.my.id/faa/spotify-play?q=${encodeURIComponent(q)}`;
 
 // Download — semua lewat proxy
 const ANABOT_YT_DL     = url => `${PROXY}/api/yt-dl?url=${encodeURIComponent(url)}`;
