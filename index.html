@@ -1381,7 +1381,11 @@ async function searchSpotify(q) {
 }
 
 // Fungsi helper untuk menyimpan track ke storage
-async function saveTrackToStorage(track, audioUrl, thumbnail, q, trackId, appleUrl = null, spotifyUrl = null) {
+async function
+    _saveTrackPermanent({
+      trackId, title, artist, album, duration, year, thumbnail,
+      audioUrl: uguuUrl, spotifyUrl: spotUrl
+    });
   (async () => {
     try {
       toast('☁️ Menyimpan audio...');
