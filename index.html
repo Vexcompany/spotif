@@ -1066,24 +1066,28 @@ function renderSearchResults(results, query) {
     document.getElementById('searchResultsLabel').textContent = `Hasil pencarian: ${results.length} lagu`;
  
     grid.innerHTML = results.map((r) => {
-        const title   = r.title  || 'Unknown';
-        const artist  = r.artist || 'Unknown';   // appleSearch: artist adalah string langsung
-        const thumb   = r.image  || PH;           // appleSearch: field-nya 'image', bukan 'thumbnail'
-        const url     = r.link   || '';            // appleSearch: field-nya 'link', bukan 'song'
+        const title      = r.title      || 'Unknown';
+        const artist     = r.artist     || 'Unknown';
+        const thumb      = r.image      || PH;
+        const url        = r.link       || '';
+        const previewUrl = r.previewUrl || '';   
+        const duration   = r.duration   || '';
  
-        if (!url) return '';   // skip item tanpa link
+        if (!url) return '';
  
         return `<div class="sr-item" onclick="playAppleMusic(
                     '${encodeURIComponent(url)}',
                     '${encodeURIComponent(title)}',
                     '${encodeURIComponent(artist)}',
                     '${encodeURIComponent(thumb)}',
-                    '${encodeURIComponent(query)}')">
+                    '${encodeURIComponent(query)}',
+                    '${encodeURIComponent(previewUrl)}')">
             <div class="sr-thumb"><img src="${thumb}" onerror="this.src='${PH}'"></div>
             <div class="sr-info">
                 <div class="sr-title">${title}</div>
                 <div class="sr-meta">
                     <span class="sr-src sr-am">APPLE</span>${artist}
+                    ${duration ? `<span>${duration}</span>` : ''}
                 </div>
             </div>
             <button class="sr-play-btn"><i class="fas fa-play"></i></button>
@@ -1093,21 +1097,25 @@ function renderSearchResults(results, query) {
     setState('none');
 }
 
-async function playAppleMusic(url, title, artist, thumb, query) {
-    const decodedUrl    = decodeURIComponent(url);
-    const decodedTitle  = decodeURIComponent(title);
-    const decodedArtist = decodeURIComponent(artist);
-    const decodedThumb  = decodeURIComponent(thumb);
-    const decodedQuery  = decodeURIComponent(query);
+async function playAppleMusic(url, title, artist, thumb, query, previewUrl) {
+    const decodedUrl        = decodeURIComponent(url);
+    const decodedTitle      = decodeURIComponent(title);
+    const decodedArtist     = decodeURIComponent(artist);
+    const decodedThumb      = decodeURIComponent(thumb);
+    const decodedQuery      = decodeURIComponent(query);
+    const decodedPreviewUrl = decodeURIComponent(previewUrl || '');
  
     setState('load');
-    setStLoad(decodedTitle, '⬇️ Downloading...');
+    setStLoad(decodedTitle, 'Mengambil audio...');
  
     try {
         const dlRes = await fetch(APPLE_DOWNLOAD_API, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ url: decodedUrl })
+            body: JSON.stringify({
+                url:        decodedUrl,
+                previewUrl: decodedPreviewUrl || null   
+            })
         });
  
         if (!dlRes.ok) throw new Error('Download HTTP ' + dlRes.status);
@@ -1116,7 +1124,10 @@ async function playAppleMusic(url, title, artist, thumb, query) {
  
         if (!dlData.status) throw new Error(dlData.message || 'Download gagal');
  
-        const audioUrl = dlData?.result?.url || dlData?.result?.download?.mp3 || dlData?.url;
+        const audioUrl = dlData?.result?.url
+                      || dlData?.result?.download?.mp3
+                      || dlData?.url;
+ 
         if (!audioUrl) throw new Error('Gagal mendapatkan URL audio');
  
         const trackId = 'apple_' + Date.now();
@@ -1124,14 +1135,15 @@ async function playAppleMusic(url, title, artist, thumb, query) {
             id:          trackId,
             title:       decodedTitle,
             artist:      decodedArtist,
-            album:       '',
+            album:       dlData?.result?.album || '',
             duration:    dlData?.result?.duration || '0:00',
-            year:        new Date().getFullYear(),
+            year:        dlData?.result?.year || new Date().getFullYear(),
             thumbnail:   dlData?.result?.image || decodedThumb,
             audio:       audioUrl,
             appleUrl:    decodedUrl,
+            previewUrl:  decodedPreviewUrl,
             searchQuery: decodedQuery,
-            source:      'apple'
+            source:      dlData?.source === 'itunes_preview' ? 'preview' : 'apple'
         };
  
         showHero(track, 'apple');
@@ -1139,7 +1151,9 @@ async function playAppleMusic(url, title, artist, thumb, query) {
         setState('none');
         await playTrackObj(track);
  
-        uploadToCatbox(track, audioUrl);
+        if (dlData?.source !== 'itunes_preview') {
+            uploadToCatbox(track, audioUrl);
+        }
  
     } catch (e) {
         toast('❌ Gagal: ' + e.message);
@@ -1148,7 +1162,7 @@ async function playAppleMusic(url, title, artist, thumb, query) {
         document.getElementById('stErrM').textContent = e.message;
     }
 }
-
+  
 // ══════════════════════════════════════════════════════════════
 //  CATBOX UPLOAD (Background)
 // ══════════════════════════════════════════════════════════════
