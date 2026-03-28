@@ -897,8 +897,8 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 const BACKEND_URL = 'https://zemz.vercel.app'; // GANTI INI!
 
 // Apple Music API langsung (fallback jika backend belum siap)
-const APPLE_SEARCH_API = 'https://api.deline.web.id/search/applemusic?q=';
-const APPLE_DOWNLOAD_API = 'https://api.deline.web.id/downloader/applemusic';
+const APPLE_SEARCH_API = '${BACKEND_URL}/api/apple-search?q=';
+const APPLE_DOWNLOAD_API = '${BACKEND_URL}/api/apple-download';
 
 // Supabase config (tetap untuk chat, party, dll)
 const SB_URL = 'https://ygwoddwdhelqcwhpqasl.supabase.co';
