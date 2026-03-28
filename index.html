@@ -894,11 +894,10 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 // ══════════════════════════════════════════════════════════════
 //  CONFIG - BACKEND API (GANTI DENGAN URL BACKEND ANDA)
 // ══════════════════════════════════════════════════════════════
-const BACKEND_URL = 'https://zemz.vercel.app'; // GANTI INI!
+const BACKEND_URL = 'https://zemz.vercel.app';
 
-// Apple Music API langsung (fallback jika backend belum siap)
-const APPLE_SEARCH_API = '${BACKEND_URL}/api/apple-search?q=';
-const APPLE_DOWNLOAD_API = '${BACKEND_URL}/api/apple-download';
+const APPLE_SEARCH_API = `${BACKEND_URL}/api/apple-search?q=`;
+const APPLE_DOWNLOAD_API = `${BACKEND_URL}/api/apple-download`;
 
 // Supabase config (tetap untuk chat, party, dll)
 const SB_URL = 'https://ygwoddwdhelqcwhpqasl.supabase.co';
@@ -1048,103 +1047,106 @@ async function doSearch(){
   }
 }
 
-async function searchAppleMusic(q){
-  setStLoad(`Mencari "${q}"`,'🎵 Mengambil dari Apple Music...');
-  
-  try{
-    // Search
-    const searchRes=await fetch(APPLE_SEARCH_API+encodeURIComponent(q));
-    if(!searchRes.ok)throw new Error('Apple Music search HTTP '+searchRes.status);
-    const searchData=await searchRes.json();
-    
-    const results=searchData?.result||[];
-    if(!results.length)throw new Error('Tidak ada hasil dari Apple Music');
-
-    // Tampilkan hasil pencarian
-    renderSearchResults(results,q);
-
-  }catch(e){
-    console.warn('[Apple Music]',e.message);
-    throw e;
-  }
+async function searchAppleMusic(q) {
+    setStLoad(`Mencari "${q}"`, '🎵 Mengambil dari Apple Music...');
+    const searchRes = await fetch(APPLE_SEARCH_API + encodeURIComponent(q));
+    if (!searchRes.ok) throw new Error('Apple Music search HTTP ' + searchRes.status);
+    const searchData = await searchRes.json();
+    if (!searchData.status) throw new Error(searchData.message || 'Pencarian gagal');
+    const results = searchData?.result || [];
+    if (!results.length) throw new Error('Tidak ada hasil dari Apple Music');
+    renderSearchResults(results, q);
 }
 
-function renderSearchResults(results,query){
-  const wrap=document.getElementById('searchResultsWrap');
-  const grid=document.getElementById('srGrid');
-  
-  wrap.style.display='block';
-  document.getElementById('searchResultsLabel').textContent=`Hasil pencarian: ${results.length} lagu`;
-  
-  grid.innerHTML=results.map((r,i)=>{
-    const title=r.title||'Unknown';
-    const artist=r.artist?.name||r.artist||'Unknown';
-    const thumb=r.thumbnail||r.image||PH;
-    const url=r.song||r.link;
-    
-    return `<div class="sr-item" onclick="playAppleMusic('${encodeURIComponent(url)}','${encodeURIComponent(title)}','${encodeURIComponent(artist)}','${encodeURIComponent(thumb)}','${encodeURIComponent(query)}')">
-      <div class="sr-thumb"><img src="${thumb}" onerror="this.src='${PH}'"></div>
-      <div class="sr-info">
-        <div class="sr-title">${title}</div>
-        <div class="sr-meta"><span class="sr-src sr-am">APPLE</span>${artist}</div>
-      </div>
-      <button class="sr-play-btn"><i class="fas fa-play"></i></button>
-    </div>`;
-  }).join('');
-  
-  setState('none');
-}
-
-async function playAppleMusic(url,title,artist,thumb,query){
-  const decodedUrl=decodeURIComponent(url);
-  const decodedTitle=decodeURIComponent(title);
-  const decodedArtist=decodeURIComponent(artist);
-  const decodedThumb=decodeURIComponent(thumb);
-  const decodedQuery=decodeURIComponent(query);
-  
-  setState('load');
-  setStLoad(decodedTitle,'⬇️ Downloading...');
-  
-  try{
-    const dlRes=await fetch(APPLE_DOWNLOAD_API,{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({url:decodedUrl})
-    });
-    
-    if(!dlRes.ok)throw new Error('Download HTTP '+dlRes.status);
-    const dlData=await dlRes.json();
-    
-    const audioUrl=dlData?.result?.url||dlData?.url;
-    if(!audioUrl)throw new Error('Gagal mendapatkan URL audio');
-
-    const trackId='apple_'+Date.now();
-    const track={
-      id:trackId,
-      title:decodedTitle,
-      artist:decodedArtist,
-      album:'',
-      duration:'0:00',
-      year:new Date().getFullYear(),
-      thumbnail:decodedThumb,
-      audio:audioUrl,
-      appleUrl:decodedUrl,
-      searchQuery:decodedQuery,
-      source:'apple'
-    };
-
-    showHero(track,'apple');
-    addToQueue(track);
+function renderSearchResults(results, query) {
+    const wrap = document.getElementById('searchResultsWrap');
+    const grid = document.getElementById('srGrid');
+ 
+    wrap.style.display = 'block';
+    document.getElementById('searchResultsLabel').textContent = `Hasil pencarian: ${results.length} lagu`;
+ 
+    grid.innerHTML = results.map((r) => {
+        const title   = r.title  || 'Unknown';
+        const artist  = r.artist || 'Unknown';   // appleSearch: artist adalah string langsung
+        const thumb   = r.image  || PH;           // appleSearch: field-nya 'image', bukan 'thumbnail'
+        const url     = r.link   || '';            // appleSearch: field-nya 'link', bukan 'song'
+ 
+        if (!url) return '';   // skip item tanpa link
+ 
+        return `<div class="sr-item" onclick="playAppleMusic(
+                    '${encodeURIComponent(url)}',
+                    '${encodeURIComponent(title)}',
+                    '${encodeURIComponent(artist)}',
+                    '${encodeURIComponent(thumb)}',
+                    '${encodeURIComponent(query)}')">
+            <div class="sr-thumb"><img src="${thumb}" onerror="this.src='${PH}'"></div>
+            <div class="sr-info">
+                <div class="sr-title">${title}</div>
+                <div class="sr-meta">
+                    <span class="sr-src sr-am">APPLE</span>${artist}
+                </div>
+            </div>
+            <button class="sr-play-btn"><i class="fas fa-play"></i></button>
+        </div>`;
+    }).join('');
+ 
     setState('none');
-    await playTrackObj(track);
-    
-    // Upload ke Catbox di background
-    uploadToCatbox(track,audioUrl);
+}
 
-  }catch(e){
-    toast('❌ Gagal: '+e.message);
-    setState('err');
-  }
+async function playAppleMusic(url, title, artist, thumb, query) {
+    const decodedUrl    = decodeURIComponent(url);
+    const decodedTitle  = decodeURIComponent(title);
+    const decodedArtist = decodeURIComponent(artist);
+    const decodedThumb  = decodeURIComponent(thumb);
+    const decodedQuery  = decodeURIComponent(query);
+ 
+    setState('load');
+    setStLoad(decodedTitle, '⬇️ Downloading...');
+ 
+    try {
+        const dlRes = await fetch(APPLE_DOWNLOAD_API, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url: decodedUrl })
+        });
+ 
+        if (!dlRes.ok) throw new Error('Download HTTP ' + dlRes.status);
+ 
+        const dlData = await dlRes.json();
+ 
+        if (!dlData.status) throw new Error(dlData.message || 'Download gagal');
+ 
+        const audioUrl = dlData?.result?.url || dlData?.result?.download?.mp3 || dlData?.url;
+        if (!audioUrl) throw new Error('Gagal mendapatkan URL audio');
+ 
+        const trackId = 'apple_' + Date.now();
+        const track = {
+            id:          trackId,
+            title:       decodedTitle,
+            artist:      decodedArtist,
+            album:       '',
+            duration:    dlData?.result?.duration || '0:00',
+            year:        new Date().getFullYear(),
+            thumbnail:   dlData?.result?.image || decodedThumb,
+            audio:       audioUrl,
+            appleUrl:    decodedUrl,
+            searchQuery: decodedQuery,
+            source:      'apple'
+        };
+ 
+        showHero(track, 'apple');
+        addToQueue(track);
+        setState('none');
+        await playTrackObj(track);
+ 
+        uploadToCatbox(track, audioUrl);
+ 
+    } catch (e) {
+        toast('❌ Gagal: ' + e.message);
+        setState('err');
+        document.getElementById('stErrT').textContent = 'Download Gagal';
+        document.getElementById('stErrM').textContent = e.message;
+    }
 }
 
 // ══════════════════════════════════════════════════════════════
