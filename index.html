@@ -1155,67 +1155,29 @@ async function playAppleMusic(url, title, artist, thumb, query, previewUrl) {
 // ══════════════════════════════════════════════════════════════
 //  CATBOX UPLOAD (Background)
 // ══════════════════════════════════════════════════════════════
-async function uploadToCatbox(track,audioUrl){
-  toast('☁️ Menyimpan permanen...');
-  
+async function uploadToCatbox(track, audioUrl){
+  // Backend sudah handle upload ke Supabase Storage secara background
+  // Frontend simpan info track ke tabel tracks Supabase
   try{
-    // Coba backend dulu
-    const res=await fetch(`${BACKEND_URL}/api/catbox-upload`,{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        audioUrl:audioUrl,
-        title:track.title,
-        artist:track.artist,
-        trackId:track.id
+    const trackId = track.id || ('apple_' + Date.now());
+    await fetch(`${SB_URL}/rest/v1/tracks?on_conflict=id`, {
+      method: 'POST',
+      headers: { ...sb._h, 'Prefer': 'resolution=merge-duplicates,return=minimal' },
+      body: JSON.stringify({
+        id:          trackId,
+        title:       track.title,
+        artist:      track.artist,
+        thumbnail:   track.thumbnail || null,
+        duration:    track.duration  || null,
+        audio_url:   audioUrl,
+        play_count:  1,
+        last_played: new Date().toISOString(),
+        source:      'apple'
       })
     });
-    
-    if(res.ok){
-      const data=await res.json();
-      if(data.success&&data.catboxUrl){
-        await saveCatboxUrl(track.id,data.catboxUrl);
-        toast('✅ Tersimpan permanen!');
-        return;
-      }
-    }
-    
-    // Fallback: upload langsung ke Catbox
-    await uploadDirectCatbox(track,audioUrl);
-    
+    toast('\u2705 Tersimpan!');
   }catch(e){
-    console.warn('[Catbox backend]',e.message);
-    await uploadDirectCatbox(track,audioUrl);
-  }
-}
-
-async function uploadDirectCatbox(track,audioUrl){
-  try{
-    // Download file
-    const fileRes=await fetch(audioUrl);
-    const blob=await fileRes.blob();
-    
-    // Upload ke Catbox
-    const form=new FormData();
-    form.append('fileToUpload',blob,`${track.title}-${track.artist}.mp3`.replace(/[^a-zA-Z0-9]/g,'-'));
-    form.append('reqtype','fileupload');
-    
-    const uploadRes=await fetch('https://litterbox.catbox.moe/resources/internals/api.php',{
-      method:'POST',
-      body:form
-    });
-    
-    const catboxUrl=await uploadRes.text();
-    if(catboxUrl.includes('https://')){
-      await saveCatboxUrl(track.id,catboxUrl);
-      toast('✅ Tersimpan di Catbox!');
-    }else{
-      throw new Error('Invalid Catbox response');
-    }
-    
-  }catch(e){
-    console.error('[Catbox direct]',e);
-    toast('⚠️ Gagal upload permanen, menggunakan URL sementara');
+    console.warn('[uploadToCatbox]', e.message);
   }
 }
 
