@@ -1070,8 +1070,7 @@ function renderSearchResults(results, query) {
         const artist     = r.artist     || 'Unknown';
         const thumb      = r.image      || PH;
         const url        = r.link       || '';
-        const previewUrl = r.previewUrl || '';   
-        const duration   = r.duration   || '';
+        const previewUrl = r.previewUrl || '';
  
         if (!url) return '';
  
@@ -1087,7 +1086,6 @@ function renderSearchResults(results, query) {
                 <div class="sr-title">${title}</div>
                 <div class="sr-meta">
                     <span class="sr-src sr-am">APPLE</span>${artist}
-                    ${duration ? `<span>${duration}</span>` : ''}
                 </div>
             </div>
             <button class="sr-play-btn"><i class="fas fa-play"></i></button>
@@ -1106,16 +1104,13 @@ async function playAppleMusic(url, title, artist, thumb, query, previewUrl) {
     const decodedPreviewUrl = decodeURIComponent(previewUrl || '');
  
     setState('load');
-    setStLoad(decodedTitle, 'Mengambil audio...');
+    setStLoad(decodedTitle, '⬇️ Downloading...');
  
     try {
         const dlRes = await fetch(APPLE_DOWNLOAD_API, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                url:        decodedUrl,
-                previewUrl: decodedPreviewUrl || null   
-            })
+            body: JSON.stringify({ url: decodedUrl, previewUrl: decodedPreviewUrl || null })
         });
  
         if (!dlRes.ok) throw new Error('Download HTTP ' + dlRes.status);
@@ -1124,10 +1119,7 @@ async function playAppleMusic(url, title, artist, thumb, query, previewUrl) {
  
         if (!dlData.status) throw new Error(dlData.message || 'Download gagal');
  
-        const audioUrl = dlData?.result?.url
-                      || dlData?.result?.download?.mp3
-                      || dlData?.url;
- 
+        const audioUrl = dlData?.result?.url || dlData?.result?.download?.mp3 || dlData?.url;
         if (!audioUrl) throw new Error('Gagal mendapatkan URL audio');
  
         const trackId = 'apple_' + Date.now();
@@ -1135,15 +1127,14 @@ async function playAppleMusic(url, title, artist, thumb, query, previewUrl) {
             id:          trackId,
             title:       decodedTitle,
             artist:      decodedArtist,
-            album:       dlData?.result?.album || '',
+            album:       '',
             duration:    dlData?.result?.duration || '0:00',
-            year:        dlData?.result?.year || new Date().getFullYear(),
+            year:        new Date().getFullYear(),
             thumbnail:   dlData?.result?.image || decodedThumb,
             audio:       audioUrl,
             appleUrl:    decodedUrl,
-            previewUrl:  decodedPreviewUrl,
             searchQuery: decodedQuery,
-            source:      dlData?.source === 'itunes_preview' ? 'preview' : 'apple'
+            source:      'apple'
         };
  
         showHero(track, 'apple');
@@ -1151,9 +1142,7 @@ async function playAppleMusic(url, title, artist, thumb, query, previewUrl) {
         setState('none');
         await playTrackObj(track);
  
-        if (dlData?.source !== 'itunes_preview') {
-            uploadToCatbox(track, audioUrl);
-        }
+        uploadToCatbox(track, audioUrl);
  
     } catch (e) {
         toast('❌ Gagal: ' + e.message);
@@ -1162,57 +1151,26 @@ async function playAppleMusic(url, title, artist, thumb, query, previewUrl) {
         document.getElementById('stErrM').textContent = e.message;
     }
 }
-  
+
 // ══════════════════════════════════════════════════════════════
 //  CATBOX UPLOAD (Background)
 // ══════════════════════════════════════════════════════════════
-async function uploadToCatbox(track, audioUrl){
-  const skipDomain = audioUrl && (
-    audioUrl.includes('aaplmusicdownloader.com') ||
-    audioUrl.includes('nexray') ||
-    audioUrl.includes('aplmate') ||
-    audioUrl.includes('audio-ssl.itunes.apple.com')
-  );
- 
-  if(skipDomain){
-    try{
-      await sb.patch('tracks', `id=eq.${encodeURIComponent(track.id)}`, {
-        audio_url:   audioUrl,
-        title:       track.title,
-        artist:      track.artist,
-        thumbnail:   track.thumbnail || null,
-        duration:    track.duration  || null,
-        last_played: new Date().toISOString()
-      });
-      toast('✅ Tersimpan!');
-    }catch(e){
-      try{
-        await sb.post('tracks', {
-          id:          track.id,
-          title:       track.title,
-          artist:      track.artist,
-          thumbnail:   track.thumbnail || null,
-          duration:    track.duration  || null,
-          audio_url:   audioUrl,
-          play_count:  1,
-          last_played: new Date().toISOString(),
-          source:      'apple'
-        });
-        toast('✅ Tersimpan!');
-      }catch(e2){
-        console.warn('[tracks] save failed:', e2.message);
-      }
-    }
-    return;
-  }
-
+async function uploadToCatbox(track,audioUrl){
   toast('☁️ Menyimpan permanen...');
+  
   try{
+    // Coba backend dulu
     const res=await fetch(`${BACKEND_URL}/api/catbox-upload`,{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({audioUrl,title:track.title,artist:track.artist,trackId:track.id})
+      body:JSON.stringify({
+        audioUrl:audioUrl,
+        title:track.title,
+        artist:track.artist,
+        trackId:track.id
+      })
     });
+    
     if(res.ok){
       const data=await res.json();
       if(data.success&&data.catboxUrl){
@@ -1221,7 +1179,10 @@ async function uploadToCatbox(track, audioUrl){
         return;
       }
     }
+    
+    // Fallback: upload langsung ke Catbox
     await uploadDirectCatbox(track,audioUrl);
+    
   }catch(e){
     console.warn('[Catbox backend]',e.message);
     await uploadDirectCatbox(track,audioUrl);
@@ -1230,9 +1191,11 @@ async function uploadToCatbox(track, audioUrl){
 
 async function uploadDirectCatbox(track,audioUrl){
   try{
+    // Download file
     const fileRes=await fetch(audioUrl);
     const blob=await fileRes.blob();
     
+    // Upload ke Catbox
     const form=new FormData();
     form.append('fileToUpload',blob,`${track.title}-${track.artist}.mp3`.replace(/[^a-zA-Z0-9]/g,'-'));
     form.append('reqtype','fileupload');
@@ -1303,31 +1266,10 @@ async function playTrackObj(t){
   
   // Update play count
   incrementMyPlayCount(t.id);
-  fetch(`${SB_URL}/rest/v1/tracks?id=eq.${encodeURIComponent(t.id)}`, {
-  method:  'PATCH',
-  headers: { ...sb._h, 'Prefer': 'return=minimal' },
-  body:    JSON.stringify({
-    play_count:  (t.playCount||0)+1,
-    last_played: new Date().toISOString()
-  })
-}).catch(()=>{
-
-  fetch(`${SB_URL}/rest/v1/tracks`, {
-    method:  'POST',
-    headers: { ...sb._h, 'Prefer': 'return=minimal' },
-    body:    JSON.stringify({
-      id:          t.id,
-      title:       t.title,
-      artist:      t.artist,
-      thumbnail:   t.thumbnail || null,
-      duration:    t.duration  || null,
-      audio_url:   t.audio     || null,
-      play_count:  1,
-      last_played: new Date().toISOString(),
-      source:      t.source    || 'apple'
-    })
+  sb.patch('tracks',`id=eq.${encodeURIComponent(t.id)}`,{
+    play_count:(t.playCount||0)+1,
+    last_played:new Date().toISOString()
   }).catch(()=>{});
-});
   
   addToQueue(t);
   showHero(t,t.source||'db');
@@ -1565,14 +1507,14 @@ async function addToHistory(t){
   if(histArr.length>30)histArr=histArr.slice(0,30);
   LS.sh(histArr);
   renderHistory();
- 
-  sb.post('play_history',{
-    user_key:  USER_KEY,
-    track_id:  t.id,
-    played_at: new Date().toISOString()
+  
+  fetch(`${SB_URL}/rest/v1/play_history`,{
+    method:'POST',
+    headers:{...sb._h,'Prefer':'resolution=ignore-duplicates,return=minimal'},
+    body:JSON.stringify({user_key:USER_KEY,track_id:t.id,played_at:new Date().toISOString()})
   }).catch(()=>{});
 }
-  
+
 function renderHistory(){
   const el=document.getElementById('panH');
   if(!histArr.length){el.innerHTML='<div class="empty-ti"><i class="fas fa-history"></i>Belum ada riwayat</div>';return;}
