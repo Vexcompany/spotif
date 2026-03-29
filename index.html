@@ -1470,11 +1470,18 @@ async function addToHistory(t){
   LS.sh(histArr);
   renderHistory();
   
-  fetch(`${SB_URL}/rest/v1/play_history`,{
-    method:'POST',
-    headers:{...sb._h,'Prefer':'resolution=ignore-duplicates,return=minimal'},
-    body:JSON.stringify({user_key:USER_KEY,track_id:t.id,played_at:new Date().toISOString()})
-  }).catch(()=>{});
+  // Simpan ke play_history — pakai UPDATE (patch) dulu, baru INSERT kalau belum ada
+  // Ini bypass masalah unique constraint yang belum ada di Supabase
+  sb.patch('play_history',`user_key=eq.${encodeURIComponent(USER_KEY)}&track_id=eq.${encodeURIComponent(t.id)}`,{
+    played_at:new Date().toISOString()
+  }).then(r=>{
+    // Kalau patch tidak update apapun (array kosong), baru insert
+    if(!r||r.length===0){
+      sb.post('play_history',{user_key:USER_KEY,track_id:t.id,played_at:new Date().toISOString()}).catch(()=>{});
+    }
+  }).catch(()=>{
+    sb.post('play_history',{user_key:USER_KEY,track_id:t.id,played_at:new Date().toISOString()}).catch(()=>{});
+  });
 }
 
 function renderHistory(){
