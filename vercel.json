@@ -2,7 +2,9 @@
   "framework": null,
   "outputDirectory": ".",
   "rewrites": [
-    { "source": "/", "destination": "/index.html" },
+    { "source": "/", "destination": "/dashboard.html" },
+    { "source": "/dashboard", "destination": "/dashboard.html" },
+    { "source": "/welcome", "destination": "/dashboard.html" },
     { "source": "/beranda", "destination": "/index.html" },
     { "source": "/radio", "destination": "/index.html" },
     { "source": "/party", "destination": "/index.html" },
