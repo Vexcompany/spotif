@@ -1,4 +1,6 @@
   {
+  "framework": null,
+  "outputDirectory": ".",
   "rewrites": [
     { "source": "/", "destination": "/index.html" },
     { "source": "/beranda", "destination": "/index.html" },
