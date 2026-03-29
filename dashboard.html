@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Pagaska Music — Selamat Datang</title>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#07071a;--s1:#0d0d24;--s2:#141438;--s3:#1a1a44;
+  --bd:rgba(255,255,255,.07);--bd2:rgba(255,255,255,.13);
+  --tx:#eeeeff;--mt:#8888bb;
+  --g:#1DB954;--g2:#1ed760;--glow:rgba(29,185,84,.35);
+  --p:#7c5cbf;--p2:#9b7fe8;
+}
+html{scroll-behavior:smooth;scroll-snap-type:y mandatory}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);overflow-x:hidden}
+
+/* ── NOISE + ORB BG ── */
+body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:
+    radial-gradient(ellipse 70% 60% at 15% 10%, rgba(29,185,84,.1) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 40% at 85% 80%, rgba(124,92,191,.12) 0%, transparent 60%),
+    url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+  background-size:100% 100%,100% 100%,200px 200px;
+}
+.orb{position:fixed;border-radius:50%;filter:blur(120px);pointer-events:none;z-index:0}
+.o1{width:600px;height:600px;background:rgba(29,185,84,.07);top:-200px;left:-150px;animation:fl 20s ease-in-out infinite}
+.o2{width:500px;height:500px;background:rgba(124,92,191,.08);bottom:-150px;right:-150px;animation:fl 26s ease-in-out infinite reverse}
+@keyframes fl{0%,100%{transform:translate(0,0)}50%{transform:translate(40px,-40px)}}
+
+/* ── SECTIONS ── */
+section{position:relative;z-index:1;min-height:100vh;scroll-snap-align:start;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px}
+
+/* ── HERO ── */
+.hero-section{gap:32px;text-align:center}
+.hero-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(29,185,84,.1);border:1px solid rgba(29,185,84,.25);border-radius:30px;padding:6px 16px;font-size:.72rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--g);margin-bottom:8px;animation:fadeUp .6s ease both .2s}
+.pulse-dot{width:7px;height:7px;border-radius:50%;background:var(--g);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(29,185,84,.4)}50%{opacity:.7;box-shadow:0 0 0 6px rgba(29,185,84,0)}}
+
+.hero-logo{width:100px;height:100px;border-radius:28px;background:linear-gradient(135deg,var(--g),var(--p));display:flex;align-items:center;justify-content:center;font-size:2.8rem;color:#fff;box-shadow:0 0 60px var(--glow),0 20px 40px rgba(0,0,0,.5);animation:fadeUp .6s ease both .1s;margin:0 auto;position:relative;overflow:hidden}
+.hero-logo::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.15),transparent)}
+
+.hero-title{font-family:'Syne',sans-serif;font-size:clamp(2.4rem,8vw,4.5rem);font-weight:800;line-height:1.05;animation:fadeUp .6s ease both .3s}
+.hero-title span{background:linear-gradient(135deg,var(--g),var(--p2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hero-sub{font-size:clamp(.85rem,2.5vw,1.05rem);color:var(--mt);max-width:480px;line-height:1.7;animation:fadeUp .6s ease both .4s}
+
+.hero-stats{display:flex;gap:32px;justify-content:center;flex-wrap:wrap;animation:fadeUp .6s ease both .5s}
+.stat{text-align:center}
+.stat-num{font-family:'Syne',sans-serif;font-size:1.6rem;font-weight:800;background:linear-gradient(135deg,var(--g),var(--p2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.stat-lbl{font-size:.65rem;color:var(--mt);text-transform:uppercase;letter-spacing:1.5px;margin-top:2px}
+
+.hero-actions{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;animation:fadeUp .6s ease both .6s}
+.btn-primary{display:inline-flex;align-items:center;gap:10px;padding:14px 32px;border-radius:14px;border:none;background:linear-gradient(135deg,var(--g),var(--g2));color:#000;font-weight:800;font-size:.95rem;cursor:pointer;transition:all .25s;font-family:inherit;text-decoration:none}
+.btn-primary:hover{transform:translateY(-3px);box-shadow:0 12px 32px var(--glow)}
+.btn-secondary{display:inline-flex;align-items:center;gap:10px;padding:14px 32px;border-radius:14px;border:1px solid var(--bd2);background:rgba(255,255,255,.05);color:var(--tx);font-weight:600;font-size:.95rem;cursor:pointer;transition:all .25s;font-family:inherit;text-decoration:none;backdrop-filter:blur(10px)}
+.btn-secondary:hover{background:rgba(255,255,255,.1);border-color:var(--g);transform:translateY(-3px)}
+
+.scroll-hint{display:flex;flex-direction:column;align-items:center;gap:6px;color:var(--mt);font-size:.65rem;letter-spacing:2px;text-transform:uppercase;animation:fadeUp .6s ease both .8s,bob 2s ease-in-out infinite 1.4s}
+.scroll-hint i{font-size:1.1rem}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(6px)}}
+
+/* ── FEATURES ── */
+.features-section{gap:48px}
+.sec-head{text-align:center}
+.sec-label{font-size:.68rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--g);margin-bottom:10px}
+.sec-title{font-family:'Syne',sans-serif;font-size:clamp(1.6rem,5vw,2.5rem);font-weight:800;margin-bottom:12px}
+.sec-sub{font-size:.9rem;color:var(--mt);max-width:400px;margin:0 auto;line-height:1.7}
+
+.features-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;width:100%;max-width:900px}
+.feat-card{background:var(--s1);border:1px solid var(--bd);border-radius:18px;padding:24px;transition:all .25s;position:relative;overflow:hidden}
+.feat-card::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(29,185,84,.05),transparent);opacity:0;transition:opacity .3s}
+.feat-card:hover{border-color:rgba(29,185,84,.3);transform:translateY(-4px);box-shadow:0 16px 40px rgba(0,0,0,.4)}
+.feat-card:hover::before{opacity:1}
+.feat-ico{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.2rem;margin-bottom:14px;flex-shrink:0}
+.feat-ico.green{background:rgba(29,185,84,.12);border:1px solid rgba(29,185,84,.25);color:var(--g)}
+.feat-ico.purple{background:rgba(124,92,191,.12);border:1px solid rgba(124,92,191,.25);color:var(--p2)}
+.feat-ico.blue{background:rgba(61,142,248,.12);border:1px solid rgba(61,142,248,.25);color:#6aabff}
+.feat-ico.red{background:rgba(255,77,109,.12);border:1px solid rgba(255,77,109,.25);color:#ff4d6d}
+.feat-ico.yellow{background:rgba(255,167,38,.12);border:1px solid rgba(255,167,38,.25);color:#ffa726}
+.feat-ico.cyan{background:rgba(0,180,216,.12);border:1px solid rgba(0,180,216,.25);color:#48cae4}
+.feat-title{font-family:'Syne',sans-serif;font-size:.95rem;font-weight:700;margin-bottom:6px}
+.feat-desc{font-size:.78rem;color:var(--mt);line-height:1.6}
+
+/* ── MEMBER CTA ── */
+.cta-section{gap:32px;text-align:center}
+.cta-card{background:var(--s1);border:1px solid var(--bd2);border-radius:24px;padding:48px 32px;max-width:560px;width:100%;position:relative;overflow:hidden}
+.cta-card::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 80% 60% at 50% 0%,rgba(29,185,84,.08),transparent);pointer-events:none}
+.cta-glow{position:absolute;top:-60px;left:50%;transform:translateX(-50%);width:200px;height:200px;border-radius:50%;background:rgba(29,185,84,.15);filter:blur(60px);pointer-events:none}
+.cta-icos{display:flex;justify-content:center;gap:-8px;margin-bottom:20px}
+.cta-av{width:40px;height:40px;border-radius:50%;border:2px solid var(--bg);background:linear-gradient(135deg,var(--p),var(--g));display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:800;color:#fff;margin-left:-8px}
+.cta-av:first-child{margin-left:0}
+.cta-title{font-family:'Syne',sans-serif;font-size:1.6rem;font-weight:800;margin-bottom:10px}
+.cta-sub{font-size:.85rem;color:var(--mt);line-height:1.7;margin-bottom:24px}
+.cta-btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+
+/* ── NAV ── */
+.topnav{position:fixed;top:0;left:0;right:0;z-index:100;padding:16px 24px;display:flex;align-items:center;justify-content:space-between;background:rgba(7,7,26,.8);backdrop-filter:blur(16px);border-bottom:1px solid var(--bd)}
+.nav-brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--tx)}
+.nav-logo{width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,var(--g),var(--p));display:flex;align-items:center;justify-content:center;font-size:.9rem;color:#fff}
+.nav-name{font-family:'Syne',sans-serif;font-size:.95rem;font-weight:800}
+.nav-links{display:flex;align-items:center;gap:6px}
+.nav-link{padding:7px 14px;border-radius:9px;font-size:.75rem;font-weight:600;color:var(--mt);text-decoration:none;transition:all .2s;border:1px solid transparent}
+.nav-link:hover{color:var(--tx);background:var(--s2)}
+.nav-link.primary{background:linear-gradient(135deg,var(--g),var(--g2));color:#000;border:none}
+.nav-link.primary:hover{transform:scale(1.04);box-shadow:0 4px 16px var(--glow)}
+
+/* ── MARQUEE ── */
+.marquee-wrap{width:100%;overflow:hidden;border-top:1px solid var(--bd);border-bottom:1px solid var(--bd);padding:14px 0;background:rgba(29,185,84,.03)}
+.marquee-track{display:flex;gap:48px;animation:scroll 20s linear infinite;white-space:nowrap;width:max-content}
+.marquee-track:hover{animation-play-state:paused}
+.marquee-item{display:flex;align-items:center;gap:8px;font-size:.72rem;font-weight:700;color:var(--mt);text-transform:uppercase;letter-spacing:1.5px}
+.marquee-item i{color:var(--g);font-size:.65rem}
+@keyframes scroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── FOOTER ── */
+.footer{position:relative;z-index:1;padding:24px;text-align:center;border-top:1px solid var(--bd);font-size:.72rem;color:var(--mt)}
+.footer span{color:var(--g)}
+
+@media(max-width:600px){
+  section{padding:80px 16px 40px}
+  .hero-stats{gap:20px}
+  .cta-card{padding:32px 20px}
+}
+</style>
+</head>
+<body>
+<div class="orb o1"></div>
+<div class="orb o2"></div>
+
+<!-- NAV -->
+<nav class="topnav">
+  <a class="nav-brand" href="#">
+    <div class="nav-logo"><i class="fab fa-spotify"></i></div>
+    <span class="nav-name">Pagaska</span>
+  </a>
+  <div class="nav-links">
+    <a class="nav-link" href="login.html">Masuk</a>
+    <a class="nav-link primary" href="index.html" id="enterBtn">Buka Player</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero-section">
+  <div class="hero-badge"><span class="pulse-dot"></span> Aktif & Online</div>
+  <div class="hero-logo"><i class="fab fa-spotify"></i></div>
+  <div>
+    <h1 class="hero-title">Pagaska<br><span>Music</span></h1>
+    <p class="hero-sub">Platform musik eksklusif Paskibra Gala Taksaka SMKN 5 Kota Madiun. Dengarkan, bagikan, dan nikmati musik bersama.</p>
+  </div>
+  <div class="hero-stats">
+    <div class="stat"><div class="stat-num" id="statTracks">–</div><div class="stat-lbl">Lagu</div></div>
+    <div class="stat"><div class="stat-num" id="statMembers">–</div><div class="stat-lbl">Anggota</div></div>
+    <div class="stat"><div class="stat-num" id="statPlays">–</div><div class="stat-lbl">Total Putar</div></div>
+  </div>
+  <div class="hero-actions">
+    <a class="btn-primary" href="index.html" id="mainEnterBtn">
+      <i class="fas fa-play"></i> Nikmati Musik
+    </a>
+    <a class="btn-secondary" href="login.html">
+      <i class="fas fa-user"></i> Masuk Dulu
+    </a>
+  </div>
+  <div class="scroll-hint"><i class="fas fa-chevron-down"></i>Scroll untuk lanjut</div>
+</section>
+
+<!-- MARQUEE -->
+<div class="marquee-wrap">
+  <div class="marquee-track" id="marqueeTrack">
+    <span class="marquee-item"><i class="fas fa-music"></i> Apple Music Integration</span>
+    <span class="marquee-item"><i class="fas fa-users"></i> Party Mode</span>
+    <span class="marquee-item"><i class="fas fa-comment-dots"></i> Real-time Chat</span>
+    <span class="marquee-item"><i class="fas fa-robot"></i> AI Pagaska</span>
+    <span class="marquee-item"><i class="fas fa-fire"></i> Top Chart</span>
+    <span class="marquee-item"><i class="fas fa-database"></i> Supabase Storage</span>
+    <span class="marquee-item"><i class="fas fa-heart"></i> Liked Songs</span>
+    <span class="marquee-item"><i class="fas fa-align-left"></i> Lirik Real-time</span>
+    <!-- duplikat untuk seamless loop -->
+    <span class="marquee-item"><i class="fas fa-music"></i> Apple Music Integration</span>
+    <span class="marquee-item"><i class="fas fa-users"></i> Party Mode</span>
+    <span class="marquee-item"><i class="fas fa-comment-dots"></i> Real-time Chat</span>
+    <span class="marquee-item"><i class="fas fa-robot"></i> AI Pagaska</span>
+    <span class="marquee-item"><i class="fas fa-fire"></i> Top Chart</span>
+    <span class="marquee-item"><i class="fas fa-database"></i> Supabase Storage</span>
+    <span class="marquee-item"><i class="fas fa-heart"></i> Liked Songs</span>
+    <span class="marquee-item"><i class="fas fa-align-left"></i> Lirik Real-time</span>
+  </div>
+</div>
+
+<!-- FEATURES -->
+<section class="features-section">
+  <div class="sec-head">
+    <div class="sec-label">Fitur</div>
+    <h2 class="sec-title">Semua yang kamu butuhkan</h2>
+    <p class="sec-sub">Dibangun khusus untuk anggota Pagaska — musik, chat, dan komunitas dalam satu platform.</p>
+  </div>
+  <div class="features-grid">
+    <div class="feat-card">
+      <div class="feat-ico green"><i class="fab fa-apple"></i></div>
+      <div class="feat-title">Apple Music</div>
+      <div class="feat-desc">Cari dan putar jutaan lagu dari Apple Music. Disimpan permanen ke Supabase Storage.</div>
+    </div>
+    <div class="feat-card">
+      <div class="feat-ico purple"><i class="fas fa-users"></i></div>
+      <div class="feat-title">Party Mode</div>
+      <div class="feat-desc">Dengarkan musik bareng semua anggota secara realtime. Vote skip, tambah antrian, seru!</div>
+    </div>
+    <div class="feat-card">
+      <div class="feat-ico blue"><i class="fas fa-comment-dots"></i></div>
+      <div class="feat-title">Chat & Share</div>
+      <div class="feat-desc">Kirim pesan dan bagikan lagu ke sesama anggota. Ada AI Pagaska yang siap membantu.</div>
+    </div>
+    <div class="feat-card">
+      <div class="feat-ico red"><i class="fas fa-fire"></i></div>
+      <div class="feat-title">Top Chart</div>
+      <div class="feat-desc">Lihat lagu paling banyak diputar oleh seluruh anggota Pagaska secara real-time.</div>
+    </div>
+    <div class="feat-card">
+      <div class="feat-ico yellow"><i class="fas fa-align-left"></i></div>
+      <div class="feat-title">Lirik Sinkron</div>
+      <div class="feat-desc">Lirik bergerak mengikuti musik secara real-time. Karaoke di mana saja!</div>
+    </div>
+    <div class="feat-card">
+      <div class="feat-ico cyan"><i class="fas fa-robot"></i></div>
+      <div class="feat-title">AI Pagaska</div>
+      <div class="feat-desc">Asisten AI khusus Paskibra Gala Taksaka. Tanya apa saja tentang organisasi dan PBB.</div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section">
+  <div class="cta-card">
+    <div class="cta-glow"></div>
+    <div class="cta-icos">
+      <div class="cta-av">GT</div>
+      <div class="cta-av">PG</div>
+      <div class="cta-av">SK</div>
+      <div class="cta-av">+</div>
+    </div>
+    <h2 class="cta-title">Siap bergabung?</h2>
+    <p class="cta-sub">Masuk dengan akunmu dan mulai menikmati musik bersama seluruh anggota Paskibra Gala Taksaka.</p>
+    <div class="cta-btns">
+      <a class="btn-primary" href="index.html">
+        <i class="fas fa-play"></i> Langsung Dengarkan
+      </a>
+      <a class="btn-secondary" href="login.html">
+        <i class="fas fa-sign-in-alt"></i> Login
+      </a>
+    </div>
+  </div>
+</section>
+
+<footer class="footer">
+  Dibuat dengan <span>♥</span> untuk Paskibra Gala Taksaka SMKN 5 Kota Madiun
+</footer>
+
+<script>
+// ── Cek session — kalau sudah login, ubah tombol ──────────────
+const sess = JSON.parse(localStorage.getItem('pgsk_v2_session') || 'null');
+if(sess){
+  document.getElementById('enterBtn').textContent = '▶ Buka Player';
+  document.getElementById('mainEnterBtn').innerHTML = '<i class="fas fa-play"></i> Lanjut Dengarkan';
+}
+
+// ── Load stats dari Supabase ──────────────────────────────────
+const SB_URL = 'https://ygwoddwdhelqcwhpqasl.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlnd29kZHdkaGVscWN3aHBxYXNsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE4NTEwNzcsImV4cCI6MjA4NzQyNzA3N30.y0tnci0aWnhWYpxb9v7M7I0X9ss-jAt0JvpOBnZgFzo';
+const HDR = { apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY };
+
+async function loadStats(){
+  try{
+    const [tracks, plays] = await Promise.all([
+      fetch(`${SB_URL}/rest/v1/tracks?select=count`, { headers: HDR }).then(r=>r.json()),
+      fetch(`${SB_URL}/rest/v1/tracks?select=play_count`, { headers: HDR }).then(r=>r.json()),
+    ]);
+    const trackCount = tracks?.[0]?.count || '–';
+    const totalPlays = plays?.reduce?.((a,b)=>a+(b.play_count||0),0) || '–';
+
+    document.getElementById('statTracks').textContent  = Array.isArray(tracks) ? tracks.length : '–';
+    document.getElementById('statPlays').textContent   = typeof totalPlays === 'number' ? totalPlays : '–';
+
+    // Hitung anggota dari db.js (PAGASKA_DB)
+    if(window.PAGASKA_DB){
+      const members = window.PAGASKA_DB.getAllUsers?.()?.length || '–';
+      document.getElementById('statMembers').textContent = members;
+    } else {
+      document.getElementById('statMembers').textContent = '50+';
+    }
+  }catch(e){
+    document.getElementById('statTracks').textContent  = '–';
+    document.getElementById('statMembers').textContent = '50+';
+    document.getElementById('statPlays').textContent   = '–';
+  }
+}
+loadStats();
+</script>
+<script src="_lib/db.js"></script>
+</body>
+</html>
