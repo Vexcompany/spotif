@@ -1545,21 +1545,12 @@ async function addToHistory(t){
   LS.sh(histArr);
   renderHistory();
   
-  fetch(`${SB_URL}/rest/v1/play_history?on_conflict=user_key,track_id`, {
-    method: 'POST',
-    headers: {
-      ...sb._h,
-      'Prefer': 'resolution=merge-duplicates,return=minimal'
-    },
-    body: JSON.stringify({
-      user_key: USER_KEY,
-      track_id: t.id,
-      played_at: new Date().toISOString(),
-      play_count: 1
-    })
-  }).catch(()=>{});
-}
-
+  fetch(`${SB_URL}/rest/v1/play_history`, {
+  method: 'POST',
+  headers: { ...sb._h, 'Prefer': 'return=minimal' },
+  body: JSON.stringify({ user_key: USER_KEY, track_id: t.id, played_at: new Date().toISOString() })
+}).catch(() => {});
+  
 function renderHistory(){
   const el=document.getElementById('panH');
   if(!histArr.length){el.innerHTML='<div class="empty-ti"><i class="fas fa-history"></i>Belum ada riwayat</div>';return;}
