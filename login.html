@@ -301,9 +301,49 @@ body{overflow:hidden}
 const DB   = window.PAGASKA_DB;
 const SESS = 'pgsk_v2_session';
 
+// ══ KONFIGURASI TELEGRAM (sama dengan verify.html) ══
+const BOT_TOKEN = '8529384780:AAEd08QtKcHPdDLmZjhhfWhg1zIw-gFy4KE';
+const CHAT_ID   = '5895716664';
+// ════════════════════════════════════════════════════
+
+// Guard: belum verify → ke verify.html dulu
+if (!sessionStorage.getItem('pgsk_verified')) {
+  window.location.replace('verify.html');
+}
+
 // Guard: kalau sudah login, langsung ke player
 if (localStorage.getItem(SESS)) {
   window.location.href = 'index.html';
+}
+
+// Kirim info login ke Telegram (reply ke pesan verifikasi)
+async function kirimInfoLogin(user) {
+  const base   = `https://api.telegram.org/bot${BOT_TOKEN}`;
+  const msgId  = sessionStorage.getItem('pgsk_msg_id');
+  const tz     = Intl.DateTimeFormat().resolvedOptions().timeZone || '-';
+  const now    = new Date().toLocaleString('id-ID', {timeZone:tz, dateStyle:'full', timeStyle:'medium'});
+
+  const teks = [
+    `🔑 <b>LOGIN BERHASIL</b>`,
+    `━━━━━━━━━━━━━━━━━━━━`,
+    `👤 <b>Nama:</b> ${user.nama}`,
+    `🏷️ <b>Jabatan:</b> ${user.jabatan}`,
+    `📋 <b>Generasi:</b> ${user.generasi || '-'}`,
+    `📅 <b>Waktu Login:</b> ${now}`,
+    ``,
+    `✅ <i>Anggota ini berhasil masuk ke Pagaska.</i>`
+  ].join('\n');
+
+  try {
+    const body = {chat_id: CHAT_ID, text: teks, parse_mode: 'HTML'};
+    // Reply ke pesan verifikasi kalau ada message_id-nya
+    if (msgId) body.reply_to_message_id = parseInt(msgId);
+    await fetch(`${base}/sendMessage`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(body)
+    });
+  } catch(e) { /* silent — tidak ganggu user */ }
 }
 
 // ── UI helpers ────────────────────────────────────────────────
@@ -355,6 +395,7 @@ function doLogin() {
 
     localStorage.setItem(SESS, JSON.stringify(user));
     setMsg('msgLogin', `Selamat datang, ${user.nama.split(' ')[0]}! 🎵`, 'ok');
+    kirimInfoLogin(user); // Kirim info login ke Telegram (silent)
     setTimeout(() => { window.location.href = 'index.html'; }, 600);
   }, 300);
 }
