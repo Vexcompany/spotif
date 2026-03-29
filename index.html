@@ -649,6 +649,15 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
     <div class="page" id="page-chat">
       <div class="sec-title"><i class="fas fa-comment-dots" style="color:var(--b2)"></i> Chat & Share Lagu</div>
       <p class="sec-sub">Bagikan lagu ke sesama anggota Pagaska</p>
+      <!-- AI Bot — selalu tampil di paling atas -->
+      <div class="chat-item" id="aiBotEntry" onclick="openAIChat()" style="background:linear-gradient(135deg,rgba(29,185,84,.08),rgba(124,92,191,.08));border-color:rgba(29,185,84,.25);margin-bottom:8px">
+        <div class="chat-av" style="background:linear-gradient(135deg,#1DB954,#7c5cbf)"><i class="fas fa-robot" style="font-size:.8rem"></i></div>
+        <div class="chat-info">
+          <div class="chat-name">AI Pagaska 🤖</div>
+          <div class="chat-preview">Tanya apa saja tentang Paskibra...</div>
+        </div>
+        <div class="chat-meta"><div class="chat-time" style="color:var(--g)">Online</div></div>
+      </div>
       <div class="chat-list" id="chatList">
         <div class="empty-ti"><i class="fas fa-comment-slash"></i>Belum ada percakapan</div>
       </div>
@@ -887,6 +896,26 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 
 <div class="toast" id="toast"></div>
 <audio id="audioEl"></audio>
+<!-- AI CHAT ROOM -->
+<div class="chat-room" id="aiChatRoom">
+  <div class="chat-room-header">
+    <button class="chat-back" onclick="closeAIChat()"><i class="fas fa-chevron-left"></i></button>
+    <div class="chat-room-av" style="background:linear-gradient(135deg,var(--g),var(--p))"><i class="fas fa-robot" style="font-size:.72rem"></i></div>
+    <div class="chat-room-info">
+      <div class="chat-room-name">AI Pagaska</div>
+      <div class="chat-room-status">Paskibra Gala Taksaka · Online</div>
+    </div>
+    <button class="chat-back" onclick="clearAIChat()" title="Hapus riwayat" style="margin-left:auto"><i class="fas fa-trash-alt" style="font-size:.75rem;color:var(--mt)"></i></button>
+  </div>
+  <div class="chat-messages" id="aiMessages"></div>
+  <div class="chat-input-wrap">
+    <div class="chat-input-row">
+      <textarea class="chat-input" id="aiChatInput" placeholder="Tanya tentang Paskibra, PBB, organisasi..." rows="1" onkeydown="aiInputKeydown(event)" oninput="autoResizeChatInput(this)"></textarea>
+      <button class="chat-send" id="aiSendBtn" onclick="sendAIMessage()"><i class="fas fa-paper-plane"></i></button>
+    </div>
+  </div>
+</div>
+
 
 <script src="_lib/db.js"></script>
 
@@ -895,6 +924,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 //  CONFIG - BACKEND API (GANTI DENGAN URL BACKEND ANDA)
 // ══════════════════════════════════════════════════════════════
 const BACKEND_URL = 'https://zemz.vercel.app';
+const AI_API_URL  = 'https://pagaska-ai.vercel.app/api/pagaska'; // Ganti dengan URL deploy AI kamu
 
 const APPLE_SEARCH_API = `${BACKEND_URL}/api/apple-search?q=`;
 const APPLE_DOWNLOAD_API = `${BACKEND_URL}/api/apple-download`;
@@ -928,7 +958,8 @@ const sb = {
 // ══════════════════════════════════════════════════════════════
 const session=JSON.parse(localStorage.getItem(SESS_KEY)||'null');
 const USER_KEY=session?`${session.nama}_${session.generasi}`:'guest';
-function doLogout(){localStorage.removeItem(SESS_KEY);window.location.href='login.html';}
+const IS_ADMIN=!!(session?.isAdmin || JSON.parse(localStorage.getItem('pgsk_admin_session')||'null')?.isAdmin);
+function doLogout(){localStorage.removeItem(SESS_KEY);localStorage.removeItem('pgsk_admin_session');window.location.href='login.html';}
 
 let currentPage='beranda';
 function navigate(page){
@@ -1568,11 +1599,13 @@ async function loadQuickPlay(){
       const t=rowToTrack(r,'db');
       const tEsc=esc(t);
       const isNow=currentTrack?.id===r.id;
+      const adminDelBtn=IS_ADMIN?`<button onclick="adminDeleteTrack('${r.id}','${(r.title||'').replace(/'/g,"\\'")}',event)" style="position:absolute;top:6px;left:6px;z-index:3;width:24px;height:24px;border-radius:6px;border:none;background:rgba(255,77,109,.85);color:#fff;font-size:.6rem;cursor:pointer;display:flex;align-items:center;justify-content:center;opacity:0.9" title="Hapus (Admin)"><i class="fas fa-trash-alt"></i></button>`:'';
       return `<div class="qp-card ${isNow?'playing':''}" id="qpc-${CSS.escape(r.id)}" onclick='playTrackObj(${tEsc})'>
         <div class="qp-thumb">
           <img src="${r.thumbnail||PH}" onerror="this.src='${PH}'" loading="lazy">
           <button class="qp-play" onclick="event.stopPropagation();playTrackObj(${tEsc})"><i class="fas fa-play"></i></button>
         </div>
+        ${adminDelBtn}
         <div class="qp-now">▶ NOW</div>
         <div class="qp-title">${r.title}</div>
         <div class="qp-artist">${r.artist}</div>
@@ -1864,6 +1897,7 @@ async function loadPartyQueue(){
           <div class="party-qi-by"><i class="fas fa-user"></i> ${addedBy}</div>
         </div>
         <button style="background:none;border:none;color:var(--dyn1);font-size:.9rem;cursor:pointer;padding:4px;flex-shrink:0" onclick="event.stopPropagation();playPartyTrack(${esc(r)})"><i class="fas fa-play-circle"></i></button>
+      ${IS_ADMIN?`<button style="background:none;border:none;color:var(--rd);font-size:.9rem;cursor:pointer;padding:4px;flex-shrink:0" onclick="adminDeletePartyItem('${r.id}','${(r.title||'').replace(/'/g,"\\'")}',event)" title="Hapus (Admin)"><i class="fas fa-trash-alt"></i></button>`:''}
       </div>`;
     }).join('');
   }catch(e){console.warn('loadPartyQueue:',e.message);}
@@ -2151,6 +2185,116 @@ if(document.readyState==='loading'){
   document.addEventListener('DOMContentLoaded',initApp);
 }else{
   initApp();
+}
+
+// ══════════════════════════════════════════════════════════════
+//  AI PAGASKA CHAT
+// ══════════════════════════════════════════════════════════════
+let aiMessages = JSON.parse(localStorage.getItem('pm2_ai_msgs') || '[]');
+
+function openAIChat(){
+  document.getElementById('aiChatRoom').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  renderAIMessages();
+  document.getElementById('aiChatInput').focus();
+}
+
+function closeAIChat(){
+  document.getElementById('aiChatRoom').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function renderAIMessages(){
+  const el = document.getElementById('aiMessages');
+  if(!aiMessages.length){
+    el.innerHTML = `<div style="text-align:center;padding:32px 16px">
+      <div style="font-size:2.5rem;margin-bottom:12px">🤖</div>
+      <div style="font-family:'Syne',sans-serif;font-size:1rem;font-weight:700;margin-bottom:6px">AI Pagaska</div>
+      <div style="font-size:.8rem;color:var(--mt);line-height:1.7">Asisten digital Paskibra Gala Taksaka.<br>Tanya apa saja tentang Paskibra, PBB, atau organisasi!</div>
+    </div>`;
+    return;
+  }
+  el.innerHTML = aiMessages.map(m => `
+    <div class="msg-wrap ${m.role==='user'?'me':'them'}">
+      <div class="msg-bubble" style="${m.role==='assistant'?'white-space:pre-wrap;':''}">
+        ${m.role==='assistant'?'<span style="font-size:.6rem;opacity:.5;display:block;margin-bottom:4px">🤖 AI Pagaska</span>':''}
+        ${m.content}
+      </div>
+    </div>
+  `).join('');
+  el.scrollTop = el.scrollHeight;
+}
+
+async function sendAIMessage(){
+  const input = document.getElementById('aiChatInput');
+  const msg = input.value.trim();
+  if(!msg) return;
+
+  const btn = document.getElementById('aiSendBtn');
+  btn.disabled = true;
+  input.value = '';
+  input.style.height = '42px';
+
+  aiMessages.push({ role:'user', content: msg });
+  localStorage.setItem('pm2_ai_msgs', JSON.stringify(aiMessages));
+  renderAIMessages();
+
+  // Typing indicator
+  const el = document.getElementById('aiMessages');
+  el.innerHTML += `<div class="msg-wrap them" id="aiTyping"><div class="msg-bubble" style="opacity:.6"><i class="fas fa-circle-notch spin"></i> Sedang mengetik...</div></div>`;
+  el.scrollTop = el.scrollHeight;
+
+  try{
+    const res = await fetch(AI_API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: msg })
+    });
+    const data = await res.json();
+    const reply = data?.response || data?.message || 'Maaf, AI tidak dapat menjawab saat ini.';
+    aiMessages.push({ role:'assistant', content: reply });
+    localStorage.setItem('pm2_ai_msgs', JSON.stringify(aiMessages.slice(-50)));
+  }catch(e){
+    aiMessages.push({ role:'assistant', content: '⚠️ AI tidak dapat dihubungi saat ini.' });
+    localStorage.setItem('pm2_ai_msgs', JSON.stringify(aiMessages.slice(-50)));
+  }
+
+  btn.disabled = false;
+  renderAIMessages();
+}
+
+function aiInputKeydown(e){
+  if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); sendAIMessage(); }
+}
+
+function clearAIChat(){
+  aiMessages = [];
+  localStorage.removeItem('pm2_ai_msgs');
+  renderAIMessages();
+}
+
+// ── ADMIN: hapus lagu dari beranda ─────────────────────────
+async function adminDeleteTrack(id, title, e){
+  e.stopPropagation();
+  if(!IS_ADMIN) return;
+  if(!confirm(`Hapus "${title}" dari database?`)) return;
+  try{
+    await sb.del('tracks', `id=eq.${encodeURIComponent(id)}`);
+    toast('🗑️ Lagu dihapus!');
+    loadQuickPlay();
+    loadTopChartHome();
+    if(currentPage==='chart') loadTopChart();
+  }catch(err){ toast('❌ Gagal: '+err.message); }
+}
+async function adminDeletePartyItem(id, title, e){
+  e.stopPropagation();
+  if(!IS_ADMIN) return;
+  if(!confirm(`Hapus "${title}" dari party queue?`)) return;
+  try{
+    await sb.del('party_queue', `id=eq.${encodeURIComponent(id)}`);
+    toast('🗑️ Dihapus dari party queue!');
+    loadPartyQueue();
+  }catch(err){ toast('❌ Gagal: '+err.message); }
 }
 </script>
 </body>
