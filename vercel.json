@@ -15,7 +15,6 @@
     { "source": "/capsule", "destination": "/index.html" },
     { "source": "/explore", "destination": "/index.html" },
     { "source": "/profil", "destination": "/index.html" },
-    { "source": "/admin", "destination": "/admin.html" },
-    { "source": "/verifikasi", "destination": "/verify.html" }
+    { "source": "/admin", "destination": "/admin.html" }
   ]
 }
