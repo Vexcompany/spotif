@@ -301,15 +301,10 @@ body{overflow:hidden}
 const DB   = window.PAGASKA_DB;
 const SESS = 'pgsk_v2_session';
 
-// ══ KONFIGURASI TELEGRAM (sama dengan verify.html) ══
+// ══ KONFIGURASI TELEGRAM ══
 const BOT_TOKEN = '8529384780:AAEd08QtKcHPdDLmZjhhfWhg1zIw-gFy4KE';
 const CHAT_ID   = '5895716664';
-// ════════════════════════════════════════════════════
-
-// Guard: belum verify → ke verify.html dulu
-if (!sessionStorage.getItem('pgsk_verified')) {
-  window.location.replace('verify.html');
-}
+// ══════════════════════════
 
 // Guard: kalau sudah login, langsung ke player
 if (localStorage.getItem(SESS)) {
