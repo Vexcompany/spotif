@@ -12,7 +12,7 @@ const pagaskaGenerations = {
     { nama: "Ryan Yazid Hidayat", jabatan: "Ketua Umum" },
     { nama: "Sekar Rutikasari", jabatan: "Wakil Ketua Umum" },
     { nama: "Hudaifa Uli Aibab", jabatan: "Sekretaris" },
-    { nama: "Rebyola Putri Yulianti", jabatan: "Bendahara" },
+    { nama: "Febyola Putri Yulianti", jabatan: "Bendahara" },
     { nama: "Rehan Raiszaki Muhfroni", jabatan: "Koor GK3" },
     { nama: "Yasir Isa", jabatan: "GK3" },
     { nama: "William Cristian Josepa", jabatan: "GK3" },
