@@ -877,6 +877,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
     <div class="modal-ico info"><i class="fas fa-share"></i></div>
     <h3>Bagikan Lagu</h3>
     <div class="modal-body">Pilih anggota yang ingin kamu kirimi lagu ini:</div>
+    <input id="shareMemberSearch" type="text" placeholder="🔍 Cari nama anggota..." oninput="_renderShareList(this.value)" onclick="event.stopPropagation()" style="width:100%;box-sizing:border-box;padding:8px 12px;border-radius:10px;border:1px solid var(--bd);background:var(--s3);color:var(--tx);font-size:.8rem;font-family:inherit;outline:none;margin-bottom:4px">
     <div class="share-member-list" id="shareMemberList"></div>
     <div class="modal-actions">
       <button class="modal-cancel" onclick="closeShareModal()">Batal</button>
@@ -1711,7 +1712,7 @@ async function incrementMyPlayCount(trackId){
 // ══════════════════════════════════════════════════════════════
 //  CHAT SYSTEM
 // ══════════════════════════════════════════════════════════════
-let currentChatWith=null,pendingShareTrack=null,selectedShareMembers=[];
+let currentChatWith=null,pendingShareTrack=null,selectedShareMembers=[],_allShareUsers=[];
 
 async function loadChatList(){
   try{
@@ -1819,18 +1820,31 @@ function shareCurrentTrack(){
 function openShareModal(track){
   pendingShareTrack=track;
   selectedShareMembers=[];
-  const allUsers=(window.PAGASKA_DB?.getAllUsers&&window.PAGASKA_DB.getAllUsers())||[];
-  const others=allUsers.filter(u=>`${u.nama}_${u.generasi}`!==USER_KEY);
-  document.getElementById('shareMemberList').innerHTML=others.slice(0,30).map(u=>{
-    const key=`${u.nama}_${u.generasi}`;
-    const ini=u.nama.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
-    return `<div class="share-member-item" id="sm-${key.replace(/\s/g,'_')}" onclick="toggleShareMember('${key}','${u.nama}')"><div class="share-member-av">${ini}</div><div class="share-member-name">${u.nama}</div><div class="share-member-gen">Gen ${u.generasi}</div><i class="fas fa-check share-check"></i></div>`;
-  }).join('')||'<div style="text-align:center;color:var(--mt);padding:20px">Tidak ada anggota lain</div>';
+  _allShareUsers=(window.PAGASKA_DB?.getAllUsers&&window.PAGASKA_DB.getAllUsers())||[];
+  _renderShareList('');
   document.getElementById('shareModal').classList.add('open');
+  const inp=document.getElementById('shareMemberSearch');
+  if(inp){inp.value='';inp.focus();}
+}
+
+function _renderShareList(q){
+  const others=_allShareUsers.filter(u=>`${u.nama}_${u.generasi}`!==USER_KEY);
+  const filtered=q.trim()
+    ?others.filter(u=>u.nama.toLowerCase().includes(q.toLowerCase())||String(u.generasi).includes(q))
+    :others;
+  const list=document.getElementById('shareMemberList');
+  list.innerHTML=filtered.length?filtered.map(u=>{
+    const key=`${u.nama}_${u.generasi}`;
+    const safeId='sm-'+key.replace(/[^a-zA-Z0-9]/g,'_');
+    const ini=u.nama.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+    const sel=selectedShareMembers.includes(key)?'selected':'';
+    return `<div class="share-member-item ${sel}" id="${safeId}" onclick="toggleShareMember('${key.replace(/'/g,"\\'")}','${u.nama.replace(/'/g,"\\'")}')"><div class="share-member-av">${ini}</div><div class="share-member-name">${u.nama}</div><div class="share-member-gen">Gen ${u.generasi}</div><i class="fas fa-check share-check"></i></div>`;
+  }).join(''):'<div style="text-align:center;color:var(--mt);padding:20px">Tidak ada anggota ditemukan</div>';
 }
 
 function toggleShareMember(key,name){
-  const el=document.getElementById(`sm-${key.replace(/\s/g,'_')}`);
+  const safeId='sm-'+key.replace(/[^a-zA-Z0-9]/g,'_');
+  const el=document.getElementById(safeId);
   const idx=selectedShareMembers.indexOf(key);
   if(idx>-1){selectedShareMembers.splice(idx,1);el?.classList.remove('selected');}
   else{selectedShareMembers.push(key);el?.classList.add('selected');}
