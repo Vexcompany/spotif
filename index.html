@@ -924,7 +924,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 // ══════════════════════════════════════════════════════════════
 //  CONFIG - BACKEND API (GANTI DENGAN URL BACKEND ANDA)
 // ══════════════════════════════════════════════════════════════
-const BACKEND_URL = 'https://verolyz-kingdom3.vercel.app'; // ← ganti dengan URL backend Anda
+const BACKEND_URL = 'https://pagaska-music-backend.vercel.app'; // ← ganti dengan URL backend Anda
 const AI_API_URL  = 'https://vanz-xi.vercel.app/api/pagaska';   // Ganti dengan URL deploy AI kamu
 
 const APPLE_SEARCH_API = `${BACKEND_URL}/api/apple-search?q=`;
@@ -1130,29 +1130,39 @@ function renderSearchResults(results, query) {
 }
 
 async function playAppleMusic(url, title, artist, thumb, query, previewUrl) {
-    const decodedUrl    = decodeURIComponent(url);
+    const appleUrl      = decodeURIComponent(url);
     const decodedTitle  = decodeURIComponent(title);
     const decodedArtist = decodeURIComponent(artist);
     const decodedThumb  = decodeURIComponent(thumb);
     const decodedQuery  = decodeURIComponent(query);
+    const decodedPreview = decodeURIComponent(previewUrl || '');
+
+    // Buat trackId dari Apple Music URL (?i=XXXXXXXXXX) — untuk R2 cache key
+    const trackIdMatch = appleUrl.match(/[?&]i=(\d+)/);
+    const trackId      = trackIdMatch ? `apple_${trackIdMatch[1]}` : `apple_${Date.now()}`;
 
     setState('load');
     setStLoad(decodedTitle, '⏳ Memuat audio...');
 
     try {
-        // Extract YouTube video ID from Apple Music URL or use search fallback
-        // The backend uses yt-dlp → R2, so we need a videoId.
-        // If the URL contains a trackId, use it as the lookup key.
-        const trackId = decodedUrl.match(/[?&]i=(\d+)/)?.[1]
-                     || 'apple_' + Date.now();
-
-        // Call the new stream endpoint
-        const streamRes = await fetch(`${STREAM_API}?id=${encodeURIComponent(trackId)}`);
+        // POST /api/stream — kirim appleUrl + previewUrl ke backend
+        // Backend: nexray API → download mp3 → upload ke R2 → return URL
+        const streamRes = await fetch(STREAM_API, {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                appleUrl:   appleUrl,
+                previewUrl: decodedPreview || null,
+                trackId:    trackId,
+                title:      decodedTitle,
+                artist:     decodedArtist,
+                thumbnail:  decodedThumb,
+            }),
+        });
 
         if (!streamRes.ok) throw new Error('Stream HTTP ' + streamRes.status);
 
         const streamData = await streamRes.json();
-
         if (!streamData.status) throw new Error(streamData.message || 'Stream gagal');
 
         const audioUrl = streamData?.result?.url;
@@ -1160,16 +1170,16 @@ async function playAppleMusic(url, title, artist, thumb, query, previewUrl) {
 
         const track = {
             id:          trackId,
-            title:       streamData?.result?.title  || decodedTitle,
-            artist:      streamData?.result?.artist || decodedArtist,
+            title:       streamData?.result?.title     || decodedTitle,
+            artist:      streamData?.result?.artist    || decodedArtist,
             album:       '',
-            duration:    streamData?.result?.duration || '0:00',
+            duration:    streamData?.result?.duration  || '0:00',
             year:        new Date().getFullYear(),
             thumbnail:   streamData?.result?.thumbnail || decodedThumb,
             audio:       audioUrl,
-            appleUrl:    decodedUrl,
+            appleUrl:    appleUrl,
             searchQuery: decodedQuery,
-            source:      'apple'
+            source:      'apple',
         };
 
         showHero(track, 'apple');
@@ -1177,10 +1187,11 @@ async function playAppleMusic(url, title, artist, thumb, query, previewUrl) {
         setState('none');
         await playTrackObj(track);
 
-        // Save to Supabase tracks table (for chat, party, etc)
+        // Simpan ke Supabase (untuk chat, party, chart, dll)
         _saveTrackToSupabase(track, audioUrl);
 
     } catch (e) {
+        console.error('[playAppleMusic]', e.message);
         toast('❌ Gagal: ' + e.message);
         setState('err');
         document.getElementById('stErrT').textContent = 'Stream Gagal';
@@ -1189,24 +1200,30 @@ async function playAppleMusic(url, title, artist, thumb, query, previewUrl) {
 }
 
 // ══════════════════════════════════════════════════════════════
-//  SAVE TRACK TO SUPABASE (Background - for social features)
+//  SAVE TRACK TO SUPABASE (Background - untuk fitur sosial)
 // ══════════════════════════════════════════════════════════════
 async function _saveTrackToSupabase(track, audioUrl) {
   try {
-    const trackId = track.id || ('apple_' + Date.now());
+    const trackId = track.id;
+    // Cek dulu apakah sudah ada
+    const existing = await sb.get('tracks', `id=eq.${encodeURIComponent(trackId)}`);
+    const playCount = existing?.length ? (existing[0].play_count || 0) + 1 : 1;
+
     await fetch(`${SB_URL}/rest/v1/tracks?on_conflict=id`, {
       method:  'POST',
       headers: { ...sb._h, 'Prefer': 'resolution=merge-duplicates,return=minimal' },
       body: JSON.stringify({
-        id:          trackId,
-        title:       track.title,
-        artist:      track.artist,
-        thumbnail:   track.thumbnail || null,
-        duration:    track.duration  || null,
-        audio_url:   audioUrl,
-        play_count:  1,
-        last_played: new Date().toISOString(),
-        source:      'apple'
+        id:           trackId,
+        title:        track.title,
+        artist:       track.artist,
+        thumbnail:    track.thumbnail  || null,
+        duration:     track.duration   || null,
+        audio_url:    audioUrl,
+        play_count:   playCount,
+        last_played:  new Date().toISOString(),
+        search_query: track.searchQuery || null,
+        searched_by:  session?.nama    || null,
+        source:       'apple',
       })
     });
   } catch (e) {
@@ -1214,23 +1231,7 @@ async function _saveTrackToSupabase(track, audioUrl) {
   }
 }
 
-async function saveCatboxUrl(trackId,catboxUrl){
-  // Update Supabase
-  await sb.patch('tracks',`id=eq.${encodeURIComponent(trackId)}`,{
-    catbox_url:catboxUrl,
-    audio_url:catboxUrl
-  });
-  
-  // Update local
-  if(currentTrack?.id===trackId){
-    currentTrack.audio=catboxUrl;
-    currentTrack.catboxUrl=catboxUrl;
-  }
-  queue=queue.map(t=>t.id===trackId?{...t,audio:catboxUrl,catboxUrl}:t);
-  histArr=histArr.map(t=>t.id===trackId?{...t,audio:catboxUrl,catboxUrl}:t);
-  LS.sq(queue);
-  LS.sh(histArr);
-}
+
 
 // ══════════════════════════════════════════════════════════════
 //  PLAYER CORE
@@ -2066,7 +2067,6 @@ function stopLRC(){clearInterval(lrcInt);lrcLines=[];}
 //  HELPERS
 // ══════════════════════════════════════════════════════════════
 function rowToTrack(r,src='db'){
-  const audioSrc=r.catbox_url||r.audio_url||null;
   return{
     id:r.id,
     title:r.title,
@@ -2075,13 +2075,11 @@ function rowToTrack(r,src='db'){
     duration:r.duration||'0:00',
     year:r.year||'–',
     thumbnail:r.thumbnail||PH,
-    audio:audioSrc,
-    catboxUrl:r.catbox_url||null,
+    audio:r.audio_url||null,   // R2 URL (atau preview URL kalau fallback)
     audioUrl:r.audio_url||null,
     spotifyUrl:r.spotify_url||null,
     playCount:r.play_count||0,
     searchQuery:r.search_query||'',
-    storagePath:r.storage_path||null,
     source:src
   };
 }

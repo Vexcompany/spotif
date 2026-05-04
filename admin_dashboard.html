@@ -328,7 +328,7 @@ async function loadTracks(){
     document.getElementById('tracksBadge').textContent = allTracks.length;
     const totalPlays = allTracks.reduce((a,b)=>a+(b.play_count||0),0);
     document.getElementById('sc-plays').textContent = totalPlays;
-    const withStorage = allTracks.filter(t=>t.audio_url?.includes('supabase')).length;
+    const withStorage = allTracks.filter(t => t.audio_url && !t.audio_url.includes('itunes')).length;
     document.getElementById('sc-storage').textContent = withStorage;
   }catch(e){
     document.getElementById('tracksList').innerHTML = `<div class="empty"><i class="fas fa-exclamation-triangle"></i>${e.message}</div>`;
@@ -346,9 +346,9 @@ function renderTracks(tracks){
       <div></div><div>Lagu</div><div style="text-align:center">Putar</div><div>Aksi</div>
     </div>
   ` + tracks.map(t => {
-    const srcBadge = t.audio_url?.includes('supabase')
-      ? '<span class="tbl-badge badge-storage">Storage</span>'
-      : t.audio_url?.includes('itunes')
+    const srcBadge = t.audio_url?.includes('r2.cloudflarestorage.com') || t.audio_url?.includes(location.hostname)
+      ? '<span class="tbl-badge badge-storage">R2</span>'
+      : t.audio_url?.includes('itunes') || t.audio_url?.includes('p.scdn.co')
       ? '<span class="tbl-badge badge-preview">Preview</span>'
       : '<span class="tbl-badge badge-nexray">Nexray</span>';
     const lastPlay = t.last_played
