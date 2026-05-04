@@ -1167,10 +1167,13 @@ async function playAppleMusic(url, title, artist, thumb, query, previewUrl) {
         const audioUrl = streamData?.result?.url;
         if (!audioUrl) throw new Error('Gagal mendapatkan URL audio dari R2');
 
+        const _rTitle  = streamData?.result?.title;
+        const _rArtist = streamData?.result?.artist;
+
         const track = {
             id:          trackId,
-            title:       streamData?.result?.title     || decodedTitle,
-            artist:      streamData?.result?.artist    || decodedArtist,
+            title:       (_rTitle  && _rTitle  !== 'Unknown') ? _rTitle  : decodedTitle,
+            artist:      (_rArtist && _rArtist !== 'Unknown') ? _rArtist : decodedArtist,
             album:       '',
             duration:    streamData?.result?.duration  || '0:00',
             year:        new Date().getFullYear(),
@@ -1358,7 +1361,11 @@ function setVol(e){
 }
 
 audio.addEventListener('ended',()=>{isRepeat?safePlay():nextTrack();});
-audio.addEventListener('error',()=>{toast('❌ Error audio');isPlaying=false;updAll();});
+audio.addEventListener('error',()=>{
+  // Abaikan error jika src sedang dikosongkan (reset sebelum load lagu baru)
+  if(!audio.src || audio.src===location.href || audio.src==='')return;
+  toast('❌ Error audio');isPlaying=false;updAll();
+});
 
 // Touch progress
 (function(){
