@@ -1145,20 +1145,9 @@ async function playAppleMusic(url, title, artist, thumb, query, previewUrl) {
     setStLoad(decodedTitle, '⏳ Memuat audio...');
 
     try {
-        // POST /api/stream — kirim appleUrl + previewUrl ke backend
-        // Backend: nexray API → download mp3 → upload ke R2 → return URL
-        const streamRes = await fetch(STREAM_API, {
-            method:  'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                appleUrl:   appleUrl,
-                previewUrl: decodedPreview || null,
-                trackId:    trackId,
-                title:      decodedTitle,
-                artist:     decodedArtist,
-                thumbnail:  decodedThumb,
-            }),
-        });
+       
+        const params = new URLSearchParams({ appleUrl, trackId, title, artist });
+        const res = await fetch(`${BACKEND}/api/stream?${params}`);
 
         if (!streamRes.ok) throw new Error('Stream HTTP ' + streamRes.status);
 
