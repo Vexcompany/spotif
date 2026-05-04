@@ -1147,7 +1147,7 @@ async function playAppleMusic(url, title, artist, thumb, query, previewUrl) {
     try {
        
         const params = new URLSearchParams({ appleUrl, trackId, title, artist });
-        const res = await fetch(`${BACKEND}/api/stream?${params}`);
+        const res = await fetch(`${BACKEND_URL}/api/stream?${params}`);
 
         if (!streamRes.ok) throw new Error('Stream HTTP ' + streamRes.status);
 
