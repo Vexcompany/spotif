@@ -1270,7 +1270,6 @@ async function playTrackObj(t){
     last_played:new Date().toISOString()
   }).catch(()=>{});
   
-  addToQueue(t);
   showHero(t,t.source||'db');
   document.getElementById('pbar').classList.add('up');
   addToHistory(t);
@@ -1479,7 +1478,8 @@ document.getElementById('npVinyl').addEventListener('click',()=>{
 // ══════════════════════════════════════════════════════════════
 function addToQueue(t){
   queue=queue.filter(x=>x.id!==t.id);
-  queue.unshift(t);
+  const insertAt=qi>=0?qi+1:queue.length;
+  queue.splice(insertAt,0,t);
   if(queue.length>60)queue=queue.slice(0,60);
   LS.sq(queue);
   qi=queue.findIndex(x=>x.id===currentTrack?.id);
