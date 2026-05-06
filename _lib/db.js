@@ -36,7 +36,7 @@ const pagaskaGenerations = {
     { nama: "Rizky Indra Permana", jabatan: "Ketua Umum" },
     { nama: "Dwi Bella Noviyanti", jabatan: "Wakil Ketua Umum" },
     { nama: "Anastasya Putri Gianto", jabatan: "Sekretaris" },
-    { nama: "Khofifah Tabina Azka Listianingtyas", jabatan: "Bendahara" },
+    { nama: "Khofifah Tabina Azka Listaningtyas", jabatan: "Bendahara" },
     { nama: "Satria Nur Hidayatullah", jabatan: "DTP" },
     { nama: "Reyna Natasya Wahyu Safitri", jabatan: "DTP" },
     { nama: "Ramzy Cahya Fauzan", jabatan: "Koor GK3" },
