@@ -630,41 +630,6 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 </head>
 <body>
 <div class="orb o1"></div><div class="orb o2"></div><div class="orb o3"></div>
-<!-- Offline Banner -->
-<div class="offline-banner" id="offlineBanner">
-  <i class="fas fa-wifi-slash"></i>
-  Kamu sedang offline — memutar dari cache
-  <i class="fas fa-times" onclick="document.getElementById('offlineBanner').classList.remove('show')" style="cursor:pointer;margin-left:4px;opacity:.7"></i>
-</div>
-
-<!-- Install PWA Banner -->
-<div class="install-banner" id="installBanner">
-  <div class="install-banner-ico">
-    <img src="/icons/icon-192.png" onerror="this.src='/icons/icon-512.png'" alt="Pagaska">
-  </div>
-  <div class="install-banner-info">
-    <div class="install-banner-title">Install Pagaska Music</div>
-    <div class="install-banner-sub">Akses offline + tampil seperti app</div>
-  </div>
-  <div class="install-banner-btns">
-    <button class="install-btn" onclick="installPWA()">Install</button>
-    <button class="install-dismiss" onclick="dismissInstall()">✕</button>
-  </div>
-</div>
-
-<!-- Offline Fallback Page (muncul kalau buka app offline & belum ada cache) -->
-<div class="offline-page" id="offlinePage">
-  <div class="offline-page-ico">📡</div>
-  <div style="font-family:'Syne',sans-serif;font-size:1.3rem;font-weight:800;margin-bottom:8px">Tidak Ada Koneksi</div>
-  <div style="font-size:.85rem;color:var(--mt);line-height:1.7;margin-bottom:24px">
-    Sambungkan ke internet untuk mencari lagu baru.<br>
-    Lagu yang sudah pernah diputar bisa tetap didengarkan.
-  </div>
-  <button onclick="document.getElementById('offlinePage').classList.remove('show');navigate('beranda')"
-    style="padding:12px 28px;border-radius:12px;border:none;background:linear-gradient(135deg,var(--g),var(--g2));color:#000;font-weight:700;font-size:.9rem;cursor:pointer;font-family:inherit">
-    <i class="fas fa-music"></i> Putar Lagu Tersimpan
-  </button>
-</div>
 <div class="app">
 
   <!-- TOPBAR - TANPA PILIHAN SOURCE -->
@@ -1462,6 +1427,7 @@ async function playTrackObj(t){
 
   showHero(t,t.source||'db');
   document.getElementById('pbar').classList.add('up');
+  if (t.audio) checkAudioCached(t.audio);
   addToHistory(t);
   updHeroLike();
   updPBLike();
@@ -1847,12 +1813,13 @@ async function loadQuickPlay(){
       const tEsc=esc(t);
       const isNow=currentTrack?.id===r.id;
       const adminDelBtn=IS_ADMIN?`<button onclick="adminDeleteTrack('${r.id}','${(r.title||'').replace(/'/g,"\\'")}',event)" style="position:absolute;top:6px;left:6px;z-index:3;width:24px;height:24px;border-radius:6px;border:none;background:rgba(255,77,109,.85);color:#fff;font-size:.6rem;cursor:pointer;display:flex;align-items:center;justify-content:center;opacity:0.9" title="Hapus (Admin)"><i class="fas fa-trash-alt"></i></button>`:'';
-      return `<div class="qp-card ${isNow?'playing':''}" id="qpc-${CSS.escape(r.id)}" onclick='playTrackObj(${tEsc})'>
+      return `<div class="qp-card ${isNow?'playing':''}" id="qpc-${CSS.escape(r.id)}" data-audio-url="${r.audio_url||''}" onclick='playTrackObj(${tEsc})'>
         <div class="qp-thumb">
           <img src="${r.thumbnail||PH}" onerror="this.src='${PH}'" loading="lazy">
           <button class="qp-play" onclick="event.stopPropagation();playTrackObj(${tEsc})"><i class="fas fa-play"></i></button>
         </div>
         ${adminDelBtn}
+        <div class="qp-cached-badge ${r.audio_url && cachedAudioUrls.has(r.audio_url) ? 'show' : ''}"><i class="fas fa-check"></i></div>
         <div class="qp-now">▶ NOW</div>
         <div class="qp-title">${r.title}</div>
         <div class="qp-artist">${r.artist}</div>
@@ -1860,8 +1827,7 @@ async function loadQuickPlay(){
         ${r.searched_by?`<div class="qp-by">oleh ${r.searched_by}</div>`:''}
       </div>`;
     }).join('');
-  }catch(e){console.warn('loadQuickPlay:',e.message);}
-}
+    if (cachedAudioUrls.size > 0) updateCachedBadges();
 
 async function loadTopChartHome(){
   try{
@@ -2684,6 +2650,109 @@ async function sbCheckNewMessages() {
   } catch (e) {
     // Polling error — silent, coba lagi di interval berikutnya
   }
+}
+
+// ══════════════════════════════════════════════════════════════
+//  PWA — Service Worker + Install Prompt + Offline Detection
+// ══════════════════════════════════════════════════════════════
+let swRegistration  = null;
+let installPrompt   = null;
+let cachedAudioUrls = new Set();
+
+async function registerSW() {
+  if (!('serviceWorker' in navigator)) return;
+  try {
+    swRegistration = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+    swRegistration.addEventListener('updatefound', () => {
+      const newWorker = swRegistration.installing;
+      newWorker.addEventListener('statechange', () => {
+        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+          toast('🔄 Update tersedia, memuat ulang...');
+          setTimeout(() => window.location.reload(), 3000);
+        }
+      });
+    });
+    navigator.serviceWorker.addEventListener('message', onSWMessage);
+    navigator.serviceWorker.ready.then(() => requestCacheStats());
+  } catch (e) {
+    console.warn('[PWA] SW registration failed:', e.message);
+  }
+}
+
+function onSWMessage(event) {
+  const { type, url, stats } = event.data || {};
+  if (type === 'AUDIO_CACHED') { cachedAudioUrls.add(url); updateCachedBadges(); }
+  if (type === 'CACHE_STATS' && stats?.audio?.urls) { stats.audio.urls.forEach(u => cachedAudioUrls.add(u)); updateCachedBadges(); }
+  if (type === 'AUDIO_CACHE_STATUS' && event.data.cached) { cachedAudioUrls.add(url); updateCachedBadges(); }
+}
+
+function requestCacheStats() {
+  if (navigator.serviceWorker.controller)
+    navigator.serviceWorker.controller.postMessage({ type: 'GET_CACHE_STATS' });
+}
+
+function checkAudioCached(audioUrl) {
+  if (!audioUrl || !navigator.serviceWorker.controller) return;
+  navigator.serviceWorker.controller.postMessage({ type: 'CHECK_AUDIO_CACHED', url: audioUrl });
+}
+
+function updateCachedBadges() {
+  document.querySelectorAll('[data-audio-url]').forEach(el => {
+    const url = el.dataset.audioUrl;
+    const badge = el.querySelector('.qp-cached-badge');
+    if (badge && url && cachedAudioUrls.has(url)) badge.classList.add('show');
+  });
+}
+
+function installPWA() {
+  if (!installPrompt) return;
+  installPrompt.prompt();
+  installPrompt.userChoice.then(choice => {
+    if (choice.outcome === 'accepted') { toast('✅ Pagaska Music berhasil diinstall!'); dismissInstall(); }
+    installPrompt = null;
+  });
+}
+
+function dismissInstall() {
+  document.getElementById('installBanner').classList.remove('show');
+  localStorage.setItem('pgsk_install_dismissed', Date.now());
+}
+
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  installPrompt = e;
+  const dismissed = localStorage.getItem('pgsk_install_dismissed');
+  const threeDays = 3 * 24 * 60 * 60 * 1000;
+  if (!dismissed || Date.now() - parseInt(dismissed) > threeDays) {
+    setTimeout(() => document.getElementById('installBanner').classList.add('show'), 3000);
+  }
+});
+
+window.addEventListener('appinstalled', () => {
+  document.getElementById('installBanner').classList.remove('show');
+  installPrompt = null;
+  toast('🎉 Pagaska Music sudah terinstall!');
+});
+
+function handleOnline() {
+  document.getElementById('offlineBanner').classList.remove('show');
+  document.getElementById('offlinePage').classList.remove('show');
+}
+
+function handleOffline() {
+  document.getElementById('offlineBanner').classList.add('show');
+  if (!currentTrack && !queue.length && !histArr.length)
+    document.getElementById('offlinePage').classList.add('show');
+}
+
+window.addEventListener('online',  handleOnline);
+window.addEventListener('offline', handleOffline);
+if (!navigator.onLine) handleOffline();
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', registerSW);
+} else {
+  registerSW();
 }
 </script>
 </body>
