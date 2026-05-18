@@ -333,9 +333,13 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 .ti-inf{min-width:0}
 .ti-t{font-size:.8rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:1px}.ti.on .ti-t{color:var(--dyn1)}
 .ti-a{font-size:.68rem;color:var(--mt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.ti-dur{font-size:.65rem;color:var(--mt);white-space:nowrap}
-.ti-del{width:24px;height:24px;border-radius:6px;border:none;background:transparent;color:var(--mt);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:.63rem;transition:all .2s;opacity:0}
+.ti-dur{font-size:.65rem;color:var(--mt);white-space:nowrap}.ti-del{width:24px;height:24px;border-radius:6px;border:none;background:transparent;color:var(--mt);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:.63rem;transition:all .2s;opacity:0}
 .ti:hover .ti-del{opacity:1}.ti-del:hover{background:rgba(255,77,109,.15);color:var(--rd)}
+.ti-reorder{display:flex;flex-direction:column;gap:1px;opacity:0;transition:opacity .2s}
+.ti:hover .ti-reorder{opacity:1}
+.ti-reorder button{width:20px;height:16px;border-radius:4px;border:none;background:transparent;color:var(--mt);cursor:pointer;font-size:.48rem;display:flex;align-items:center;justify-content:center;transition:all .2s;padding:0}
+.ti-reorder button:hover{background:var(--s4);color:var(--tx)}
+.ti-reorder button:disabled{opacity:.2;cursor:not-allowed}
 .empty-ti{text-align:center;padding:28px;color:var(--mt);font-size:.8rem}
 .empty-ti i{font-size:1.5rem;display:block;margin-bottom:8px;opacity:.3}
 
@@ -628,6 +632,13 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 }
 ::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:3px}
+
+/* ── PRESENCE / STATUS ── */
+.presence-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px;flex-shrink:0}
+.presence-online{background:var(--dyn1);box-shadow:0 0 6px var(--dyn1)}
+.presence-offline{background:var(--mt)}
+.presence-listening{background:var(--b2);box-shadow:0 0 6px var(--b2)}
+.chat-room-status .track-name{color:var(--tx);font-weight:600;font-size:.72rem}
 </style>
 </head>
 <body>
@@ -1386,6 +1397,7 @@ async function playTrackObj(t){
   audio.src='';
   await new Promise(r=>setTimeout(r,50));
 
+  addToQueue(t);
   currentTrack=t;
   qi=queue.findIndex(x=>x.id===t.id);
 
@@ -1652,55 +1664,50 @@ document.getElementById('npVinyl').addEventListener('click',()=>{
 //  QUEUE / HISTORY / LIKED
 // ══════════════════════════════════════════════════════════════
 function addToQueue(t) {
-  queue = queue.filter(x => x.id !== t.id);
-
-  const currentIdx = currentTrack ? queue.findIndex(x => x.id === currentTrack.id) : -1;
-  const insertAt   = currentIdx >= 0 ? currentIdx + 1 : queue.length;
-
-  queue.splice(insertAt, 0, t);
+  if (queue.some(x => x.id === t.id)) {
+    LS.sq(queue);
+    renderQueue();
+    return;
+  }
+  queue.push(t);
   if (queue.length > 60) queue = queue.slice(0, 60);
   LS.sq(queue);
-
   document.getElementById('qSec').style.display = 'block';
-
   document.getElementById('qBadge').textContent = queue.length;
-
   renderQueue();
 }
 
 function removeFromQueue(id) {
   const currentId = currentTrack?.id;
-
   queue = queue.filter(t => t.id !== id);
   LS.sq(queue);
-
   qi = currentId ? queue.findIndex(t => t.id === currentId) : -1;
-
   document.getElementById('qBadge').textContent = queue.length;
+  if (!queue.length) document.getElementById('qSec').style.display = 'none';
+  renderQueue();
+}
 
-  if (!queue.length) {
-    document.getElementById('qSec').style.display = 'none';
-  }
-
+function moveQueue(id, dir) {
+  const idx = queue.findIndex(t => t.id === id);
+  if (idx === -1) return;
+  const newIdx = idx + dir;
+  if (newIdx < 0 || newIdx >= queue.length) return;
+  // Swap
+  [queue[idx], queue[newIdx]] = [queue[newIdx], queue[idx]];
+  LS.sq(queue);
   renderQueue();
 }
 
 function renderQueue() {
-  if (currentTrack) {
-    qi = queue.findIndex(x => x.id === currentTrack.id);
-  }
-
+  if (currentTrack) qi = queue.findIndex(x => x.id === currentTrack.id);
   const el = document.getElementById('panQ');
   if (!el) return;
-
   if (!queue.length) {
     el.innerHTML = '<div class="empty-ti"><i class="fas fa-layer-group"></i>Queue kosong</div>';
     document.getElementById('qBadge').textContent = 0;
     return;
   }
-
   document.getElementById('qBadge').textContent = queue.length;
-
   el.innerHTML = queue.map((t, i) => {
     const isNow = currentTrack?.id === t.id;
     return `<div class="ti ${isNow ? 'on' : ''}" onclick='playTrackObj(${esc(t)})'>
@@ -1714,6 +1721,10 @@ function renderQueue() {
         <div class="ti-a">${t.artist}</div>
       </div>
       <div class="ti-dur">${t.duration}</div>
+      <div class="ti-reorder">
+        <button onclick="event.stopPropagation();moveQueue('${t.id}',-1)" ${i===0?'disabled':''} title="Naikan"><i class="fas fa-chevron-up"></i></button>
+        <button onclick="event.stopPropagation();moveQueue('${t.id}',1)" ${i===queue.length-1?'disabled':''} title="Turunkan"><i class="fas fa-chevron-down"></i></button>
+      </div>
       <button class="ti-del" onclick="event.stopPropagation();removeFromQueue('${t.id}')">
         <i class="fas fa-times"></i>
       </button>
@@ -2545,93 +2556,178 @@ async function adminDeletePartyItem(id, title, e){
 }
 
 // ══════════════════════════════════════════════════════════════
-//  REALTIME — Versi Stabil dengan Retry + Exponential Backoff
-//  Ganti seluruh blok "SUPABASE REALTIME" di index.html dengan ini
+//  REALTIME — Messages + Presence (Online Status)
 // ══════════════════════════════════════════════════════════════
+let supabaseClient   = null;
+let realtimeChannel  = null;
+let presenceChannel  = null;
+let chatPollingInt   = null;
+let _realtimeRetry   = 0;
+const MAX_RT_RETRY   = 3;
 
-let supabaseClient  = null;
-let realtimeChannel = null;
-let chatPollingInt  = null;
-let _realtimeRetry  = 0;
-const MAX_RT_RETRY  = 3;  // Coba max 3x sebelum permanent polling
+// Map: userKey → { online: bool, track: string|null, updatedAt: Date }
+let onlinePresence = {};
 
 function initRealtime() {
   try {
     supabaseClient = supabase.createClient(SB_URL, SB_KEY, {
-      realtime: {
-        params: { eventsPerSecond: 10 },
-      }
+      realtime: { params: { eventsPerSecond: 10 } }
     });
-    console.log('[realtime] Supabase client created');
     subscribeMessages();
+    subscribePresence();
   } catch (e) {
     console.warn('[realtime] Init failed:', e.message);
     startChatPolling();
   }
 }
 
+// ── MESSAGES REALTIME ─────────────────────────────────────────
 function subscribeMessages() {
-  // Bersihkan channel lama
   if (realtimeChannel) {
     supabaseClient.removeChannel(realtimeChannel);
     realtimeChannel = null;
   }
-
-  console.log(`[realtime] Subscribing... (attempt ${_realtimeRetry + 1}/${MAX_RT_RETRY})`);
-
   realtimeChannel = supabaseClient
     .channel('messages-realtime-v2')
     .on('postgres_changes', {
-      event:  'INSERT',
-      schema: 'public',
-      table:  'messages'
+      event: 'INSERT', schema: 'public', table: 'messages'
     }, payload => {
       const msg = payload.new;
-      console.log('[realtime] ✉️ New message:', msg.id);
-
       if (currentChatWith) {
         const relevant =
           (msg.from_key === currentChatWith && msg.to_key === USER_KEY) ||
           (msg.from_key === USER_KEY && msg.to_key === currentChatWith);
         if (relevant) loadMessages(currentChatWith);
       }
-
       if (msg.to_key === USER_KEY && msg.from_key !== USER_KEY) {
         loadChatList();
-        const senderName = msg.from_key.split('_').slice(0, -1).join(' ') || msg.from_key;
-        toast(`💬 Pesan baru dari ${senderName}`);
+        const name = msg.from_key.split('_').slice(0, -1).join(' ') || msg.from_key;
+        toast(`💬 Pesan baru dari ${name}`);
       }
     })
     .subscribe((status, err) => {
-      console.log('[realtime] Status:', status, err ? err.message : '');
-
-      if (status === 'SUBSCRIBED') {
-        console.log('[realtime] ✅ Connected!');
-        _realtimeRetry = 0;   // Reset counter saat berhasil
-        stopChatPolling();
-        return;
-      }
-
+      if (status === 'SUBSCRIBED') { _realtimeRetry = 0; stopChatPolling(); return; }
       if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-        console.warn(`[realtime] ❌ ${status}`);
         _realtimeRetry++;
-
         if (_realtimeRetry < MAX_RT_RETRY) {
-          // Exponential backoff: 3s → 6s → 12s
-          const delay = Math.pow(2, _realtimeRetry) * 1500;
-          console.log(`[realtime] Retry in ${delay / 1000}s...`);
-          setTimeout(() => subscribeMessages(), delay);
+          setTimeout(() => subscribeMessages(), Math.pow(2, _realtimeRetry) * 1500);
         } else {
-          console.warn(`[realtime] Max retry reached. Permanent polling.`);
           startChatPolling();
         }
       }
     });
 }
 
+// ── PRESENCE REALTIME ─────────────────────────────────────────
+function subscribePresence() {
+  if (presenceChannel) {
+    supabaseClient.removeChannel(presenceChannel);
+    presenceChannel = null;
+  }
+
+  presenceChannel = supabaseClient.channel('pagaska-presence', {
+    config: { presence: { key: USER_KEY } }
+  });
+
+  presenceChannel
+    .on('presence', { event: 'sync' }, () => {
+      const state = presenceChannel.presenceState();
+      onlinePresence = {};
+      Object.entries(state).forEach(([key, presences]) => {
+        const latest = presences[presences.length - 1];
+        onlinePresence[key] = {
+          online: true,
+          track: latest?.track || null,
+          artist: latest?.artist || null,
+          updatedAt: new Date()
+        };
+      });
+      updatePresenceUI();
+    })
+    .on('presence', { event: 'join' }, ({ key, newPresences }) => {
+      const latest = newPresences[newPresences.length - 1];
+      onlinePresence[key] = {
+        online: true,
+        track: latest?.track || null,
+        artist: latest?.artist || null,
+        updatedAt: new Date()
+      };
+      updatePresenceUI();
+    })
+    .on('presence', { event: 'leave' }, ({ key }) => {
+      if (onlinePresence[key]) onlinePresence[key].online = false;
+      updatePresenceUI();
+    })
+    .subscribe(async (status) => {
+      if (status === 'SUBSCRIBED') {
+        await broadcastPresence();
+      }
+    });
+}
+
+async function broadcastPresence(track, artist) {
+  if (!presenceChannel) return;
+  try {
+    await presenceChannel.track({
+      user_key: USER_KEY,
+      track: track || currentTrack?.title || null,
+      artist: artist || currentTrack?.artist || null,
+      online: true
+    });
+  } catch (e) {
+    console.warn('[presence] broadcast failed:', e.message);
+  }
+}
+
+function updatePresenceUI() {
+  document.querySelectorAll('.chat-online').forEach(dot => {
+    const item = dot.closest('.chat-item');
+    if (!item) return;
+    const key = item.dataset.userKey;
+    if (!key) return;
+    const p = onlinePresence[key];
+    dot.style.background = p?.online ? 'var(--dyn1)' : 'var(--mt)';
+    dot.style.boxShadow = p?.online ? '0 0 6px var(--dyn1)' : 'none';
+  });
+
+  if (currentChatWith) {
+    const p = onlinePresence[currentChatWith];
+    const statusEl = document.getElementById('chatRoomStatus');
+    if (statusEl) {
+      if (p?.online && p?.track) {
+        statusEl.innerHTML = `<span class="presence-dot presence-listening"></span>🎵 ${p.track}`;
+      } else if (p?.online) {
+        statusEl.innerHTML = `<span class="presence-dot presence-online"></span>Online`;
+      } else {
+        statusEl.innerHTML = `<span class="presence-dot presence-offline"></span>Offline`;
+      }
+    }
+  }
+
+  const onlineUsers = Object.values(onlinePresence).filter(p => p.online);
+  const cntEl = document.getElementById('partyOnlineCount');
+  if (cntEl) cntEl.textContent = `${onlineUsers.length} anggota online`;
+
+  const avEl = document.getElementById('partyAvatars');
+  if (avEl) {
+    const onlineKeys = Object.entries(onlinePresence)
+      .filter(([, p]) => p.online)
+      .slice(0, 5)
+      .map(([key]) => key);
+    avEl.innerHTML = onlineKeys.map(key => {
+      const name = key.split('_').slice(0, -1).join(' ') || key;
+      const ini = name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+      return `<div class="party-av" title="${name}">${ini}</div>`;
+    }).join('');
+  }
+}
+
+function broadcastNowPlaying(track) {
+  broadcastPresence(track?.title, track?.artist);
+}
+
 function startChatPolling() {
   if (chatPollingInt) return;
-  console.log('[polling] 🔄 Starting chat polling (5s)...');
   chatPollingInt = setInterval(() => {
     if (currentChatWith) loadMessages(currentChatWith);
     sbCheckNewMessages();
@@ -2639,21 +2735,14 @@ function startChatPolling() {
 }
 
 function stopChatPolling() {
-  if (chatPollingInt) {
-    clearInterval(chatPollingInt);
-    chatPollingInt = null;
-    console.log('[polling] ⏹️ Stopped');
-  }
+  if (chatPollingInt) { clearInterval(chatPollingInt); chatPollingInt = null; }
 }
 
-// Cleanup saat halaman ditutup
 window.addEventListener('beforeunload', () => {
-  if (realtimeChannel && supabaseClient) {
-    supabaseClient.removeChannel(realtimeChannel);
-  }
+  if (presenceChannel && supabaseClient) supabaseClient.removeChannel(presenceChannel);
+  if (realtimeChannel && supabaseClient) supabaseClient.removeChannel(realtimeChannel);
 });
 
-// ── sbCheckNewMessages tetap sama ──────────────────────────────
 let _lastMsgCheck = new Date().toISOString();
 async function sbCheckNewMessages() {
   try {
@@ -2666,9 +2755,7 @@ async function sbCheckNewMessages() {
       const name = rows[0].from_key.split('_').slice(0, -1).join(' ') || rows[0].from_key;
       toast(`💬 Pesan baru dari ${name}`);
     }
-  } catch (e) {
-    // Polling error — silent, coba lagi di interval berikutnya
-  }
+  } catch (e) { /* silent */ }
 }
 
 // ══════════════════════════════════════════════════════════════
