@@ -1828,6 +1828,10 @@ async function loadQuickPlay(){
       </div>`;
     }).join('');
     if (cachedAudioUrls.size > 0) updateCachedBadges();
+  } catch(e) {
+    console.warn(e.message);
+  }
+}
 
 async function loadTopChartHome(){
   try{
