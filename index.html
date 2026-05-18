@@ -2261,8 +2261,12 @@ async function loadProfil(){
 }
 
 // ══════════════════════════════════════════════════════════════
-//  LYRICS
+//  LYRICS SYNC 
 // ══════════════════════════════════════════════════════════════
+let _lrcLastIdx    = -1;
+let _userScrolling = false;  // true saat user sedang scroll manual
+let _scrollPauseT  = null;   // timer reset _userScrolling
+
 async function fetchLyrics(title,artist){
   try{
     const r=await fetch(`https://lrclib.net/api/search?q=${encodeURIComponent(title+' '+artist)}&limit=1`);
@@ -2296,24 +2300,96 @@ function renderLyrics(data){
   }
 }
 
-function startLRC(){
-  clearInterval(lrcInt);
-  lrcInt=setInterval(()=>{
-    if(!lrcLines.length||!audio.duration)return;
-    const cur=audio.currentTime;
-    let idx=0;
-    for(let i=0;i<lrcLines.length;i++){if(cur>=lrcLines[i].time)idx=i;}
-    const box=document.getElementById('npLyricsBox');
-    box.querySelectorAll('.lrc-line').forEach((el,i)=>el.classList.toggle('active',i===idx));
-    const active=box.querySelector('.lrc-line.active');
-    if(active){
-      const top=active.offsetTop-box.clientHeight/2+active.offsetHeight/2;
-      box.scrollTo({top,behavior:'smooth'});
+function startLRC() {
+  stopLRC();
+  _lrcLastIdx    = -1;
+  _userScrolling = false;
+
+  const box = document.getElementById('npLyricsBox');
+  if (!box) return;
+
+  // ── Deteksi user scroll manual ─────────────────────────────
+  // Touch
+  box.addEventListener('touchstart', _onLrcTouchStart, { passive: true });
+  box.addEventListener('touchend',   _onLrcTouchEnd,   { passive: true });
+  // Mouse wheel / trackpad
+  box.addEventListener('wheel',      _onLrcWheel,      { passive: true });
+
+  // ── Interval sync lirik ────────────────────────────────────
+  lrcInt = setInterval(() => {
+    if (!lrcLines.length || !audio.duration) return;
+
+    const cur = audio.currentTime;
+
+    // Cari index lirik yang aktif
+    let idx = 0;
+    for (let i = 0; i < lrcLines.length; i++) {
+      if (cur >= lrcLines[i].time) idx = i;
     }
-  },300);
+
+    // Kalau index tidak berubah, tidak perlu update DOM
+    if (idx === _lrcLastIdx) return;
+    _lrcLastIdx = idx;
+
+    // Update class active
+    const lines = box.querySelectorAll('.lrc-line');
+    lines.forEach((el, i) => el.classList.toggle('active', i === idx));
+
+    // Auto-scroll hanya kalau user TIDAK sedang scroll manual
+    if (_userScrolling) return;
+
+    const activeLine = lines[idx];
+    if (!activeLine) return;
+
+    // Hitung posisi yang benar relatif ke scroll container
+    // offsetTop bisa salah kalau ada nested element, pakai getBoundingClientRect
+    const boxRect    = box.getBoundingClientRect();
+    const lineRect   = activeLine.getBoundingClientRect();
+    const lineCenter = lineRect.top - boxRect.top + box.scrollTop + lineRect.height / 2;
+    const targetTop  = lineCenter - box.clientHeight / 2;
+
+    box.scrollTo({ top: Math.max(0, targetTop), behavior: 'smooth' });
+
+  }, 300);
 }
 
-function stopLRC(){clearInterval(lrcInt);lrcLines=[];}
+function stopLRC() {
+  if (lrcInt) { clearInterval(lrcInt); lrcInt = null; }
+  _lrcLastIdx    = -1;
+  _userScrolling = false;
+
+  const box = document.getElementById('npLyricsBox');
+  if (box) {
+    box.removeEventListener('touchstart', _onLrcTouchStart);
+    box.removeEventListener('touchend',   _onLrcTouchEnd);
+    box.removeEventListener('wheel',      _onLrcWheel);
+  }
+}
+
+// ── Event handlers untuk deteksi scroll manual ────────────────
+
+function _onLrcTouchStart() {
+  // User mulai touch → pause auto-scroll
+  _userScrolling = true;
+  clearTimeout(_scrollPauseT);
+}
+
+function _onLrcTouchEnd() {
+  // User lepas touch → resume auto-scroll setelah 2.5 detik
+  clearTimeout(_scrollPauseT);
+  _scrollPauseT = setTimeout(() => {
+    _userScrolling = false;
+  }, 2500);
+}
+
+function _onLrcWheel() {
+  // User scroll pakai mouse → pause auto-scroll
+  _userScrolling = true;
+  clearTimeout(_scrollPauseT);
+  _scrollPauseT = setTimeout(() => {
+    _userScrolling = false;
+  }, 2500);
+}
 
 // ══════════════════════════════════════════════════════════════
 //  HELPERS
