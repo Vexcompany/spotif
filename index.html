@@ -621,7 +621,9 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 }
 @media(max-width:480px){
   .db-grid{grid-template-columns:repeat(2,1fr);gap:8px}
-  .qp-grid{grid-template-columns:repeat(2,1fr);gap:8px}
+  .qp-grid{grid-template-columns:repeat(2,1fr);gap:8px;max-height:min(88vh,880px);overflow-y:auto;scrollbar-width:thin;}
+  .qp-grid::-webkit-scrollbar{width:6px}
+  .qp-grid::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15);border-radius:3px}
   .h-art{height:180px}
 }
 ::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:transparent}
@@ -631,6 +633,19 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 <body>
 <div class="orb o1"></div><div class="orb o2"></div><div class="orb o3"></div>
 <div class="app">
+  <div id="installBanner" class="install-banner">
+    <div class="install-banner-ico">
+      <img src="/icons/icon-192.png" alt="App icon">
+    </div>
+    <div class="install-banner-info">
+      <div class="install-banner-title">Install Pagaska Music</div>
+      <div class="install-banner-sub">Tambahkan aplikasi ini ke layar utama untuk akses lebih cepat.</div>
+    </div>
+    <div class="install-banner-btns">
+      <button class="install-btn" onclick="installPWA()">Install</button>
+      <button class="install-dismiss" onclick="dismissInstall()">Tutup</button>
+    </div>
+  </div>
 
   <!-- TOPBAR - TANPA PILIHAN SOURCE -->
   <div class="topbar">
@@ -2718,7 +2733,8 @@ function installPWA() {
 }
 
 function dismissInstall() {
-  document.getElementById('installBanner').classList.remove('show');
+  const banner = document.getElementById('installBanner');
+  if (banner) banner.classList.remove('show');
   localStorage.setItem('pgsk_install_dismissed', Date.now());
 }
 
@@ -2728,13 +2744,16 @@ window.addEventListener('beforeinstallprompt', e => {
   const dismissed = localStorage.getItem('pgsk_install_dismissed');
   const threeDays = 3 * 24 * 60 * 60 * 1000;
   if (!dismissed || Date.now() - parseInt(dismissed) > threeDays) {
-    setTimeout(() => document.getElementById('installBanner').classList.add('show'), 3000);
-  }
+      setTimeout(() => {
+        const banner = document.getElementById('installBanner');
+        if (banner) banner.classList.add('show');
+      }, 3000);
+    }
 });
 
 window.addEventListener('appinstalled', () => {
-  document.getElementById('installBanner').classList.remove('show');
-  installPrompt = null;
+  const banner = document.getElementById('installBanner');
+  if (banner) banner.classList.remove('show');
   toast('🎉 Pagaska Music sudah terinstall!');
 });
 
