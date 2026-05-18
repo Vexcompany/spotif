@@ -630,6 +630,41 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 </head>
 <body>
 <div class="orb o1"></div><div class="orb o2"></div><div class="orb o3"></div>
+<!-- Offline Banner -->
+<div class="offline-banner" id="offlineBanner">
+  <i class="fas fa-wifi-slash"></i>
+  Kamu sedang offline — memutar dari cache
+  <i class="fas fa-times" onclick="document.getElementById('offlineBanner').classList.remove('show')" style="cursor:pointer;margin-left:4px;opacity:.7"></i>
+</div>
+
+<!-- Install PWA Banner -->
+<div class="install-banner" id="installBanner">
+  <div class="install-banner-ico">
+    <img src="/icons/icon-192.png" onerror="this.src='/icons/icon-512.png'" alt="Pagaska">
+  </div>
+  <div class="install-banner-info">
+    <div class="install-banner-title">Install Pagaska Music</div>
+    <div class="install-banner-sub">Akses offline + tampil seperti app</div>
+  </div>
+  <div class="install-banner-btns">
+    <button class="install-btn" onclick="installPWA()">Install</button>
+    <button class="install-dismiss" onclick="dismissInstall()">✕</button>
+  </div>
+</div>
+
+<!-- Offline Fallback Page (muncul kalau buka app offline & belum ada cache) -->
+<div class="offline-page" id="offlinePage">
+  <div class="offline-page-ico">📡</div>
+  <div style="font-family:'Syne',sans-serif;font-size:1.3rem;font-weight:800;margin-bottom:8px">Tidak Ada Koneksi</div>
+  <div style="font-size:.85rem;color:var(--mt);line-height:1.7;margin-bottom:24px">
+    Sambungkan ke internet untuk mencari lagu baru.<br>
+    Lagu yang sudah pernah diputar bisa tetap didengarkan.
+  </div>
+  <button onclick="document.getElementById('offlinePage').classList.remove('show');navigate('beranda')"
+    style="padding:12px 28px;border-radius:12px;border:none;background:linear-gradient(135deg,var(--g),var(--g2));color:#000;font-weight:700;font-size:.9rem;cursor:pointer;font-family:inherit">
+    <i class="fas fa-music"></i> Putar Lagu Tersimpan
+  </button>
+</div>
 <div class="app">
 
   <!-- TOPBAR - TANPA PILIHAN SOURCE -->
