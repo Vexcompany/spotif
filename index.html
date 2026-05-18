@@ -1241,18 +1241,18 @@ async function _saveTrackToSupabase(track, audioUrl) {
 // ══════════════════════════════════════════════════════════════
 async function playTrackObj(t){
   if(!t?.audio){toast('⚠️ Audio tidak tersedia');return;}
-  
+
   safePause();
   audio.src='';
   await new Promise(r=>setTimeout(r,50));
-  
+
   currentTrack=t;
   qi=queue.findIndex(x=>x.id===t.id);
-  
+
   document.getElementById('plImg').src=t.thumbnail||PH;
   document.getElementById('plTitle').textContent=t.title;
   document.getElementById('plArt').textContent=t.artist;
-  
+
   try{
     audio.src=t.audio;
     audio.volume=vol;
@@ -1262,14 +1262,44 @@ async function playTrackObj(t){
     toast('⚠️ Gagal memutar, mencoba fallback...');
     return;
   }
-  
-  // Update play count
+
+  // ── Media Session API ──────────
+  if ('mediaSession' in navigator) {
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title:   t.title  || 'Unknown',
+      artist:  t.artist || 'Unknown',
+      album:   t.album  || 'Pagaska Music',
+      artwork: t.thumbnail ? [
+        { src: t.thumbnail, sizes: '512x512', type: 'image/jpeg' },
+        { src: t.thumbnail, sizes: '256x256', type: 'image/jpeg' },
+        { src: t.thumbnail, sizes: '96x96',   type: 'image/jpeg' },
+      ] : [],
+    });
+
+    navigator.mediaSession.setActionHandler('play',  () => { safePlay();  updAll(); });
+    navigator.mediaSession.setActionHandler('pause', () => { safePause(); updAll(); });
+    navigator.mediaSession.setActionHandler('previoustrack', () => prevTrack());
+    navigator.mediaSession.setActionHandler('nexttrack',     () => nextTrack());
+    navigator.mediaSession.setActionHandler('seekto', (e) => {
+      if (audio.duration) {
+        audio.currentTime = e.seekTime;
+      }
+    });
+    navigator.mediaSession.setActionHandler('seekbackward', (e) => {
+      audio.currentTime = Math.max(0, audio.currentTime - (e.seekOffset || 10));
+    });
+    navigator.mediaSession.setActionHandler('seekforward', (e) => {
+      audio.currentTime = Math.min(audio.duration || 0, audio.currentTime + (e.seekOffset || 10));
+    });
+  }
+  // ────────────────────────────────────────────────────────────
+
   incrementMyPlayCount(t.id);
   sb.patch('tracks',`id=eq.${encodeURIComponent(t.id)}`,{
     play_count:(t.playCount||0)+1,
     last_played:new Date().toISOString()
   }).catch(()=>{});
-  
+
   showHero(t,t.source||'db');
   document.getElementById('pbar').classList.add('up');
   addToHistory(t);
@@ -1319,10 +1349,14 @@ function toggleMute(){
 }
 
 function updAll(){
-  const p=isPlaying&&!audio.paused;
-  document.getElementById('cbIco').className=p?'fas fa-pause':'fas fa-play';
-  document.getElementById('plEq').classList.toggle('on',p);
+  const p = isPlaying && !audio.paused;
+  document.getElementById('cbIco').className = p ? 'fas fa-pause' : 'fas fa-play';
+  document.getElementById('plEq').classList.toggle('on', p);
   updHeroPlayBtn();
+
+  if ('mediaSession' in navigator) {
+    navigator.mediaSession.playbackState = p ? 'playing' : 'paused';
+  }
 }
 
 function startProg(){
@@ -1477,24 +1511,33 @@ document.getElementById('npVinyl').addEventListener('click',()=>{
 //  QUEUE / HISTORY / LIKED
 // ══════════════════════════════════════════════════════════════
 function addToQueue(t){
-  queue=queue.filter(x=>x.id!==t.id);
-  const insertAt=qi>=0?qi+1:queue.length;
-  queue.splice(insertAt,0,t);
-  if(queue.length>60)queue=queue.slice(0,60);
+  queue = queue.filter(x => x.id !== t.id);
+
+  const currentIdx = currentTrack ? queue.findIndex(x => x.id === currentTrack.id) : -1;
+  const insertAt   = currentIdx >= 0 ? currentIdx + 1 : queue.length;
+
+  queue.splice(insertAt, 0, t);
+  if (queue.length > 60) queue = queue.slice(0, 60);
   LS.sq(queue);
-  qi=queue.findIndex(x=>x.id===currentTrack?.id);
+
+  qi = queue.findIndex(x => x.id === currentTrack?.id);
+
   renderQueue();
-  document.getElementById('qSec').style.display='block';
-  document.getElementById('qBadge').textContent=queue.length;
+  document.getElementById('qSec').style.display = 'block';
+  document.getElementById('qBadge').textContent = queue.length;
 }
 
 function removeFromQueue(id){
-  queue=queue.filter(t=>t.id!==id);
+  const currentId = currentTrack?.id;
+
+  queue = queue.filter(t => t.id !== id);
   LS.sq(queue);
-  qi=queue.findIndex(t=>t.id===currentTrack?.id);
+
+  qi = currentId ? queue.findIndex(t => t.id === currentId) : -1;
+
   renderQueue();
-  document.getElementById('qBadge').textContent=queue.length;
-  if(!queue.length)document.getElementById('qSec').style.display='none';
+  document.getElementById('qBadge').textContent = queue.length;
+  if (!queue.length) document.getElementById('qSec').style.display = 'none';
 }
 
 function renderQueue(){
