@@ -1385,8 +1385,6 @@ async function _saveTrackToSupabase(track, audioUrl) {
   }
 }
 
-
-
 // ══════════════════════════════════════════════════════════════
 //  PLAYER CORE
 // ══════════════════════════════════════════════════════════════
@@ -1456,6 +1454,7 @@ async function playTrackObj(t){
   document.getElementById('pbar').classList.add('up');
   if (t.audio) checkAudioCached(t.audio);
   addToHistory(t);
+  broadcastNowPlaying(t);
   updHeroLike();
   updPBLike();
   renderQueue();
@@ -1967,7 +1966,7 @@ async function loadChatList(){
       const isUnread=lastMsg.to_key===USER_KEY&&!lastMsg.read_at;
       const timeAgo=getTimeAgo(lastMsg.created_at);
       const preview=lastMsg.track_id?'🎵 Berbagi lagu':(lastMsg.content||'');
-      return `<div class="chat-item ${isUnread?'unread':''}" onclick="openChatRoom('${otherKey}','${name}')"><div class="chat-av">${ini}<div class="chat-online"></div></div><div class="chat-info"><div class="chat-name">${name}</div><div class="chat-preview ${lastMsg.track_id?'track':''}">${preview}</div></div><div class="chat-meta"><div class="chat-time">${timeAgo}</div>${isUnread?'<div class="chat-unread-cnt">•</div>':''}</div></div>`;
+      return `<div class="chat-item ${isUnread?'unread':''}" data-user-key="${otherKey}" onclick="openChatRoom('${otherKey}','${name}')"><div class="chat-av">${ini}<div class="chat-online"></div></div><div class="chat-info"><div class="chat-name">${name}</div><div class="chat-preview ${lastMsg.track_id?'track':''}">${preview}</div></div><div class="chat-meta"><div class="chat-time">${timeAgo}</div>${isUnread?'<div class="chat-unread-cnt">•</div>':''}</div></div>`;
     }).join('');
   }catch(e){console.warn(e.message);}
 }
