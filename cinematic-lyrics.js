@@ -1,7 +1,5 @@
 // ══════════════════════════════════════════════════════════════
 //  CINEMATIC LYRICS MODE — Pagaska Music
-//  Cara pakai: <script src="cinematic-lyrics.js"></script>
-//  taruh sebelum </body> di index.html, SETELAH semua script lain
 // ══════════════════════════════════════════════════════════════
 
 (function() {
@@ -88,6 +86,8 @@ const CSS = `
   pointer-events: none;
   opacity: 0;
   transition: opacity 0.6s ease;
+  isolation: isolate;        /* buat stacking context sendiri */
+  contain: layout style;     /* cegah efek bocor ke parent */
 }
 #clm-overlay.active { opacity: 1; }
 
@@ -314,28 +314,61 @@ const CSS = `
   max-width: 200px;
 }
 
-/* ── CLM: Dim the rest of UI ── */
-body.clm-active .app {
-  filter: brightness(0.35) blur(2px);
-  transition: filter 0.6s ease;
-  pointer-events: none;
-}
+/* ── CLM: Dim the rest of UI ──
+   PENTING: Tidak pakai filter:blur() di sini karena filter pada parent
+   menciptakan stacking context baru yang mengurung z-index child,
+   sehingga #clm-overlay dan #clm-btn ikut ter-blur.
+   Solusi: pakai opacity + pseudo-element ::before untuk efek blur overlay.
+── */
+
+/* Dim pakai opacity — tidak membuat stacking context */
+body.clm-active .app,
 body.clm-active .pbar {
-  filter: brightness(0.35) blur(2px);
-  transition: filter 0.6s ease;
+  opacity: 0.18;
+  transition: opacity 0.6s ease;
   pointer-events: none;
 }
 body.clm-active .np-screen {
-  filter: brightness(0.25) blur(3px) !important;
-  transition: filter 0.6s ease;
+  opacity: 0.08 !important;
+  transition: opacity 0.6s ease;
   pointer-events: none;
 }
 body:not(.clm-active) .app,
 body:not(.clm-active) .pbar,
 body:not(.clm-active) .np-screen {
-  filter: none;
-  transition: filter 0.6s ease;
+  opacity: 1;
+  transition: opacity 0.6s ease;
   pointer-events: auto;
+}
+
+/* Blur tipis via pseudo-element di atas .app — tidak mempengaruhi z-index anak */
+body.clm-active .app::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  z-index: 50;
+  pointer-events: none;
+  background: rgba(7,7,26,0.35);
+  animation: clm-fadein-dim 0.6s ease forwards;
+}
+body:not(.clm-active) .app::after {
+  content: none;
+}
+@keyframes clm-fadein-dim {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* Pastikan overlay dan tombol CC selalu di atas dim layer */
+#clm-overlay {
+  z-index: 7000 !important;
+  isolation: isolate;
+}
+#clm-btn {
+  z-index: 9000 !important;
+  isolation: isolate;
 }
 
 /* ── CLM: No lyric state ── */
@@ -371,10 +404,20 @@ body:not(.clm-active) .np-screen {
 
 /* ── RESPONSIVE ── */
 @media (max-width: 480px) {
-  #clm-lyrics-wrap { padding: 0 6%; bottom: 90px; }
-  #clm-btn { bottom: 90px; right: 12px; width: 46px; height: 46px; font-size: 1.05rem; }
-  #clm-progress { left: 6%; right: 6%; bottom: 68px; }
+  #clm-lyrics-wrap { padding: 0 6%; bottom: 110px; }
+  #clm-btn {
+    bottom: 148px; /* di atas player bar (80px) + nav (60px) + margin */
+    right: 12px;
+    width: 46px;
+    height: 46px;
+    font-size: 1.05rem;
+  }
+  #clm-progress { left: 6%; right: 6%; bottom: 86px; }
   #clm-track-info { top: 16px; padding: 5px 10px 5px 6px; }
+  #clm-lyrics-wrap { bottom: 110px; }
+}
+@media (min-width: 481px) {
+  #clm-btn { bottom: 148px; }
 }
 `;
 
