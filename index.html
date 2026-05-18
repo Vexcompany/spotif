@@ -128,7 +128,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 
 /* HOME QUICK PLAY SECTION */
 .quick-play-section{margin-bottom:20px}
-.qp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px}
+.qp-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
 .qp-card{background:var(--s2);border:1px solid var(--bd);border-radius:13px;padding:10px;cursor:pointer;transition:all .2s;position:relative;overflow:hidden}
 .qp-card:hover{background:var(--s3);transform:translateY(-3px);box-shadow:0 10px 26px rgba(0,0,0,.5)}
 .qp-thumb{width:100%;aspect-ratio:1;border-radius:8px;overflow:hidden;margin-bottom:8px;position:relative}
@@ -215,7 +215,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 .empty-ti i{font-size:1.5rem;display:block;margin-bottom:8px;opacity:.3}
 
 /* DB GRID */
-.db-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(138px,1fr));gap:10px}
+.db-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:10px}
 .dg-card{background:var(--s2);border:1px solid var(--bd);border-radius:13px;padding:10px;cursor:pointer;transition:all .2s;position:relative;overflow:hidden}
 .dg-card:hover{background:var(--s3);transform:translateY(-3px);box-shadow:0 10px 26px rgba(0,0,0,.5)}
 .dg-thumb{width:100%;aspect-ratio:1;border-radius:8px;overflow:hidden;margin-bottom:8px;position:relative}
@@ -494,10 +494,10 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
   .pbar{max-width:700px;left:50%;transform:translateX(-50%) translateY(100%)}
   .pbar.up{transform:translateX(-50%) translateY(0)}
 }
-@media(max-width:400px){
-  .db-grid{grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px}
+@media(max-width:480px){
+  .db-grid{grid-template-columns:repeat(2,1fr);gap:8px}
+  .qp-grid{grid-template-columns:repeat(2,1fr);gap:8px}
   .h-art{height:180px}
-  .qp-grid{grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px}
 }
 ::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:3px}
@@ -1510,7 +1510,7 @@ document.getElementById('npVinyl').addEventListener('click',()=>{
 // ══════════════════════════════════════════════════════════════
 //  QUEUE / HISTORY / LIKED
 // ══════════════════════════════════════════════════════════════
-function addToQueue(t){
+function addToQueue(t) {
   queue = queue.filter(x => x.id !== t.id);
 
   const currentIdx = currentTrack ? queue.findIndex(x => x.id === currentTrack.id) : -1;
@@ -1520,14 +1520,14 @@ function addToQueue(t){
   if (queue.length > 60) queue = queue.slice(0, 60);
   LS.sq(queue);
 
-  qi = queue.findIndex(x => x.id === currentTrack?.id);
+  document.getElementById('qSec').style.display = 'block';
+
+  document.getElementById('qBadge').textContent = queue.length;
 
   renderQueue();
-  document.getElementById('qSec').style.display = 'block';
-  document.getElementById('qBadge').textContent = queue.length;
 }
 
-function removeFromQueue(id){
+function removeFromQueue(id) {
   const currentId = currentTrack?.id;
 
   queue = queue.filter(t => t.id !== id);
@@ -1535,15 +1535,49 @@ function removeFromQueue(id){
 
   qi = currentId ? queue.findIndex(t => t.id === currentId) : -1;
 
-  renderQueue();
   document.getElementById('qBadge').textContent = queue.length;
-  if (!queue.length) document.getElementById('qSec').style.display = 'none';
+
+  if (!queue.length) {
+    document.getElementById('qSec').style.display = 'none';
+  }
+
+  renderQueue();
 }
 
-function renderQueue(){
-  const el=document.getElementById('panQ');
-  if(!queue.length){el.innerHTML='<div class="empty-ti"><i class="fas fa-layer-group"></i>Queue kosong</div>';return;}
-  el.innerHTML=queue.map((t,i)=>`<div class="ti ${currentTrack?.id===t.id?'on':''}" onclick='playTrackObj(${esc(t)})'><div class="ti-n">${currentTrack?.id===t.id?'<i class="fas fa-volume-up" style="color:var(--dyn1);font-size:.6rem"></i>':i+1}</div><div class="ti-th"><img src="${t.thumbnail||PH}" onerror="this.src='${PH}'"></div><div class="ti-inf"><div class="ti-t">${t.title}</div><div class="ti-a">${t.artist}</div></div><div class="ti-dur">${t.duration}</div><button class="ti-del" onclick="event.stopPropagation();removeFromQueue('${t.id}')"><i class="fas fa-times"></i></button></div>`).join('');
+function renderQueue() {
+  if (currentTrack) {
+    qi = queue.findIndex(x => x.id === currentTrack.id);
+  }
+
+  const el = document.getElementById('panQ');
+  if (!el) return;
+
+  if (!queue.length) {
+    el.innerHTML = '<div class="empty-ti"><i class="fas fa-layer-group"></i>Queue kosong</div>';
+    document.getElementById('qBadge').textContent = 0;
+    return;
+  }
+
+  document.getElementById('qBadge').textContent = queue.length;
+
+  el.innerHTML = queue.map((t, i) => {
+    const isNow = currentTrack?.id === t.id;
+    return `<div class="ti ${isNow ? 'on' : ''}" onclick='playTrackObj(${esc(t)})'>
+      <div class="ti-n">${isNow
+        ? '<i class="fas fa-volume-up" style="color:var(--dyn1);font-size:.6rem"></i>'
+        : i + 1
+      }</div>
+      <div class="ti-th"><img src="${t.thumbnail || PH}" onerror="this.src='${PH}'"></div>
+      <div class="ti-inf">
+        <div class="ti-t">${t.title}</div>
+        <div class="ti-a">${t.artist}</div>
+      </div>
+      <div class="ti-dur">${t.duration}</div>
+      <button class="ti-del" onclick="event.stopPropagation();removeFromQueue('${t.id}')">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>`;
+  }).join('');
 }
 
 async function addToHistory(t){
@@ -2215,8 +2249,12 @@ function initApp(){
   renderQueue();
   renderHistory();
   renderLiked();
-  document.getElementById('qBadge').textContent=queue.length;
-  if(queue.length)document.getElementById('qSec').style.display='block';
+  document.getElementById('qBadge').textContent = queue.length;
+  if (queue.length) {
+    document.getElementById('qSec').style.display = 'block';
+  } else {
+    document.getElementById('qSec').style.display = 'none';
+  }
   document.getElementById('panQ').style.display='flex';
   document.getElementById('panQ').style.flexDirection='column';
   document.getElementById('panH').style.display='none';
