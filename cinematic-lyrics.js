@@ -582,6 +582,8 @@ function spawnParticles() {
 }
 
 // ── LYRIC SYNC ───────────────────────────────────────────────
+// CLM tidak pakai scroll container — tampilkan 3 baris statis (prev/main/next)
+// sehingga tidak ada scroll sama sekali, aman di semua environment
 function startCLMSync() {
   if (clmInterval) clearInterval(clmInterval);
 
@@ -601,15 +603,31 @@ function startCLMSync() {
       if (cur >= clmLrcLines[i].time) idx = i;
     }
 
+    // Jika audio belum jalan (currentTime = 0) dan idx = 0,
+    // tunggu sampai audio benar-benar mulai agar tidak langsung loncat
+    if (cur < 0.5 && idx === 0 && lastIdx === -1) {
+      // Tunjukkan baris pertama tapi jangan lock lastIdx
+      const line = clmLrcLines[0];
+      const nextLine = clmLrcLines.length > 1 ? clmLrcLines[1] : null;
+      showNoLyric(false);
+      updateLyricDisplay('', line.text, nextLine ? nextLine.text : '', line.mood);
+      return;
+    }
+
     if (idx === lastIdx) return;
     lastIdx = idx;
 
     const line     = clmLrcLines[idx];
-    const prevLine = idx > 0             ? clmLrcLines[idx - 1] : null;
+    const prevLine = idx > 0 ? clmLrcLines[idx - 1] : null;
     const nextLine = idx < clmLrcLines.length - 1 ? clmLrcLines[idx + 1] : null;
 
     showNoLyric(false);
-    updateLyricDisplay(prevLine?.text || '', line.text, nextLine?.text || '', line.mood);
+    updateLyricDisplay(
+      prevLine ? prevLine.text : '',
+      line.text,
+      nextLine ? nextLine.text : '',
+      line.mood
+    );
 
   }, 200);
 }
@@ -618,27 +636,34 @@ function updateLyricDisplay(prev, main, next, mood) {
   const elPrev = document.getElementById('clm-prev');
   const elMain = document.getElementById('clm-main');
   const elNext = document.getElementById('clm-next');
+  if (!elPrev || !elMain || !elNext) return;
 
-  // Keluar dulu
-  elMain.classList.remove('show', 'chorus', 'sad', 'hype', 'verse', 'beat-hit');
-  elPrev.classList.remove('show');
-  elNext.classList.remove('show');
+  // Phase 1: fade out main
+  elMain.classList.remove('show');
 
-  setTimeout(() => {
-    elPrev.textContent = prev;
-    elMain.textContent = main;
-    elNext.textContent = next;
+  setTimeout(function() {
+    // Phase 2: update teks
+    elPrev.textContent = prev || '';
+    elMain.textContent = main || '';
+    elNext.textContent = next || '';
 
-    // Masuk
-    if (prev) elPrev.classList.add('show');
-    if (next) elNext.classList.add('show');
+    // Phase 3: toggle show classes
+    if (prev) { elPrev.classList.add('show'); }
+    else       { elPrev.classList.remove('show'); }
 
-    void elMain.offsetWidth; // reflow
+    if (next) { elNext.classList.add('show'); }
+    else       { elNext.classList.remove('show'); }
+
+    // Phase 4: remove mood classes dulu lalu tambah yang baru
+    elMain.classList.remove('chorus', 'sad', 'hype', 'verse', 'beat-hit');
+    // Force reflow sebelum tambah class baru (penting untuk restart CSS transition)
+    void elMain.offsetWidth;
     elMain.classList.add('show', mood || 'verse');
 
-    // Glow bg mengikuti mood
+    // Update glow background sesuai mood
     updateBgGlow(mood);
-  }, 80);
+
+  }, 90);
 }
 
 function updateBgGlow(mood) {
@@ -662,9 +687,33 @@ function showNoLyric(show) {
 }
 
 // ── UPDATE TRACK INFO ─────────────────────────────────────────
-function updateCLMTrackInfo() {
-  // Ambil dari currentTrack global Pagaska Music
-  const track = window.currentTrack;
+// Retry sampai currentTrack tersedia — fix race condition di production
+function updateCLMTrackInfo(retryCount) {
+  retryCount = retryCount || 0;
+
+  // Ambil dari window.currentTrack (global Pagaska Music)
+  let track = window.currentTrack;
+
+  // Fallback: baca dari player bar DOM jika currentTrack belum ready
+  if (!track) {
+    const titleEl  = document.getElementById('plTitle');
+    const artistEl = document.getElementById('plArt');
+    const imgEl    = document.getElementById('plImg');
+    if (titleEl && titleEl.textContent && titleEl.textContent !== '\u2013') {
+      track = {
+        title:     titleEl.textContent,
+        artist:    artistEl ? artistEl.textContent : '',
+        thumbnail: imgEl ? imgEl.src : ''
+      };
+    }
+  }
+
+  if (!track && retryCount < 25) {
+    // Belum ready, retry setiap 300ms (max 7.5 detik)
+    setTimeout(() => updateCLMTrackInfo(retryCount + 1), 300);
+    return;
+  }
+
   if (!track) return;
 
   const thumb  = document.getElementById('clm-track-thumb');
@@ -672,11 +721,11 @@ function updateCLMTrackInfo() {
   const artist = document.getElementById('clm-track-artist');
   const bgArt  = document.getElementById('clm-bg-art');
 
-  if (thumb)  { thumb.src = track.thumbnail || ''; }
-  if (title)  { title.textContent  = track.title  || '–'; }
-  if (artist) { artist.textContent = track.artist || '–'; }
-  if (bgArt && track.thumbnail) {
-    bgArt.style.backgroundImage = `url('${track.thumbnail}')`;
+  if (thumb)  { thumb.src = (track.thumbnail && track.thumbnail !== window.location.href) ? track.thumbnail : ''; }
+  if (title)  { title.textContent  = track.title  || '\u2013'; }
+  if (artist) { artist.textContent = track.artist || '\u2013'; }
+  if (bgArt && track.thumbnail && track.thumbnail !== window.location.href) {
+    bgArt.style.backgroundImage = "url('" + track.thumbnail + "')";
     bgArt.classList.add('loaded');
   }
 }
@@ -763,31 +812,75 @@ function hookIntoPlayer() {
   const audioEl = document.getElementById('audioEl');
   if (!audioEl) return;
 
-  // Saat lagu ganti (detecti src change)
-  let lastSrc = '';
-  setInterval(() => {
+  let lastSrc         = '';
+  let fetchInProgress = false;
+
+  setInterval(function() {
     if (!clmActive) return;
-    const track = window.currentTrack;
-    const src   = audioEl.src || '';
-    if (src !== lastSrc) {
+
+    const src = audioEl.src || '';
+
+    // Deteksi ganti lagu
+    if (src && src !== lastSrc && src !== window.location.href) {
       lastSrc = src;
-      updateCLMTrackInfo();
-      // Refetch lirik
+      fetchInProgress = false;
+
+      // Update info track dengan retry (fix race condition)
+      updateCLMTrackInfo(0);
+
+      // Reset lirik
       clmLrcLines = [];
-      showNoLyric(false);
-      document.getElementById('clm-main').textContent = '✦';
-      document.getElementById('clm-main').classList.add('show','verse');
-      if (track) {
-        fetchCLMLyrics(track.title, track.artist).then(lines => {
-          clmLrcLines = lines;
-          if (!lines.length) showNoLyric(true);
-        });
+      const mainEl = document.getElementById('clm-main');
+      if (mainEl) {
+        mainEl.classList.remove('show','chorus','sad','hype','verse','beat-hit');
+        void mainEl.offsetWidth;
+        mainEl.textContent = '\u266a'; // ♪
+        mainEl.classList.add('show','verse');
       }
+      showNoLyric(false);
+
+      // Fetch lirik — tunggu currentTrack ready dulu via retry
+      const tryFetch = function(retries) {
+        if (fetchInProgress) return;
+        let t = window.currentTrack;
+
+        // Fallback: baca dari DOM player bar jika currentTrack belum ready
+        if (!t) {
+          const tEl = document.getElementById('plTitle');
+          const aEl = document.getElementById('plArt');
+          if (tEl && tEl.textContent && tEl.textContent !== '\u2013') {
+            t = { title: tEl.textContent, artist: aEl ? aEl.textContent : '' };
+          }
+        }
+
+        if (!t && retries < 20) {
+          setTimeout(function() { tryFetch(retries + 1); }, 300);
+          return;
+        }
+
+        if (!t) { showNoLyric(true); return; }
+
+        fetchInProgress = true;
+        fetchCLMLyrics(t.title, t.artist)
+          .then(function(lines) {
+            clmLrcLines     = lines;
+            fetchInProgress = false;
+            if (!lines.length) showNoLyric(true);
+          })
+          .catch(function() {
+            fetchInProgress = false;
+            showNoLyric(true);
+          });
+      };
+
+      // Beri jeda 400ms agar currentTrack sempat di-set oleh Pagaska Music
+      setTimeout(function() { tryFetch(0); }, 400);
     }
 
-    // Spin thumb sinkron play/pause
+    // Spin thumbnail sinkron dengan state play/pause
     updateThumbSpin(!audioEl.paused);
-  }, 800);
+
+  }, 600);
 }
 
 // ── INIT ─────────────────────────────────────────────────────
