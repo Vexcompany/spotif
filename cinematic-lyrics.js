@@ -493,23 +493,56 @@ function detectMood(text, idx, total) {
 }
 
 // ── AUDIO ANALYSER (Web Audio API) ───────────────────────────
+// PENTING: MediaElementSource hanya boleh dibuat SEKALI per audio element.
+// Setelah dibuat, audio output pindah ke Web Audio graph.
+// Kita harus selalu connect source → analyser → destination agar suara tidak hilang.
+let _clmGraphBuilt = false;
+
 function setupAnalyser() {
   const audioEl = document.getElementById('audioEl');
   if (!audioEl) return;
+
+  // Jika graph sudah dibangun sebelumnya, cukup resume AudioContext
+  if (_clmGraphBuilt && clmAudioCtx) {
+    if (clmAudioCtx.state === 'suspended') clmAudioCtx.resume();
+    return;
+  }
+
   try {
-    if (!clmAudioCtx) {
-      clmAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    }
-    if (clmSource) { try { clmSource.disconnect(); } catch(e) {} }
+    // Buat AudioContext sekali saja
+    clmAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    // createMediaElementSource hanya boleh dipanggil SEKALI
+    // Setelah ini semua audio harus lewat Web Audio graph
     clmSource   = clmAudioCtx.createMediaElementSource(audioEl);
     clmAnalyser = clmAudioCtx.createAnalyser();
     clmAnalyser.fftSize = 256;
+
+    // WAJIB: source → analyser → destination
+    // Kalau destination tidak disambung, suara hilang permanen
     clmSource.connect(clmAnalyser);
     clmAnalyser.connect(clmAudioCtx.destination);
+
+    _clmGraphBuilt = true;
+
   } catch(e) {
-    // AudioContext sudah punya source — skip, tidak perlu reconnect
-    clmAnalyser = null;
+    // Kalau gagal (misal browser tidak support), pastikan audio
+    // tetap terhubung langsung tanpa Web Audio
+    console.warn('[CLM] Web Audio setup failed:', e.message);
+    clmAnalyser    = null;
+    _clmGraphBuilt = false;
   }
+}
+
+// Pastikan graph tetap terhubung saat CLM dimatikan
+// (suara tidak boleh hilang saat mode OFF)
+function teardownAnalyser() {
+  // JANGAN disconnect source dari destination!
+  // Cukup hentikan beat loop — graph tetap aktif agar suara jalan
+  if (clmAudioCtx && clmAudioCtx.state === 'running') {
+    // Biarkan tetap running, hanya stop animasi beat
+  }
+  // clmAnalyser tetap terhubung — suara tetap keluar
 }
 
 function getBeatEnergy() {
@@ -795,11 +828,17 @@ async function toggleCLM() {
     overlay.classList.remove('active');
     updateThumbSpin(false);
 
-    if (clmInterval) { clearInterval(clmInterval); clmInterval = null; }
+    // Stop interval & beat loop
+    if (clmInterval)  { clearInterval(clmInterval);         clmInterval  = null; }
     if (clmBeatFrame) { cancelAnimationFrame(clmBeatFrame); clmBeatFrame = null; }
 
+    // JANGAN teardown AudioContext — graph harus tetap aktif agar suara tidak hilang
+    // Cukup reset glow ke state netral
+    const glow = document.getElementById('clm-glow');
+    if (glow) { glow.style.transform = 'translateX(-50%) scale(1)'; glow.style.opacity = '0.4'; }
+
     // Reset lyric display
-    ['clm-prev','clm-main','clm-next'].forEach(id => {
+    ['clm-prev','clm-main','clm-next'].forEach(function(id) {
       const el = document.getElementById(id);
       if (el) { el.classList.remove('show','chorus','sad','hype','verse','beat-hit'); el.textContent = ''; }
     });
@@ -893,6 +932,18 @@ function init() {
   // Build DOM
   buildOverlay();
   buildButton();
+
+  // Resume AudioContext on first user gesture (mobile browser autoplay policy)
+  // AudioContext sering suspended sampai ada interaksi user
+  var _resumeOnce = function() {
+    if (clmAudioCtx && clmAudioCtx.state === 'suspended') {
+      clmAudioCtx.resume();
+    }
+    document.removeEventListener('touchstart', _resumeOnce);
+    document.removeEventListener('click',      _resumeOnce);
+  };
+  document.addEventListener('touchstart', _resumeOnce, { passive: true });
+  document.addEventListener('click',      _resumeOnce, { passive: true });
 
   // Hook ke player
   hookIntoPlayer();
