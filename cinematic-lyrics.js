@@ -1,5 +1,5 @@
 // ══════════════════════════════════════════════════════════════
-//  CINEMATIC LYRICS MODE — Pagaska Music
+// //  CINEMATIC LYRICS MODE — Pagaska Music
 // ══════════════════════════════════════════════════════════════
 
 (function() {
@@ -621,11 +621,18 @@ function startCLMSync() {
   if (clmInterval) clearInterval(clmInterval);
 
   let lastIdx = -1;
+  let initialized = false; // Track apakah sudah render lirik pertama
 
   clmInterval = setInterval(() => {
     if (!clmActive) return;
     const audioEl = document.getElementById('audioEl');
-    if (!audioEl || !clmLrcLines.length) {
+    if (!audioEl) {
+      showNoLyric(true);
+      return;
+    }
+
+    // Jika tidak ada lirik tapi audio sedang main, tampilkan "instrumental"
+    if (!clmLrcLines.length) {
       showNoLyric(true);
       return;
     }
@@ -636,14 +643,20 @@ function startCLMSync() {
       if (cur >= clmLrcLines[i].time) idx = i;
     }
 
-    // Jika audio belum jalan (currentTime = 0) dan idx = 0,
-    // tunggu sampai audio benar-benar mulai agar tidak langsung loncat
-    if (cur < 0.5 && idx === 0 && lastIdx === -1) {
-      // Tunjukkan baris pertama tapi jangan lock lastIdx
-      const line = clmLrcLines[0];
-      const nextLine = clmLrcLines.length > 1 ? clmLrcLines[1] : null;
+    // Render lirik pertama kali saat audio dimulai
+    if (!initialized) {
+      initialized = true;
+      const line = clmLrcLines[idx];
+      const prevLine = idx > 0 ? clmLrcLines[idx - 1] : null;
+      const nextLine = idx < clmLrcLines.length - 1 ? clmLrcLines[idx + 1] : null;
       showNoLyric(false);
-      updateLyricDisplay('', line.text, nextLine ? nextLine.text : '', line.mood);
+      updateLyricDisplay(
+        prevLine ? prevLine.text : '',
+        line.text,
+        nextLine ? nextLine.text : '',
+        line.mood
+      );
+      lastIdx = idx;
       return;
     }
 
@@ -773,12 +786,22 @@ function updateThumbSpin(playing) {
 // ── FETCH LYRICS ─────────────────────────────────────────────
 async function fetchCLMLyrics(title, artist) {
   try {
-    const r = await fetch(`https://lrclib.net/api/search?q=${encodeURIComponent(title + ' ' + artist)}&limit=1`);
+    // Tambahkan timeout 5 detik untuk fetch
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+    
+    const r = await fetch(`https://lrclib.net/api/search?q=${encodeURIComponent(title + ' ' + artist)}&limit=1`, {
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+    
     const data = await r.json();
     if (data?.length && data[0].syncedLyrics) {
       return parseLRCForCLM(data[0].syncedLyrics);
     }
-  } catch(e) {}
+  } catch(e) {
+    console.warn('[CLM] Fetch lyrics failed:', e.message);
+  }
   return [];
 }
 
@@ -814,7 +837,16 @@ async function toggleCLM() {
       document.getElementById('clm-main').textContent = '✦';
       document.getElementById('clm-main').classList.add('show');
       clmLrcLines = await fetchCLMLyrics(track.title, track.artist);
-      if (!clmLrcLines.length) showNoLyric(true);
+      
+      // Force render lirik pertama jika berhasil di-fetch
+      if (clmLrcLines.length > 0) {
+        showNoLyric(false);
+        const line = clmLrcLines[0];
+        const nextLine = clmLrcLines.length > 1 ? clmLrcLines[1] : null;
+        updateLyricDisplay('', line.text, nextLine ? nextLine.text : '', line.mood);
+      } else {
+        showNoLyric(true);
+      }
     } else {
       showNoLyric(true);
     }
@@ -904,10 +936,19 @@ function hookIntoPlayer() {
           .then(function(lines) {
             clmLrcLines     = lines;
             fetchInProgress = false;
-            if (!lines.length) showNoLyric(true);
+            if (!lines.length) {
+              showNoLyric(true);
+            } else {
+              // Force render lirik pertama saat lagu baru
+              showNoLyric(false);
+              const line = lines[0];
+              const nextLine = lines.length > 1 ? lines[1] : null;
+              updateLyricDisplay('', line.text, nextLine ? nextLine.text : '', line.mood);
+            }
           })
-          .catch(function() {
+          .catch(function(err) {
             fetchInProgress = false;
+            console.warn('[CLM] Failed to fetch lyrics for new track:', err);
             showNoLyric(true);
           });
       };
