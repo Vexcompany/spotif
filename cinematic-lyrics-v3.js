@@ -255,7 +255,6 @@ function inject() {
 // Jika dipanggil setelah await, browser anggap bukan user gesture → suspended forever
 function initAudioGraph() {
   if (_graphOK) {
-    // Sudah ada graph — cukup resume jika suspended
     if (_ctx && _ctx.state === 'suspended') _ctx.resume();
     return;
   }
@@ -263,16 +262,32 @@ function initAudioGraph() {
   const audioEl = document.getElementById('audioEl');
   if (!audioEl) return;
 
+  // WAJIB: set crossOrigin sebelum createMediaElementSource
+  // Tanpa ini browser keluarkan "outputs zeroes due to CORS" untuk audio dari domain lain
+  // Harus di-set SEBELUM audio.src di-assign — tapi karena kita inject di sini,
+  // kita perlu reload src agar crossorigin header dikirim ulang
+  const prevSrc     = audioEl.src || '';
+  const prevTime    = audioEl.currentTime || 0;
+  const wasPlaying  = !audioEl.paused;
+
+  if (!audioEl.crossOrigin) {
+    audioEl.crossOrigin = 'anonymous';
+    // Reload src agar browser kirim request ulang dengan CORS header
+    // Tanpa ini crossorigin attr tidak berlaku untuk request yang sudah berjalan
+    if (prevSrc && prevSrc !== window.location.href) {
+      audioEl.src = prevSrc;
+      audioEl.load();
+      audioEl.currentTime = prevTime;
+      if (wasPlaying) audioEl.play().catch(function() {});
+    }
+  }
+
   try {
     _ctx      = new (window.AudioContext || window.webkitAudioContext)();
-    // createMediaElementSource SEKALI SEUMUR HALAMAN
-    // Setelah ini audio WAJIB lewat graph, tidak bisa bypass
     _src      = _ctx.createMediaElementSource(audioEl);
     _analyser = _ctx.createAnalyser();
     _analyser.fftSize = 256;
 
-    // Chain: source → analyser → destination (speaker)
-    // Tanpa connect ke destination → suara hilang permanen
     _src.connect(_analyser);
     _analyser.connect(_ctx.destination);
 
@@ -280,7 +295,6 @@ function initAudioGraph() {
     console.log('[CLM] Audio graph OK:', _ctx.state);
   } catch (e) {
     console.warn('[CLM] Audio graph failed:', e.message);
-    // Graph gagal — set null agar beat loop skip gracefully
     _analyser = null;
     _graphOK  = false;
   }
