@@ -1,0 +1,631 @@
+// ══════════════════════════════════════════════════════════════
+//  CINEMATIC LYRICS MODE v3 — Pagaska Music
+//  Fix: AudioContext lazy-init SYNCHRONOUS on user tap
+//  Cara pakai: <script src="cinematic-lyrics-v3.js"></script>
+//  Taruh sebelum </body> di index.html, SETELAH semua script lain
+// ══════════════════════════════════════════════════════════════
+
+(function () {
+'use strict';
+
+// ── STATE ────────────────────────────────────────────────────
+let clmActive     = false;
+let clmLrcLines   = [];
+let clmCurIdx     = -1;
+let clmInterval   = null;
+let clmBeatFrame  = null;
+let clmBeatEnergy = 0;
+let clmLastBeat   = 0;
+
+// Web Audio — singleton, dibuat SEKALI saat tombol CC pertama kali ditekan
+let _ctx      = null;   // AudioContext
+let _src      = null;   // MediaElementSource
+let _analyser = null;   // AnalyserNode
+let _graphOK  = false;  // sudah terhubung ke destination?
+
+// ── CSS ──────────────────────────────────────────────────────
+const CSS = `
+#clm-btn {
+  position:fixed; bottom:148px; right:16px; z-index:9000;
+  width:52px; height:52px; border-radius:50%;
+  border:1.5px solid rgba(167,139,250,.5);
+  background:rgba(13,7,30,.88); backdrop-filter:blur(12px);
+  color:#a78bfa; font-size:1.1rem; font-weight:900;
+  cursor:pointer; display:flex; align-items:center; justify-content:center;
+  transition:all .3s cubic-bezier(.16,1,.3,1);
+  font-family:'DM Sans',sans-serif; letter-spacing:-.5px;
+  box-shadow:0 4px 20px rgba(0,0,0,.4);
+  -webkit-tap-highlight-color:transparent;
+}
+#clm-btn:hover { transform:scale(1.1); border-color:rgba(167,139,250,.9); box-shadow:0 0 22px rgba(167,139,250,.45); }
+#clm-btn.active {
+  background:rgba(109,40,217,.75); border-color:#a78bfa; color:#fff;
+  box-shadow:0 0 28px rgba(167,139,250,.6),0 0 60px rgba(109,40,217,.25);
+  animation:clm-btn-pulse 2.5s ease-in-out infinite;
+}
+@keyframes clm-btn-pulse {
+  0%,100% { box-shadow:0 0 18px rgba(167,139,250,.5),0 0 50px rgba(109,40,217,.2); }
+  50%      { box-shadow:0 0 34px rgba(167,139,250,.8),0 0 80px rgba(109,40,217,.4); }
+}
+#clm-tooltip {
+  position:absolute; right:58px; top:50%; transform:translateY(-50%);
+  background:rgba(13,7,30,.92); border:1px solid rgba(167,139,250,.3);
+  color:#c4b5fd; font-size:.68rem; font-weight:700; white-space:nowrap;
+  padding:5px 10px; border-radius:8px; pointer-events:none;
+  opacity:0; transition:opacity .2s; font-family:'DM Sans',sans-serif;
+}
+#clm-btn:hover #clm-tooltip { opacity:1; }
+
+/* ── Overlay ── */
+#clm-overlay {
+  position:fixed; inset:0; z-index:7500;
+  pointer-events:none; opacity:0;
+  transition:opacity .6s ease;
+  isolation:isolate;
+}
+#clm-overlay.active { opacity:1; }
+
+#clm-bg-art {
+  position:absolute; inset:-40px;
+  background-size:cover; background-position:center;
+  filter:blur(70px) brightness(.18) saturate(1.8);
+  opacity:0; transition:opacity 1.5s ease;
+}
+#clm-bg-art.loaded { opacity:1; }
+
+#clm-vignette {
+  position:absolute; inset:0;
+  background:
+    radial-gradient(ellipse 100% 100% at 50% 50%, transparent 25%, rgba(7,7,26,.88) 100%),
+    linear-gradient(to bottom, rgba(7,7,26,.65) 0%, transparent 30%, transparent 58%, rgba(7,7,26,.95) 100%);
+}
+#clm-glow {
+  position:absolute; width:600px; height:280px; border-radius:50%;
+  background:radial-gradient(ellipse,rgba(139,92,246,.25) 0%,transparent 70%);
+  left:50%; bottom:110px; transform:translateX(-50%);
+  filter:blur(38px); animation:clm-glow-breathe 3s ease-in-out infinite;
+  pointer-events:none;
+}
+@keyframes clm-glow-breathe {
+  0%,100% { opacity:.7; transform:translateX(-50%) scale(1); }
+  50%      { opacity:1;  transform:translateX(-50%) scale(1.15); }
+}
+
+/* Track pill */
+#clm-pill {
+  position:absolute; top:18px; left:50%; transform:translateX(-50%);
+  display:flex; align-items:center; gap:8px;
+  background:rgba(13,7,30,.65); backdrop-filter:blur(10px);
+  border:1px solid rgba(139,92,246,.3); border-radius:30px;
+  padding:5px 14px 5px 6px; white-space:nowrap;
+}
+#clm-pill-thumb {
+  width:30px; height:30px; border-radius:50%; object-fit:cover;
+  border:1px solid rgba(139,92,246,.4);
+  animation:clm-spin 8s linear infinite; animation-play-state:paused;
+}
+#clm-pill-thumb.spin { animation-play-state:running; }
+@keyframes clm-spin { to { transform:rotate(360deg); } }
+#clm-pill-title  { font-size:.68rem; font-weight:700; color:#e9d5ff; display:block; }
+#clm-pill-artist { font-size:.58rem; color:rgba(196,181,253,.55); display:block; }
+
+/* Lyrics */
+#clm-lrc-wrap {
+  position:absolute; left:0; right:0; bottom:90px;
+  display:flex; flex-direction:column; align-items:center;
+  gap:10px; padding:0 10%;
+  transition:opacity .4s;
+}
+.clm-prev {
+  font-family:'Syne','DM Sans',sans-serif; font-size:clamp(.82rem,2.2vw,1rem);
+  font-weight:600; color:rgba(196,181,253,.32); text-align:center;
+  opacity:0; transform:translateY(4px);
+  transition:opacity .5s ease,transform .5s ease;
+  text-shadow:0 0 16px rgba(139,92,246,.18);
+}
+.clm-prev.show { opacity:1; transform:translateY(0); }
+.clm-main {
+  font-family:'Syne','DM Sans',sans-serif; font-size:clamp(1.05rem,3.2vw,1.5rem);
+  font-weight:800; color:#fff; text-align:center; line-height:1.4;
+  opacity:0; transform:translateY(10px) scale(.97);
+  transition:none;
+  text-shadow:0 0 28px rgba(167,139,250,.8),0 0 55px rgba(139,92,246,.4),0 2px 14px rgba(0,0,0,.8);
+}
+.clm-main.show {
+  opacity:1; transform:translateY(0) scale(1);
+  transition:opacity .42s cubic-bezier(.16,1,.3,1),transform .42s cubic-bezier(.16,1,.3,1);
+}
+.clm-main.chorus {
+  font-size:clamp(1.2rem,3.8vw,1.7rem);
+  animation:clm-chorus-glow 1.5s ease-in-out infinite alternate;
+}
+@keyframes clm-chorus-glow {
+  from { text-shadow:0 0 30px rgba(167,139,250,.8),0 0 60px rgba(139,92,246,.4); }
+  to   { text-shadow:0 0 50px rgba(196,181,253,1),0 0 90px rgba(167,139,250,.7),0 0 130px rgba(109,40,217,.4); }
+}
+.clm-main.sad   { color:rgba(196,181,253,.85); filter:blur(.3px); text-shadow:0 0 18px rgba(139,92,246,.35); }
+.clm-main.hype  { animation:clm-hype .09s ease-in-out infinite alternate; }
+@keyframes clm-hype {
+  from { transform:translateY(0) scale(1) rotate(-.3deg); }
+  to   { transform:translateY(-2px) scale(1.01) rotate(.3deg); }
+}
+.clm-main.beat-hit { animation:clm-beat .15s ease-out !important; }
+@keyframes clm-beat {
+  0%   { transform:scale(1.06); }
+  100% { transform:scale(1); }
+}
+.clm-next {
+  font-size:clamp(.72rem,1.8vw,.9rem); font-weight:500;
+  color:rgba(196,181,253,.18); text-align:center;
+  opacity:0; transform:translateY(-4px);
+  transition:opacity .5s ease,transform .5s ease;
+}
+.clm-next.show { opacity:1; transform:translateY(0); }
+
+/* Progress */
+#clm-prog {
+  position:absolute; bottom:68px; left:10%; right:10%;
+  height:2px; background:rgba(139,92,246,.2); border-radius:2px;
+}
+#clm-prog-fill {
+  height:100%;
+  background:linear-gradient(90deg,rgba(139,92,246,.7),rgba(196,181,253,.9));
+  border-radius:2px; width:0%;
+  box-shadow:0 0 6px rgba(167,139,250,.5);
+  transition:width .4s linear;
+}
+
+/* No lyric */
+#clm-no-lrc {
+  position:absolute; bottom:140px; left:50%; transform:translateX(-50%);
+  font-size:.72rem; color:rgba(196,181,253,.28);
+  letter-spacing:2px; text-transform:uppercase;
+  opacity:0; transition:opacity .5s; white-space:nowrap;
+}
+#clm-no-lrc.show { opacity:1; }
+
+/* Particles */
+.clm-pt {
+  position:absolute; border-radius:50%; pointer-events:none;
+  animation:clm-float linear forwards;
+}
+@keyframes clm-float {
+  0%   { transform:translateY(0) scale(1);  opacity:.7; }
+  100% { transform:translateY(-160px) scale(0); opacity:0; }
+}
+
+/* Dim UI saat CLM aktif — pakai opacity bukan filter agar tidak buat stacking context */
+body.clm-active .app,
+body.clm-active .pbar        { opacity:.15; transition:opacity .6s ease; pointer-events:none; }
+body.clm-active .np-screen   { opacity:.08 !important; transition:opacity .6s ease; pointer-events:none; }
+body:not(.clm-active) .app,
+body:not(.clm-active) .pbar,
+body:not(.clm-active) .np-screen { opacity:1; transition:opacity .6s ease; pointer-events:auto; }
+
+/* Responsive */
+@media (max-width:480px) {
+  #clm-lrc-wrap { padding:0 6%; bottom:100px; }
+  #clm-prog     { left:6%; right:6%; bottom:76px; }
+  #clm-btn      { bottom:148px; right:12px; width:46px; height:46px; font-size:1rem; }
+}
+`;
+
+// ── INJECT CSS & HTML ────────────────────────────────────────
+function inject() {
+  const s = document.createElement('style');
+  s.textContent = CSS;
+  document.head.appendChild(s);
+
+  // Overlay
+  const ov = document.createElement('div');
+  ov.id = 'clm-overlay';
+  ov.innerHTML = `
+    <div id="clm-bg-art"></div>
+    <div id="clm-vignette"></div>
+    <div id="clm-glow"></div>
+    <div id="clm-pill">
+      <img id="clm-pill-thumb" src="" alt="">
+      <div><span id="clm-pill-title">–</span><span id="clm-pill-artist">–</span></div>
+    </div>
+    <div id="clm-lrc-wrap">
+      <div class="clm-prev" id="clm-prev"></div>
+      <div class="clm-main" id="clm-main"></div>
+      <div class="clm-next" id="clm-next"></div>
+    </div>
+    <div id="clm-no-lrc">♪ instrumental ♪</div>
+    <div id="clm-prog"><div id="clm-prog-fill"></div></div>
+  `;
+  document.body.appendChild(ov);
+
+  // Button
+  const btn = document.createElement('button');
+  btn.id = 'clm-btn';
+  btn.setAttribute('aria-label', 'Cinematic Lyrics');
+  btn.innerHTML = `CC<span id="clm-tooltip">Cinematic Lyrics</span>`;
+  document.body.appendChild(btn);
+
+  // Tombol ditekan — AudioContext HARUS dibuat di sini (synchronous user gesture)
+  btn.addEventListener('click', function () {
+    // Init audio graph synchronously saat gesture ini — browser policy mengharuskan ini
+    initAudioGraph();
+    // Lalu toggle mode
+    toggleCLM();
+  });
+}
+
+// ── WEB AUDIO — LAZY INIT SYNCHRONOUS ───────────────────────
+// HARUS dipanggil langsung dari event handler click (synchronous call stack)
+// Jika dipanggil setelah await, browser anggap bukan user gesture → suspended forever
+function initAudioGraph() {
+  if (_graphOK) {
+    if (_ctx && _ctx.state === 'suspended') _ctx.resume();
+    return;
+  }
+
+  const audioEl = document.getElementById('audioEl');
+  if (!audioEl) return;
+
+  // WAJIB: set crossOrigin sebelum createMediaElementSource
+  // Tanpa ini browser keluarkan "outputs zeroes due to CORS" untuk audio dari domain lain
+  // Harus di-set SEBELUM audio.src di-assign — tapi karena kita inject di sini,
+  // kita perlu reload src agar crossorigin header dikirim ulang
+  const prevSrc     = audioEl.src || '';
+  const prevTime    = audioEl.currentTime || 0;
+  const wasPlaying  = !audioEl.paused;
+
+  if (!audioEl.crossOrigin) {
+    audioEl.crossOrigin = 'anonymous';
+    // Reload src agar browser kirim request ulang dengan CORS header
+    // Tanpa ini crossorigin attr tidak berlaku untuk request yang sudah berjalan
+    if (prevSrc && prevSrc !== window.location.href) {
+      audioEl.src = prevSrc;
+      audioEl.load();
+      audioEl.currentTime = prevTime;
+      if (wasPlaying) audioEl.play().catch(function() {});
+    }
+  }
+
+  try {
+    _ctx      = new (window.AudioContext || window.webkitAudioContext)();
+    _src      = _ctx.createMediaElementSource(audioEl);
+    _analyser = _ctx.createAnalyser();
+    _analyser.fftSize = 256;
+
+    _src.connect(_analyser);
+    _analyser.connect(_ctx.destination);
+
+    _graphOK = true;
+    console.log('[CLM] Audio graph OK:', _ctx.state);
+  } catch (e) {
+    console.warn('[CLM] Audio graph failed:', e.message);
+    _analyser = null;
+    _graphOK  = false;
+  }
+}
+
+function getBeatEnergy() {
+  if (!_analyser || !_graphOK) return 0;
+  const buf = new Uint8Array(_analyser.frequencyBinCount);
+  _analyser.getByteFrequencyData(buf);
+  let sum = 0;
+  for (let i = 0; i < 10; i++) sum += buf[i];
+  return sum / 10 / 255;
+}
+
+// ── BEAT LOOP ────────────────────────────────────────────────
+function beatLoop() {
+  if (!clmActive) return;
+  clmBeatFrame = requestAnimationFrame(beatLoop);
+
+  const energy = getBeatEnergy();
+  clmBeatEnergy = energy;
+
+  const glow = document.getElementById('clm-glow');
+  if (glow) {
+    glow.style.transform = `translateX(-50%) scale(${(1 + energy * 0.8).toFixed(3)})`;
+    glow.style.opacity   = (0.6 + energy * 0.4).toFixed(3);
+  }
+
+  const now = performance.now();
+  if (energy > 0.58 && now - clmLastBeat > 280) {
+    clmLastBeat = now;
+    const main = document.getElementById('clm-main');
+    if (main && main.classList.contains('show')) {
+      main.classList.remove('beat-hit');
+      void main.offsetWidth;
+      main.classList.add('beat-hit');
+      spawnParticles();
+    }
+  }
+
+  // Progress bar
+  const audioEl = document.getElementById('audioEl');
+  if (audioEl && audioEl.duration) {
+    const pct = (audioEl.currentTime / audioEl.duration) * 100;
+    const fill = document.getElementById('clm-prog-fill');
+    if (fill) fill.style.width = pct.toFixed(1) + '%';
+  }
+}
+
+// ── PARTICLES ────────────────────────────────────────────────
+function spawnParticles() {
+  const ov = document.getElementById('clm-overlay');
+  if (!ov) return;
+  const n = Math.floor(3 + clmBeatEnergy * 8);
+  for (let i = 0; i < n; i++) {
+    const p = document.createElement('div');
+    p.className = 'clm-pt';
+    const x   = 20 + Math.random() * 60;
+    const y   = 55 + Math.random() * 30;
+    const dur = 1.2 + Math.random() * 1.5;
+    const sz  = 2 + Math.random() * 4;
+    const col = Math.random() > 0.5 ? '167,139,250' : '216,180,254';
+    p.style.cssText = `left:${x}%;top:${y}%;width:${sz}px;height:${sz}px;` +
+      `background:rgba(${col},${(0.4 + Math.random() * 0.5).toFixed(2)});` +
+      `animation-duration:${dur.toFixed(2)}s;`;
+    ov.appendChild(p);
+    setTimeout(() => p.remove(), dur * 1000);
+  }
+}
+
+// ── LRC PARSER ───────────────────────────────────────────────
+function parseLRC(lrcText) {
+  const lines = [];
+  const re = /\[(\d+):(\d+\.\d+)\](.*)/g;
+  let m;
+  while ((m = re.exec(lrcText)) !== null) {
+    const txt = m[3].trim();
+    if (txt) lines.push({ time: +m[1] * 60 + +m[2], text: txt });
+  }
+  lines.sort((a, b) => a.time - b.time);
+  lines.forEach((l, i) => { l.mood = detectMood(l.text, i, lines.length); });
+  return lines;
+}
+
+function detectMood(text, idx, total) {
+  const t = text.toLowerCase();
+  if (/[A-Z]{3,}/.test(text) || /yeah|hey|woah|let'?s go|fire|bang|hype/.test(t)) return 'hype';
+  if (/cry|tear|alone|miss|hurt|broken|lost|pain|goodbye|never|empty/.test(t))      return 'sad';
+  if (idx > total * 0.2 && idx < total * 0.85 && text.length < 55)                   return 'chorus';
+  return 'verse';
+}
+
+// ── FETCH LYRICS ─────────────────────────────────────────────
+async function fetchLRC(title, artist) {
+  try {
+    const r = await fetch(
+      `https://lrclib.net/api/search?q=${encodeURIComponent(title + ' ' + artist)}&limit=1`
+    );
+    const d = await r.json();
+    if (d?.length && d[0].syncedLyrics) return parseLRC(d[0].syncedLyrics);
+  } catch (e) {}
+  return [];
+}
+
+// ── LYRIC SYNC INTERVAL ──────────────────────────────────────
+function startSync() {
+  if (clmInterval) clearInterval(clmInterval);
+  let lastIdx = -1;
+
+  clmInterval = setInterval(function () {
+    if (!clmActive) return;
+    const audio = document.getElementById('audioEl');
+    if (!audio || !clmLrcLines.length) { showNoLrc(true); return; }
+
+    const cur = audio.currentTime;
+    let idx = 0;
+    for (let i = 0; i < clmLrcLines.length; i++) {
+      if (cur >= clmLrcLines[i].time) idx = i;
+    }
+
+    if (idx === lastIdx) return;
+    lastIdx = idx;
+
+    const line = clmLrcLines[idx];
+    const prev = idx > 0                       ? clmLrcLines[idx - 1] : null;
+    const next = idx < clmLrcLines.length - 1  ? clmLrcLines[idx + 1] : null;
+
+    showNoLrc(false);
+    showLines(prev ? prev.text : '', line.text, next ? next.text : '', line.mood);
+  }, 200);
+}
+
+function showLines(prev, main, next, mood) {
+  const ep = document.getElementById('clm-prev');
+  const em = document.getElementById('clm-main');
+  const en = document.getElementById('clm-next');
+  if (!ep || !em || !en) return;
+
+  em.classList.remove('show');
+  setTimeout(function () {
+    ep.textContent = prev; em.textContent = main; en.textContent = next;
+    ep.classList.toggle('show', !!prev);
+    en.classList.toggle('show', !!next);
+    em.classList.remove('chorus', 'sad', 'hype', 'verse', 'beat-hit');
+    void em.offsetWidth;
+    em.classList.add('show', mood || 'verse');
+    updateGlowMood(mood);
+  }, 90);
+}
+
+function showNoLrc(on) {
+  const el = document.getElementById('clm-no-lrc');
+  const wr = document.getElementById('clm-lrc-wrap');
+  if (el) el.classList.toggle('show', on);
+  if (wr) wr.style.opacity = on ? '0' : '1';
+}
+
+function updateGlowMood(mood) {
+  const bg = document.getElementById('clm-bg-art');
+  if (!bg) return;
+  const sat = { chorus: '2.2', sad: '1.2', hype: '2.5', verse: '1.8' };
+  const bri = { chorus: '.2',  sad: '.14', hype: '.25', verse: '.18' };
+  bg.style.filter = `blur(70px) brightness(${bri[mood]||'.18'}) saturate(${sat[mood]||'1.8'})`;
+}
+
+// ── TRACK INFO (with retry + DOM fallback) ───────────────────
+function updateTrackInfo(retry) {
+  retry = retry || 0;
+  let t = window.currentTrack;
+
+  if (!t) {
+    const ti = document.getElementById('plTitle');
+    const ai = document.getElementById('plArt');
+    const ii = document.getElementById('plImg');
+    if (ti && ti.textContent && ti.textContent !== '–') {
+      t = { title: ti.textContent, artist: ai ? ai.textContent : '', thumbnail: ii ? ii.src : '' };
+    }
+  }
+
+  if (!t && retry < 25) { setTimeout(function () { updateTrackInfo(retry + 1); }, 300); return; }
+  if (!t) return;
+
+  const thumb = document.getElementById('clm-pill-thumb');
+  const tit   = document.getElementById('clm-pill-title');
+  const art   = document.getElementById('clm-pill-artist');
+  const bg    = document.getElementById('clm-bg-art');
+
+  if (thumb && t.thumbnail && t.thumbnail !== window.location.href) {
+    thumb.src = t.thumbnail;
+    thumb.onerror = function () { thumb.src = ''; };
+  }
+  if (tit)  tit.textContent  = t.title  || '–';
+  if (art)  art.textContent  = t.artist || '–';
+  if (bg && t.thumbnail && t.thumbnail !== window.location.href) {
+    bg.style.backgroundImage = "url('" + t.thumbnail + "')";
+    bg.classList.add('loaded');
+  }
+}
+
+function setThumbSpin(on) {
+  const el = document.getElementById('clm-pill-thumb');
+  if (el) el.classList.toggle('spin', on);
+}
+
+// ── HOOK: detect track change & play/pause ───────────────────
+function hookPlayer() {
+  const audio = document.getElementById('audioEl');
+  if (!audio) return;
+
+  let lastSrc = '';
+  let fetching = false;
+
+  setInterval(function () {
+    if (!clmActive) return;
+
+    const src = audio.src || '';
+    if (src && src !== lastSrc && src !== window.location.href) {
+      lastSrc  = src;
+      fetching = false;
+
+      updateTrackInfo(0);
+
+      clmLrcLines = [];
+      const em = document.getElementById('clm-main');
+      if (em) { em.classList.remove('show','chorus','sad','hype','verse','beat-hit'); void em.offsetWidth; em.textContent = '♪'; em.classList.add('show','verse'); }
+      showNoLrc(false);
+
+      // Fetch lyrics dengan retry untuk tunggu currentTrack ready
+      var tryFetch = function (n) {
+        if (fetching) return;
+        var t = window.currentTrack;
+        if (!t) {
+          var ti = document.getElementById('plTitle');
+          var ai = document.getElementById('plArt');
+          if (ti && ti.textContent && ti.textContent !== '–') t = { title: ti.textContent, artist: ai ? ai.textContent : '' };
+        }
+        if (!t && n < 20) { setTimeout(function () { tryFetch(n + 1); }, 300); return; }
+        if (!t) { showNoLrc(true); return; }
+        fetching = true;
+        fetchLRC(t.title, t.artist).then(function (lines) {
+          clmLrcLines = lines; fetching = false;
+          if (!lines.length) showNoLrc(true);
+        }).catch(function () { fetching = false; showNoLrc(true); });
+      };
+      setTimeout(function () { tryFetch(0); }, 400);
+    }
+
+    setThumbSpin(!audio.paused);
+  }, 600);
+}
+
+// ── TOGGLE CLM ───────────────────────────────────────────────
+// NOTE: initAudioGraph() dipanggil SEBELUM fungsi ini dari event listener
+// sehingga tetap synchronous dalam user gesture call stack
+async function toggleCLM() {
+  clmActive = !clmActive;
+  const btn = document.getElementById('clm-btn');
+  const ov  = document.getElementById('clm-overlay');
+
+  if (clmActive) {
+    btn.classList.add('active');
+    document.body.classList.add('clm-active');
+    ov.classList.add('active');
+
+    // Resume jika suspended (double safety)
+    if (_ctx && _ctx.state === 'suspended') _ctx.resume();
+
+    updateTrackInfo(0);
+
+    const audio = document.getElementById('audioEl');
+    if (audio) setThumbSpin(!audio.paused);
+
+    beatLoop();
+
+    // Fetch lyrics
+    const em = document.getElementById('clm-main');
+    if (em) { em.classList.remove('show','chorus','sad','hype','verse'); void em.offsetWidth; em.textContent = '♪'; em.classList.add('show','verse'); }
+    showNoLrc(false);
+
+    const t = window.currentTrack || null;
+    if (t) {
+      clmLrcLines = await fetchLRC(t.title, t.artist);
+      if (!clmLrcLines.length) showNoLrc(true);
+    } else {
+      // Tunggu track dengan DOM fallback
+      updateTrackInfo(0);
+    }
+
+    startSync();
+
+  } else {
+    btn.classList.remove('active');
+    document.body.classList.remove('clm-active');
+    ov.classList.remove('active');
+    setThumbSpin(false);
+
+    if (clmInterval)  { clearInterval(clmInterval);          clmInterval  = null; }
+    if (clmBeatFrame) { cancelAnimationFrame(clmBeatFrame);  clmBeatFrame = null; }
+
+    // JANGAN disconnect audio graph — suara harus tetap keluar
+    // Reset glow visual saja
+    const glow = document.getElementById('clm-glow');
+    if (glow) { glow.style.transform = 'translateX(-50%) scale(1)'; glow.style.opacity = '.5'; }
+
+    ['clm-prev','clm-main','clm-next'].forEach(function (id) {
+      const el = document.getElementById(id);
+      if (el) { el.classList.remove('show','chorus','sad','hype','verse','beat-hit'); el.textContent = ''; }
+    });
+    showNoLrc(false);
+  }
+}
+
+// ── KEYBOARD SHORTCUT ────────────────────────────────────────
+document.addEventListener('keydown', function (e) {
+  if (e.key !== 'c' && e.key !== 'C') return;
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  const tag = (document.activeElement || {}).tagName;
+  if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+  initAudioGraph();
+  toggleCLM();
+});
+
+// ── INIT ─────────────────────────────────────────────────────
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', function () { inject(); hookPlayer(); });
+} else {
+  inject();
+  hookPlayer();
+}
+
+})();
