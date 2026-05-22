@@ -150,15 +150,21 @@ async function audioCacheStrategy(request) {
     }
 
     // Jika fetch CORS gagal atau server tidak memberikan CORS header,
-    // fallback ke no-cors (akan menghasilkan opaque response yang bisa dipakai untuk audio)
+    // hanya fallback ke no-cors jika permintaan asli memang no-cors.
     if (!response) {
-      try {
-        const noCorsReq = new Request(request.url, { method: 'GET', mode: 'no-cors', credentials: 'omit' });
-        response = await fetch(noCorsReq);
-        console.log('[SW] Audio no-cors fetch result:', response.type || 'unknown');
-      } catch (e) {
-        console.warn('[SW] no-cors fetch also failed:', e.message);
-        throw e;
+      if (request.mode === 'no-cors') {
+        try {
+          const noCorsReq = new Request(request.url, { method: 'GET', mode: 'no-cors', credentials: 'omit' });
+          response = await fetch(noCorsReq);
+          console.log('[SW] Audio no-cors fetch result:', response.type || 'unknown');
+        } catch (e) {
+          console.warn('[SW] no-cors fetch also failed:', e.message);
+          throw e;
+        }
+      } else {
+        // Tidak melakukan no-cors fallback untuk permintaan yang mengharapkan CORS,
+        // agar tidak mengembalikan opaque response yang menyebabkan error di client.
+        throw new Error('CORS fetch failed and request requires CORS');
       }
     }
 
