@@ -1404,6 +1404,14 @@ async function playTrackObj(t){
   document.getElementById('plArt').textContent=t.artist;
 
   try{
+    // Jika sumber audio berasal dari origin berbeda, hapus attribute `crossorigin`
+    // agar browser tidak mengharapkan response CORS (menghindari opaque-response mismatch).
+    try {
+      const auUrl = new URL(t.audio, location.href);
+      if (auUrl.origin !== location.origin) audio.removeAttribute('crossorigin');
+      else audio.setAttribute('crossorigin', 'anonymous');
+    } catch (e) {}
+
     audio.src=t.audio;
     audio.volume=vol;
     audio.muted=isMuted;
