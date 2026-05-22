@@ -141,13 +141,37 @@ async function audioCacheStrategy(request) {
   });
 
   try {
-    const response = await fetch(corsReq);
-    if (response.ok) {
+    // Coba fetch dengan CORS (benar-benar cross-origin jika server mendukung)
+    let response;
+    try {
+      response = await fetch(corsReq);
+    } catch (e) {
+      console.warn('[SW] CORS fetch failed, will try no-cors fallback:', e.message);
+    }
+
+    // Jika fetch CORS gagal atau server tidak memberikan CORS header,
+    // fallback ke no-cors (akan menghasilkan opaque response yang bisa dipakai untuk audio)
+    if (!response) {
+      try {
+        const noCorsReq = new Request(request.url, { method: 'GET', mode: 'no-cors', credentials: 'omit' });
+        response = await fetch(noCorsReq);
+        console.log('[SW] Audio no-cors fetch result:', response.type || 'unknown');
+      } catch (e) {
+        console.warn('[SW] no-cors fetch also failed:', e.message);
+        throw e;
+      }
+    }
+
+    // Cache the response when possible (opaque responses will have type 'opaque' and status 0)
+    try {
       cache.put(request.url, response.clone());
-      console.log('[SW] Audio cached:', request.url.substring(0, 60));
+      console.log('[SW] Audio cached (maybe opaque):', request.url.substring(0, 60));
       notifyClients({ type: 'AUDIO_CACHED', url: request.url });
       trimAudioCache(cache);
+    } catch (e) {
+      console.warn('[SW] Failed to cache audio response:', e.message);
     }
+
     return response;
   } catch (e) {
     console.warn('[SW] Audio fetch failed (offline?):', e.message);
