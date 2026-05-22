@@ -36,7 +36,7 @@ const NETWORK_ONLY_DOMAINS = [
 
 // Domain audio R2 — di-cache
 const AUDIO_DOMAINS = [
-  'vex.web.id',
+  'music.vexcorporation43.workers.dev',
 ];
 
 // ── INSTALL — cache app shell ────────────────────────────────
