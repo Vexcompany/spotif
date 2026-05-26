@@ -7,7 +7,7 @@
 const TaksakaGroup = (() => {
 
   // ── Config — ganti setelah deploy ─────────────────────────
-  const AI_BACKEND_URL = 'https://vanz-xi.vercel.app'; // URL backend ey-ay kamu
+  const AI_BACKEND_URL = 'https://ey-ay-neon.vercel.app'; // URL backend ey-ay kamu
 
   // theresav endpoint (dari api-downloader.js)
   const THERESAV_ENDPOINT  = 'https://api.theresav.biz.id/download/applemusic';
