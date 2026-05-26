@@ -800,14 +800,20 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
     <div class="page" id="page-chat">
       <div class="sec-title"><i class="fas fa-comment-dots" style="color:var(--b2)"></i> Chat & Share Lagu</div>
       <p class="sec-sub">Bagikan lagu ke sesama anggota Pagaska</p>
-      <!-- AI Bot — selalu tampil di paling atas -->
-      <div class="chat-item" id="aiBotEntry" onclick="openAIChat()" style="background:linear-gradient(135deg,rgba(29,185,84,.08),rgba(124,92,191,.08));border-color:rgba(29,185,84,.25);margin-bottom:8px">
-        <div class="chat-av" style="background:linear-gradient(135deg,#1DB954,#7c5cbf)"><i class="fas fa-robot" style="font-size:.8rem"></i></div>
-        <div class="chat-info">
-          <div class="chat-name">AI Pagaska 🤖</div>
-          <div class="chat-preview">Tanya apa saja tentang Paskibra...</div>
+      <!-- Grup Taksaka AI -->
+      <div class="chat-item" id="aiBotEntry" onclick="TaksakaGroup.open()" style="background:linear-gradient(135deg,rgba(29,185,84,.08),rgba(124,92,191,.08));border-color:rgba(29,185,84,.25);margin-bottom:8px;position:relative">
+        <div style="position:relative;width:44px;height:44px;flex-shrink:0">
+          <div style="position:absolute;top:0;left:0;width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#1DB954,#17a348);display:flex;align-items:center;justify-content:center;font-size:.45rem;font-weight:800;color:#fff;z-index:2;border:2px solid var(--bg)">KT</div>
+          <div style="position:absolute;bottom:0;right:0;width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#7c5cbf,#5a3fa0);display:flex;align-items:center;justify-content:center;font-size:.45rem;font-weight:800;color:#fff;z-index:1;border:2px solid var(--bg)">DT</div>
         </div>
-        <div class="chat-meta"><div class="chat-time" style="color:var(--g)">Online</div></div>
+        <div class="chat-info">
+          <div class="chat-name">Grup Taksaka 🤖</div>
+          <div class="chat-preview" id="taksakaGroupPreview">Kak Taksaka & Dokter Taksaka siap membantu...</div>
+        </div>
+        <div class="chat-meta">
+          <div class="chat-time" style="color:var(--g)">Online</div>
+          <div id="taksakaUnreadBadge" style="display:none;background:var(--dyn1);color:#000;font-size:.6rem;font-weight:800;padding:1px 7px;border-radius:20px;margin-top:3px"></div>
+        </div>
       </div>
       <div class="chat-list" id="chatList">
         <div class="empty-ti"><i class="fas fa-comment-slash"></i>Belum ada percakapan</div>
@@ -1048,22 +1054,32 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 
 <div class="toast" id="toast"></div>
 <audio id="audioEl" crossorigin="anonymous"></audio>
-<!-- AI CHAT ROOM -->
+<!-- GRUP TAKSAKA AI ROOM -->
 <div class="chat-room" id="aiChatRoom">
   <div class="chat-room-header">
-    <button class="chat-back" onclick="closeAIChat()"><i class="fas fa-chevron-left"></i></button>
-    <div class="chat-room-av" style="background:linear-gradient(135deg,var(--g),var(--p))"><i class="fas fa-robot" style="font-size:.72rem"></i></div>
-    <div class="chat-room-info">
-      <div class="chat-room-name">AI Pagaska</div>
-      <div class="chat-room-status">Paskibra Gala Taksaka · Online</div>
+    <button class="chat-back" onclick="TaksakaGroup.close()"><i class="fas fa-chevron-left"></i></button>
+    <div style="position:relative;width:36px;height:36px;flex-shrink:0">
+      <div style="position:absolute;top:0;left:0;width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,#1DB954,#17a348);display:flex;align-items:center;justify-content:center;font-size:.38rem;font-weight:800;color:#fff;z-index:2;border:1.5px solid var(--bg)">KT</div>
+      <div style="position:absolute;bottom:0;right:0;width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,#7c5cbf,#5a3fa0);display:flex;align-items:center;justify-content:center;font-size:.38rem;font-weight:800;color:#fff;z-index:1;border:1.5px solid var(--bg)">DT</div>
     </div>
-    <button class="chat-back" onclick="clearAIChat()" title="Hapus riwayat" style="margin-left:auto"><i class="fas fa-trash-alt" style="font-size:.75rem;color:var(--mt)"></i></button>
+    <div class="chat-room-info">
+      <div class="chat-room-name">Grup Taksaka</div>
+      <div class="chat-room-status">Kak Taksaka & Dokter Taksaka · Online</div>
+    </div>
+    <button class="chat-back" onclick="TaksakaGroup.clear()" title="Hapus riwayat" style="margin-left:auto"><i class="fas fa-trash-alt" style="font-size:.75rem;color:var(--mt)"></i></button>
   </div>
+
+  <!-- Tab mode: siapa yang menjawab -->
+  <div style="display:flex;gap:6px;padding:8px 12px;background:rgba(7,7,26,.85);border-bottom:1px solid var(--bd)" id="taksakaTabRow">
+    <!-- Diisi oleh TaksakaGroup._updateTabs() -->
+  </div>
+
   <div class="chat-messages" id="aiMessages"></div>
+
   <div class="chat-input-wrap">
     <div class="chat-input-row">
-      <textarea class="chat-input" id="aiChatInput" placeholder="Tanya tentang Paskibra, PBB, organisasi..." rows="1" onkeydown="aiInputKeydown(event)" oninput="autoResizeChatInput(this)"></textarea>
-      <button class="chat-send" id="aiSendBtn" onclick="sendAIMessage()"><i class="fas fa-paper-plane"></i></button>
+      <textarea class="chat-input" id="aiChatInput" placeholder="Cerita ke Kak atau Dokter Taksaka..." rows="1" onkeydown="TaksakaGroup.onKeydown(event)" oninput="autoResizeChatInput(this)"></textarea>
+      <button class="chat-send" id="aiSendBtn" onclick="TaksakaGroup.send()"><i class="fas fa-paper-plane"></i></button>
     </div>
   </div>
 </div>
@@ -1077,7 +1093,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 //  CONFIG - BACKEND API (GANTI DENGAN URL BACKEND ANDA)
 // ══════════════════════════════════════════════════════════════
 const BACKEND_URL = 'https://verolyz-kingdom3.vercel.app'; // ← ganti dengan URL backend Anda
-const AI_API_URL  = 'https://vanz-xi.vercel.app/api/pagaska';   // Ganti dengan URL deploy AI kamu
+const AI_BACKEND_URL = 'https://vanz-xi.vercel.app';       // ← URL ey-ay backend (Kak & Dokter Taksaka)
 
 const APPLE_SEARCH_API = `${BACKEND_URL}/api/apple-search?q=`;
 const STREAM_API       = `${BACKEND_URL}/api/stream`;           // NEW: R2 stream endpoint
@@ -2529,90 +2545,23 @@ if(document.readyState==='loading'){
 }
 
 // ══════════════════════════════════════════════════════════════
-//  AI PAGASKA CHAT
+//  GRUP TAKSAKA — bridge ke taksaka-group.js
+//  kaktaksaka.js + doktertaksaka.js + taksaka-group.js handle
+//  semua logic AI. Blok ini hanya expose config & compat shim.
 // ══════════════════════════════════════════════════════════════
-let aiMessages = JSON.parse(localStorage.getItem('pm2_ai_msgs') || '[]');
 
-function openAIChat(){
-  document.getElementById('aiChatRoom').classList.add('open');
-  document.body.style.overflow = 'hidden';
-  renderAIMessages();
-  document.getElementById('aiChatInput').focus();
-}
+// Expose Supabase config ke taksaka-group.js (untuk fallback DB lagu)
+window.SB_URL = SB_URL;
+window.SB_KEY = SB_KEY;
+// Expose AI backend URL ke persona files
+window.AI_BACKEND_URL = AI_BACKEND_URL;
 
-function closeAIChat(){
-  document.getElementById('aiChatRoom').classList.remove('open');
-  document.body.style.overflow = '';
-}
-
-function renderAIMessages(){
-  const el = document.getElementById('aiMessages');
-  if(!aiMessages.length){
-    el.innerHTML = `<div style="text-align:center;padding:32px 16px">
-      <div style="font-size:2.5rem;margin-bottom:12px">🤖</div>
-      <div style="font-family:'Syne',sans-serif;font-size:1rem;font-weight:700;margin-bottom:6px">AI Pagaska</div>
-      <div style="font-size:.8rem;color:var(--mt);line-height:1.7">Asisten digital Paskibra Gala Taksaka.<br>Tanya apa saja tentang Paskibra, PBB, atau organisasi!</div>
-    </div>`;
-    return;
-  }
-  el.innerHTML = aiMessages.map(m => `
-    <div class="msg-wrap ${m.role==='user'?'me':'them'}">
-      <div class="msg-bubble" style="${m.role==='assistant'?'white-space:pre-wrap;':''}">
-        ${m.role==='assistant'?'<span style="font-size:.6rem;opacity:.5;display:block;margin-bottom:4px">🤖 AI Pagaska</span>':''}
-        ${m.content}
-      </div>
-    </div>
-  `).join('');
-  el.scrollTop = el.scrollHeight;
-}
-
-async function sendAIMessage(){
-  const input = document.getElementById('aiChatInput');
-  const msg = input.value.trim();
-  if(!msg) return;
-
-  const btn = document.getElementById('aiSendBtn');
-  btn.disabled = true;
-  input.value = '';
-  input.style.height = '42px';
-
-  aiMessages.push({ role:'user', content: msg });
-  localStorage.setItem('pm2_ai_msgs', JSON.stringify(aiMessages));
-  renderAIMessages();
-
-  // Typing indicator
-  const el = document.getElementById('aiMessages');
-  el.innerHTML += `<div class="msg-wrap them" id="aiTyping"><div class="msg-bubble" style="opacity:.6"><i class="fas fa-circle-notch spin"></i> Sedang mengetik...</div></div>`;
-  el.scrollTop = el.scrollHeight;
-
-  try{
-    const res = await fetch(AI_API_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: msg })
-    });
-    const data = await res.json();
-    const reply = data?.response || data?.message || 'Maaf, AI tidak dapat menjawab saat ini.';
-    aiMessages.push({ role:'assistant', content: reply });
-    localStorage.setItem('pm2_ai_msgs', JSON.stringify(aiMessages.slice(-50)));
-  }catch(e){
-    aiMessages.push({ role:'assistant', content: '⚠️ AI tidak dapat dihubungi saat ini.' });
-    localStorage.setItem('pm2_ai_msgs', JSON.stringify(aiMessages.slice(-50)));
-  }
-
-  btn.disabled = false;
-  renderAIMessages();
-}
-
-function aiInputKeydown(e){
-  if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); sendAIMessage(); }
-}
-
-function clearAIChat(){
-  aiMessages = [];
-  localStorage.removeItem('pm2_ai_msgs');
-  renderAIMessages();
-}
+// Legacy compat — kalau ada bagian lain yang masih panggil ini
+function openAIChat()    { TaksakaGroup.open();  }
+function closeAIChat()   { TaksakaGroup.close(); }
+function clearAIChat()   { TaksakaGroup.clear(); }
+function sendAIMessage() { TaksakaGroup.send();  }
+function aiInputKeydown(e){ TaksakaGroup.onKeydown(e); }
 
 // ── ADMIN: hapus lagu dari beranda ─────────────────────────
 async function adminDeleteTrack(id, title, e){
@@ -2948,6 +2897,10 @@ if (document.readyState === 'loading') {
   registerSW();
 }
 </script>
+<script src="api-downloader.js"></script>
+<script src="kaktaksaka.js"></script>
+<script src="doktertaksaka.js"></script>
+<script src="taksaka-group.js"></script>
 <script src="music-room.js"></script>
 <script src="cinematic-lyrics.js"></script>
 </body>
