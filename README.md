@@ -80,7 +80,16 @@ void AudioUniverseExplorer() {
 ```
 
 <p align="center">
-  <img src="https://github-readme-stats.vercel.app/api/top-langs/?username=Vexcompany&layout=compact&theme=dark&hide_border=true&bg_color=0D1117&title_color=1DB954&text_color=FFFFFF" />
+  <a href="https://github.com/Vexcompany">
+    <img src="https://img.shields.io/badge/JavaScript-51.2%25-F7DF1E?style=for-the-badge&logo=javascript" alt="JavaScript" />
+  </a>
+  <a href="https://github.com/Vexcompany">
+    <img src="https://img.shields.io/badge/HTML-48.8%25-E34C26?style=for-the-badge&logo=html5" alt="HTML" />
+  </a>
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Tech%20Stack-JavaScript%20%7C%20HTML%20%7C%20CSS%20%7C%20Spotify%20API-1DB954?style=flat-square" alt="Tech Stack" />
 </p>
 
 ---
