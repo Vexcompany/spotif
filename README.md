@@ -1,207 +1,354 @@
-# 🎵 Spotif - Spotify Music Exploration Platform
+# 🎵 SPOTIF — Audio Universe Explorer
 
-> A modern, interactive web application for discovering and exploring Spotify music with a beautiful and intuitive user interface.
+<p align="center">
+  <img src="https://readme-typing-svg.demolab.com?font=Share+Tech+Mono&size=28&pause=600&color=1DB954&center=true&vCenter=true&width=900&lines=INITIALIZING+MUSIC+MATRIX...;STREAMING+INFINITE+SOUNDWAVES;WELCOME+TO+SPOTIF+COMMAND+CENTER" />
+</p>
 
-[![Live Demo](https://img.shields.io/badge/Live%20Demo-Vercel-3178c6?logo=vercel&style=flat-square)](https://spotif-mocha.vercel.app)
-[![Repository](https://img.shields.io/badge/Repository-GitHub-000000?logo=github&style=flat-square)](https://github.com/Vexcompany/spotif)
-[![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)](LICENSE)
-
----
-
-## ✨ Features
-
-- 🎶 **Search Spotify Music** - Cari lagu, artis, dan album favorit Anda dengan mudah
-- 📊 **Music Exploration** - Jelajahi berbagai genre dan playlist yang tersedia
-- 🎨 **Modern UI/UX** - Desain antarmuka yang sleek dan responsif
-- ⚡ **Fast Performance** - Loading cepat dengan optimasi performa
-- 📱 **Mobile Friendly** - Bekerja sempurna di semua ukuran layar
-- 🔍 **Advanced Search** - Filter dan sort hasil pencarian sesuai preferensi
+<p align="center">
+  <img src="https://komarev.com/ghpvc/?username=Vexcompany&label=SIGNAL+STRENGTH&color=1DB954&style=for-the-badge" />
+</p>
 
 ---
 
-## 🚀 Tech Stack
+## I — Mascot Interface
 
-| Teknologi | Deskripsi |
-|-----------|-----------|
-| **JavaScript** | 51.2% - Logic dan interaktivitas aplikasi |
-| **HTML** | 48.8% - Struktur dan markup halaman |
-| **CSS** | Styling dan responsive design |
-| **Vercel** | Deployment platform |
+<p align="center">
+  <img src="https://vex.web.id/1aa84b68-6d36-4a3e-bdbc-c6c54620acb2.webp" width="280" alt="Vex Mascot" />
+</p>
 
----
-
-## 📋 Prerequisites
-
-Sebelum memulai, pastikan Anda sudah memiliki:
-
-- Node.js (v14 atau lebih tinggi)
-- npm atau yarn
-- Akun GitHub
-- (Optional) Spotify Developer Account untuk API integration
+<p align="center">
+  <sub>🎧 Meet your Audio Commander — Vex the Digital DJ</sub>
+</p>
 
 ---
 
-## 🔧 Installation
+## II — System Overview
 
-### 1. Clone Repository
 ```bash
+> application  : SPOTIF Music Explorer
+> version      : 1.0.0 ALPHA
+> creator      : Vexcompany
+> status       : ACTIVE & OPERATIONAL
+> deployment   : Vercel Cloud Infrastructure
+> mission      : Revolutionize Music Discovery
+```
+
+---
+
+## III — Core Capabilities
+
+### 🎶 Primary Functions
+
+```c
+void AudioUniverseExplorer() {
+    while(musicExists) {
+        Search();        // Query vast music library
+        Discover();      // Find new artists & tracks
+        Stream();        // Real-time audio playback
+        Interact();      // Community engagement
+        Improve();       // Machine learning recommendations
+    }
+    
+    EnhanceExperience();
+    DeliverMagic();
+}
+```
+
+### ✨ Feature Arsenal
+
+| Feature | Status | Description |
+|---------|--------|-------------|
+| 🔍 Smart Search | ✅ ACTIVE | Find songs, artists, albums instantly |
+| 🎨 Modern UI/UX | ✅ ACTIVE | Sleek, responsive interface design |
+| 🔊 Audio Preview | ✅ ACTIVE | Stream track previews seamlessly |
+| 📱 Mobile Optimized | ✅ ACTIVE | Works on all devices flawlessly |
+| ⚡ Ultra Fast | ✅ ACTIVE | Optimized performance & loading |
+| 🌐 Spotify Integration | ✅ ACTIVE | Full API integration enabled |
+| 💾 Save Favorites | 🔄 COMING | Persistent storage system |
+| 📊 Analytics | 🔄 COMING | Listening statistics & trends |
+
+---
+
+## IV — Tech Matrix
+
+```diff
++ JavaScript    : 51.2%  (Core Logic Engine)
++ HTML          : 48.8%  (UI Structure Framework)
++ CSS           : Modern styling & animations
++ Spotify API   : Music data & streaming
++ Vercel        : Cloud deployment platform
+```
+
+<p align="center">
+  <img src="https://github-readme-stats.vercel.app/api/top-langs/?username=Vexcompany&layout=compact&theme=dark&hide_border=true&bg_color=0D1117&title_color=1DB954&text_color=FFFFFF" />
+</p>
+
+---
+
+## V — Mission Control (Installation)
+
+### Prerequisites Check
+```bash
+✓ Node.js v14+ required
+✓ npm or yarn package manager
+✓ GitHub account for contributions
+✓ (Optional) Spotify Developer Credentials
+```
+
+### Launch Sequence
+
+```bash
+# STEP 1: Extract Repository
 git clone https://github.com/Vexcompany/spotif.git
 cd spotif
-```
 
-### 2. Install Dependencies
-```bash
+# STEP 2: Install Weapons System
 npm install
-# atau
+# or
 yarn install
-```
 
-### 3. Setup Environment Variables
-```bash
+# STEP 3: Configure Environment
 cp .env.example .env.local
-```
+# Add your Spotify API keys here
 
-Isi variabel environment yang diperlukan (Spotify API keys, dll)
-
-### 4. Start Development Server
-```bash
+# STEP 4: Ignition Sequence
 npm start
-# atau
+# or
 yarn dev
+
+# STEP 5: Mission Engaged
+# Application running at http://localhost:3000
 ```
 
-Aplikasi akan berjalan di `http://localhost:3000`
+---
+
+## VI — Operation Manual
+
+### 🎵 Music Discovery Protocol
+
+```
+1. LAUNCH APPLICATION
+   └─ Frontline interface loads instantly
+
+2. ACTIVATE SEARCH MATRIX
+   └─ Input artist, song, or album name
+   └─ Real-time results populate
+
+3. ENGAGE TRACK
+   └─ Click result to expand details
+   └─ Preview audio streams
+
+4. SAVE TO ARSENAL
+   └─ Add to favorites for later access
+   └─ Build personal collections
+```
+
+### 🗺️ Navigation Map
+
+```
+┌─────────────────────────────────┐
+│        SPOTIF DASHBOARD         │
+├─────────────────────────────────┤
+│ [HOME]  [SEARCH]  [FAV]  [MORE]  │
+│                                  │
+│  🏠 Homepage      (Trending)     │
+│  🔍 Search        (Discovery)    │
+│  ❤️  Favorites     (Saved)       │
+│  📋 Playlists     (Collections)  │
+│  ⚙️  Settings      (Config)      │
+└─────────────────────────────────┘
+```
 
 ---
 
-## 📚 Usage
-
-### Pencarian Musik
-1. Buka aplikasi di browser
-2. Gunakan search bar untuk mencari lagu, artis, atau album
-3. Klik hasil pencarian untuk melihat detail lebih lanjut
-4. Dengarkan preview lagu (jika tersedia)
-
-### Navigasi
-- **Home** - Tampilan utama dengan rekomendasi
-- **Search** - Pencarian musik yang comprehensive
-- **Favorites** - Simpan lagu favorit Anda
-- **Playlists** - Kelola playlist Anda
-
----
-
-## 🏗️ Project Structure
+## VII — Project Architecture
 
 ```
 spotif/
-├── public/              # File statis
-├── src/
-│   ├── components/      # React/Web components
-│   ├── pages/          # Halaman aplikasi
-│   ├── styles/         # CSS files
-│   ├── utils/          # Helper functions
-│   ├── api/            # API integrations
-│   └── App.js          # Entry point aplikasi
-├── package.json        # Dependencies
-└── README.md          # Dokumentasi
+├── 📁 public/               # Static Assets
+│   ├── index.html          # Entry HTML
+│   └── assets/             # Images & media
+├── 📁 src/
+│   ├── 🔧 components/      # UI Components
+│   │   ├── SearchBar.js
+│   │   ├── TrackCard.js
+│   │   └── Player.js
+│   ├── 📄 pages/           # Application Pages
+│   │   ├── Home.js
+│   │   ├── Search.js
+│   │   └── Favorites.js
+│   ├── 🎨 styles/          # CSS Modules
+│   │   ├── main.css
+│   │   └── responsive.css
+│   ├── 🔗 api/             # Spotify Integration
+│   │   └── spotifyClient.js
+│   ├── 🛠️  utils/          # Helper Functions
+│   │   ├── formatters.js
+│   │   └── validators.js
+│   └── App.js              # Root Component
+├── .env.example            # Environment Template
+├── package.json            # Dependencies
+└── README.md              # Documentation
 ```
 
 ---
 
-## 🔌 API Integration
+## VIII — API Command Interface
 
-Aplikasi ini terintegrasi dengan **Spotify Web API** untuk:
-- Pencarian lagu, artis, dan album
-- Mendapatkan detail musik
-- Memutar preview audio
+### Spotify Integration
 
-> **Catatan:** Pastikan Spotify API credentials sudah dikonfigurasi di `.env` file
+```javascript
+// Search for tracks
+GET /search?q=artist+song&type=track
 
----
+// Get track details
+GET /tracks/:id
 
-## 🤝 Contributing
+// Get recommendations
+GET /recommendations?seed_artists=id1,id2
 
-Kontribusi sangat diterima! Berikut langkah-langkahnya:
+// Stream preview
+GET /tracks/:id/preview_url
+```
 
-1. **Fork** repository ini
-2. Buat branch feature (`git checkout -b feature/AmazingFeature`)
-3. Commit perubahan Anda (`git commit -m 'Add some AmazingFeature'`)
-4. Push ke branch (`git push origin feature/AmazingFeature`)
-5. Buka **Pull Request**
-
-### Panduan Kontribusi
-- Pastikan code mengikuti style guide yang ada
-- Tambahkan test untuk fitur baru
-- Update dokumentasi jika diperlukan
-- Buat PR dengan deskripsi yang jelas
+**Note:** API credentials required in `.env` file
 
 ---
 
-## 🐛 Bug Reports & Issues
+## IX — Battlefield Upgrades (Roadmap)
 
-Menemukan bug? Silakan buat issue di repository ini dengan:
-- Deskripsi bug yang detail
-- Steps untuk reproduce
-- Expected vs actual behavior
-- Screenshot atau video (jika perlu)
-
-[Report a Bug](https://github.com/Vexcompany/spotif/issues/new)
-
----
-
-## 📝 Roadmap
-
-- [ ] Integrasi Spotify OAuth login
-- [ ] Fitur playlist creation & management
-- [ ] Dark mode theme
-- [ ] Offline mode
-- [ ] Mobile app (React Native)
-- [ ] Social sharing features
-- [ ] Recommendations engine
-- [ ] Analytics dashboard
+```diff
++ [x] Basic search functionality
++ [x] Track preview streaming
++ [x] Responsive UI design
++ [ ] OAuth Spotify Login
++ [ ] Advanced filtering
++ [ ] Playlist creation
++ [ ] Dark mode enhancement
++ [ ] PWA offline support
++ [ ] User analytics dashboard
++ [ ] Social sharing features
++ [ ] AI recommendations engine
++ [ ] Mobile native apps
+```
 
 ---
 
-## 📄 License
+## X — Secure Channel (Contributing)
 
-Proyek ini dilisensikan di bawah **MIT License** - lihat file [LICENSE](LICENSE) untuk detailnya.
+### Battle Formation
+
+1. **SCOUT THE TERRITORY**
+   ```bash
+   git clone https://github.com/Vexcompany/spotif.git
+   ```
+
+2. **ESTABLISH YOUR BASE**
+   ```bash
+   git checkout -b feature/YourFeatureName
+   ```
+
+3. **DEPLOY YOUR UPGRADES**
+   ```bash
+   git commit -m "feat: Add amazing feature"
+   ```
+
+4. **TRANSMIT TO HQ**
+   ```bash
+   git push origin feature/YourFeatureName
+   ```
+
+5. **REQUEST BACKUP**
+   - Open Pull Request with detailed description
+   - Link related issues
+   - Provide screenshots/demos
+
+### Code Standards
+```bash
+✓ Follow consistent code style
+✓ Add meaningful commit messages
+✓ Test all new features
+✓ Update relevant documentation
+✓ Respect existing patterns
+```
 
 ---
 
-## 👥 Author
+## XI — Report Issues
 
-**Vexcompany**
-- GitHub: [@Vexcompany](https://github.com/Vexcompany)
-- Repository: [spotif](https://github.com/Vexcompany/spotif)
+### Signal Malfunction?
 
----
-
-## 🎯 Support
-
-Jika Anda menemukan proyek ini bermanfaat:
-- ⭐ Beri bintang di GitHub
-- 🔔 Watch repository untuk update terbaru
-- 💬 Share dengan komunitas
+- 🐛 [Report Bug](https://github.com/Vexcompany/spotif/issues/new?template=BUG_REPORT.md)
+- 💡 [Request Feature](https://github.com/Vexcompany/spotif/issues/new?template=FEATURE_REQUEST.md)
+- 💬 [Start Discussion](https://github.com/Vexcompany/spotif/discussions)
 
 ---
 
-## 📞 Contact & Questions
+## XII — Mission Stats
 
-Punya pertanyaan atau saran? Silakan:
-- Buka [Discussion](https://github.com/Vexcompany/spotif/discussions)
-- Buat [Issue](https://github.com/Vexcompany/spotif/issues)
-- DM di GitHub
-
----
-
-## 🙏 Acknowledgments
-
-- Spotify Web API documentation
-- Contributors dan community members
-- Inspirasi dari music streaming platforms
+<p align="center">
+  <img src="https://github-readme-activity-graph.vercel.app/graph?username=Vexcompany&theme=react-dark&hide_border=true&area=true&bg_color=0D1117&color=1DB954&line=1DB954&point=FFFFFF" width="100%" />
+</p>
 
 ---
 
-**Made with ❤️ by Vexcompany**
+## XIII — Special Recognition
 
-[⬆ Back to top](#-spotif---spotify-music-exploration-platform)
+```bash
+[✔] Spotify           : API & Music Data
+[✔] Vercel            : Infrastructure & Deployment
+[✔] GitHub Community  : Support & Collaboration
+[✔] Contributors      : Making this possible
+[✔] You               : For being awesome
+```
+
+---
+
+## XIV — License & Terms
+
+```
+MIT License © 2026 Vexcompany
+Permission granted for open source use
+See LICENSE file for full terms
+```
+
+---
+
+## XV — Commander Signature
+
+<p align="center">
+  <img src="https://readme-typing-svg.demolab.com?font=Share+Tech+Mono&size=18&pause=2000&color=1DB954&center=true&vCenter=true&width=800&lines=Discover+music.+Explore+infinity.;Built+with+passion.;Powered+by+Vex.;Welcome+to+SPOTIF+" />
+</p>
+
+### 📡 Connect with Command
+
+- **GitHub**: [@Vexcompany](https://github.com/Vexcompany)
+- **Live Demo**: [spotif-mocha.vercel.app](https://spotif-mocha.vercel.app)
+- **Repository**: [github.com/Vexcompany/spotif](https://github.com/Vexcompany/spotif)
+
+---
+
+## XVI — Final Transmission
+
+```bash
+> SYSTEM STATUS    : ONLINE
+> OPERATIONAL MODE : ACTIVE
+> MISSION         : STREAMING GREATNESS
+> NEXT CHECKPOINT  : YOUR FAVORITE SONG
+
+>>> Thank you for joining the SPOTIF Universe <<<
+```
+
+<p align="center">
+  <img src="https://capsule-render.vercel.app/api?type=waving&color=1DB954&height=100&section=footer&reversal=true" width="100%" />
+</p>
+
+---
+
+<p align="center">
+  ⭐ <b>Don't forget to star this repository!</b> ⭐
+</p>
+
+<p align="center">
+  Made with 🎵 by <b>Vexcompany</b>
+</p>
