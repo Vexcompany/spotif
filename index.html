@@ -778,7 +778,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
               </button>
               <div class="ico-btn" id="hLike" onclick="toggleLikeCurrent()"><i class="far fa-heart"></i></div>
               <div class="ico-btn" onclick="shareCurrentTrack()" title="Bagikan ke anggota"><i class="fas fa-share"></i></div>
-              <div class="ico-btn" onclick="if(currentTrack)PlaylistManager.showAddToPlaylist(currentTrack)" title="Tambah ke Playlist"><i class="fas fa-list-music"></i></div>
+              <div class="ico-btn" onclick="if(currentTrack)PlaylistManager.showAddToPlaylist(currentTrack)" title="Tambah ke Playlist"><i class="fas fa-list-ul"></i></div>
               <div class="ico-btn" onclick="openNP()" title="Now Playing"><i class="fas fa-music"></i></div>
             </div>
           </div>
@@ -903,7 +903,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
     <!-- PLAYLIST PAGE (UPDATE #3) -->
     <div class="page" id="page-playlist">
       <div class="sec-row">
-        <div class="sec-title" style="margin-bottom:0"><i class="fas fa-list-music" style="color:var(--p2)"></i> Playlist</div>
+        <div class="sec-title" style="margin-bottom:0"><i class="fas fa-list-ul" style="color:var(--p2)"></i> Playlist</div>
         <button onclick="PlaylistManager.showCreate()" style="display:flex;align-items:center;gap:5px;padding:7px 12px;border-radius:10px;background:var(--g);color:#000;border:none;font-size:.72rem;font-weight:700;cursor:pointer"><i class="fas fa-plus"></i> Buat</button>
       </div>
       <p style="font-size:.7rem;color:var(--mt);margin:5px 0 14px">Playlist kamu & semua anggota Pagaska</p>
@@ -948,7 +948,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
       <div class="nav-icon-wrap"><i class="fas fa-fire"></i></div><span>Chart</span>
     </button>
     <button class="nav-item" id="nav-playlist" onclick="navigate('playlist')">
-      <div class="nav-icon-wrap"><i class="fas fa-list-music"></i></div><span>Playlist</span>
+      <div class="nav-icon-wrap"><i class="fas fa-list-ul"></i></div><span>Playlist</span>
     </button>
     <button class="nav-item" id="nav-party" onclick="navigate('party')">
       <div class="nav-icon-wrap"><i class="fas fa-users"></i><div class="nav-badge" id="partyBadge">LIVE</div></div><span>Party</span>
@@ -1020,7 +1020,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
       <button class="np-act" id="npRep" onclick="toggleRepeat()"><i class="fas fa-redo"></i></button>
       <button class="np-act" id="npLikeBtn" onclick="toggleLikeCurrent()"><i class="far fa-heart" id="npLikeIco"></i></button>
       <button class="np-act" onclick="addToPartyQueueFromNP()" title="Tambah ke Party Queue"><i class="fas fa-users"></i></button>
-      <button class="np-act" onclick="if(currentTrack)PlaylistManager.showAddToPlaylist(currentTrack)" title="Tambah ke Playlist"><i class="fas fa-list-music"></i></button>
+      <button class="np-act" onclick="if(currentTrack)PlaylistManager.showAddToPlaylist(currentTrack)" title="Tambah ke Playlist"><i class="fas fa-list-ul"></i></button>
     </div>
     <div class="np-prog">
       <div class="np-prbar" id="npPrbar" onclick="npSeek(event)"><div class="np-prfill" id="npPrfill"></div></div>
