@@ -1,5 +1,6 @@
 // ════════════════════════════════════════════════════════════════
 //  taksaka-group.js  — Grup Taksaka AI (Kak + Dokter Taksaka)
+//  UPDATE #1: Fix bergantian (keduanya jawab) + Markdown render
 //  Self-contained: auth ke ey-ay, 2 persona, mood, song, render
 //  Diload setelah index.html — pakai SB_URL, SB_KEY, USER_KEY
 //  yang sudah dideclare di index.html
@@ -22,7 +23,6 @@ const TaksakaGroup = (() => {
       grad:     'linear-gradient(135deg,#1DB954,#17a348)',
       icon:     'fas fa-user-friends',
       ph:       'Ngobrol atau tanya ke Kak Taksaka...',
-      // System prompt tambahan — dikirim sebagai bagian pesan pertama kalau backend support
       hint: `Kamu Kak Taksaka — AI santai Pagaska. Kalau kamu mau kirim lagu sesuai suasana user, tambahkan tag [SEND_SONG:mood=happy] atau [SEND_SONG:mood=sad] atau [SEND_SONG:mood=stress] atau [SEND_SONG:mood=excited] atau [SEND_SONG:mood=lonely] di akhir responmu (opsional, jangan tiap pesan).`
     },
     dokter: {
@@ -48,7 +48,6 @@ const TaksakaGroup = (() => {
 
   // ── 🔑 STORAGE KEY (per-user) ────────────────────────────────
   function _storeKey() {
-    // USER_KEY dideclare di index.html — fallback ke SESS kalau belum ada
     try {
       const uk = (typeof USER_KEY !== 'undefined' && USER_KEY) ? USER_KEY : _sessKey();
       return `pgsk_taksaka_v2_${uk}`;
@@ -74,10 +73,8 @@ const TaksakaGroup = (() => {
 
   // ── 🔐 AUTH — login ke ey-ay backend, simpan JWT ─────────────
   async function _ensureToken() {
-    // Masih valid?
     if (_token && Date.now() < _tokenExp - 60000) return _token;
 
-    // Cek localStorage cache
     const cached = localStorage.getItem('_pgsk_ai_jwt');
     if (cached) {
       try {
@@ -90,7 +87,6 @@ const TaksakaGroup = (() => {
       } catch { /* expired */ }
     }
 
-    // Ambil session dari localStorage (disimpan login.html)
     let sess = null;
     try { sess = JSON.parse(localStorage.getItem('pgsk_v2_session') || 'null'); } catch {}
 
@@ -98,7 +94,6 @@ const TaksakaGroup = (() => {
       throw new Error('Silakan login dulu ke Pagaska Music ya!');
     }
 
-    // Hit /api/auth/login di ey-ay
     const r = await fetch(`${AI_URL}/api/auth/login`, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -116,24 +111,10 @@ const TaksakaGroup = (() => {
     try {
       const p = JSON.parse(atob(d.token.split('.')[1]));
       _tokenExp = p.exp * 1000;
-    } catch { _tokenExp = Date.now() + 604800000; } // 7 hari fallback
+    } catch { _tokenExp = Date.now() + 604800000; }
 
     localStorage.setItem('_pgsk_ai_jwt', d.token);
     return d.token;
-  }
-
-  // ── 🎯 SIAPA YANG JAWAB ──────────────────────────────────────
-  function _whoAnswers(userMsg) {
-    if (_mode === 'kak')    return PERSONAS.kak;
-    if (_mode === 'dokter') return PERSONAS.dokter;
-
-    // Bergantian — Dokter prioritas kalau deteksi mood negatif
-    const t = userMsg.toLowerCase();
-    const isNegative = /sedih|nangis|galau|patah hati|kecewa|stress|capek|lelah|bosen|jenuh|penat|sendiri|sepi|lonely|takut|cemas|panik|khawatir|gelisah|bingung|hilang arah|overwhelm/.test(t);
-    if (isNegative) return PERSONAS.dokter;
-
-    _turn++;
-    return _turn % 2 === 1 ? PERSONAS.dokter : PERSONAS.kak;
   }
 
   // ── 🎵 DETEKSI MOOD ──────────────────────────────────────────
@@ -168,7 +149,6 @@ const TaksakaGroup = (() => {
     };
 
     const kws = kwMap[mood] || ['populer','indonesia'];
-    // Coba beberapa keyword sampai dapat hasil
     for (const kw of kws) {
       try {
         const sbUrl = (typeof SB_URL !== 'undefined') ? SB_URL : '';
@@ -183,7 +163,6 @@ const TaksakaGroup = (() => {
         const rows = await res.json();
         if (!rows?.length) continue;
 
-        // Filter yang punya audio_url
         const valid = rows.filter(r => r.audio_url);
         if (!valid.length) continue;
 
@@ -198,7 +177,53 @@ const TaksakaGroup = (() => {
         };
       } catch { continue; }
     }
-    return null; // tidak ada lagu
+    return null;
+  }
+
+  // ── 📝 MARKDOWN RENDERER (FIX #2) ───────────────────────────
+  // Mengubah **bold**, *italic*, # heading, - list, dll. jadi HTML
+  function _parseMarkdown(text) {
+    if (!text) return '';
+
+    // Escape HTML terlebih dahulu (tapi simpan agar bisa tambahkan tag HTML)
+    let s = String(text)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+
+    // Heading: ### H3, ## H2, # H1
+    s = s.replace(/^###\s+(.+)$/gm, '<strong style="font-size:.85rem;display:block;margin:6px 0 2px">$1</strong>');
+    s = s.replace(/^##\s+(.+)$/gm,  '<strong style="font-size:.88rem;display:block;margin:7px 0 3px">$1</strong>');
+    s = s.replace(/^#\s+(.+)$/gm,   '<strong style="font-size:.92rem;display:block;margin:8px 0 4px">$1</strong>');
+
+    // Bold: **text** atau __text__
+    s = s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    s = s.replace(/__(.+?)__/g,     '<strong>$1</strong>');
+
+    // Italic: *text* atau _text_ (hati-hati tidak bentrok dengan bold)
+    s = s.replace(/\*([^*\n]+?)\*/g, '<em>$1</em>');
+    s = s.replace(/_([^_\n]+?)_/g,   '<em>$1</em>');
+
+    // Strikethrough: ~~text~~
+    s = s.replace(/~~(.+?)~~/g, '<del>$1</del>');
+
+    // Inline code: `code`
+    s = s.replace(/`([^`]+)`/g, '<code style="background:rgba(255,255,255,.12);padding:1px 5px;border-radius:4px;font-size:.82em;font-family:monospace">$1</code>');
+
+    // Numbered list: 1. item
+    s = s.replace(/^(\d+)\.\s+(.+)$/gm, '<div style="display:flex;gap:5px;margin:2px 0"><span style="color:var(--g);min-width:16px;font-size:.7rem;padding-top:1px">$1.</span><span>$2</span></div>');
+
+    // Bullet list: - item atau * item (bila * tidak dalam bold)
+    s = s.replace(/^[-•]\s+(.+)$/gm, '<div style="display:flex;gap:5px;margin:2px 0"><span style="color:var(--g);font-size:.5rem;padding-top:4px">●</span><span>$1</span></div>');
+
+    // Horizontal rule: ---
+    s = s.replace(/^---+$/gm, '<hr style="border:none;border-top:1px solid var(--bd);margin:6px 0">');
+
+    // Newline → <br>
+    s = s.replace(/\n/g, '<br>');
+
+    return s;
   }
 
   // ── 🎨 RENDER HELPERS ────────────────────────────────────────
@@ -262,12 +287,13 @@ const TaksakaGroup = (() => {
       }
       const p = PERSONAS[m.persona] || PERSONAS.kak;
       const songHtml = m.song ? _songCard(m.song) : '';
+      // FIX #2: pakai _parseMarkdown() bukan _esc()
       return `<div class="msg-wrap them">
         <div style="display:flex;align-items:flex-end;gap:6px">
           ${_avatar(p, 24)}
           <div style="flex:1;min-width:0">
             <div style="font-size:.6rem;color:${p.color};font-weight:700;margin-bottom:3px">${p.name}</div>
-            <div class="msg-bubble" style="border-left:2px solid ${p.color}40">${songHtml}<span style="white-space:pre-wrap">${_esc(m.content)}</span></div>
+            <div class="msg-bubble" style="border-left:2px solid ${p.color}40">${songHtml}<span style="line-height:1.6">${_parseMarkdown(m.content)}</span></div>
           </div>
         </div>
         <div class="msg-time" style="margin-left:30px">${_time(m.ts)}</div>
@@ -299,7 +325,6 @@ const TaksakaGroup = (() => {
       </button>`;
     }).join('');
 
-    // Update placeholder input
     const inp = document.getElementById('aiChatInput');
     if (inp) inp.placeholder = _mode === 'kak' ? PERSONAS.kak.ph : _mode === 'dokter' ? PERSONAS.dokter.ph : 'Cerita ke Kak atau Dokter Taksaka...';
   }
@@ -327,7 +352,6 @@ const TaksakaGroup = (() => {
     });
     const d = await res.json();
     if (!res.ok) {
-      // Token expired? Hapus cache lalu retry sekali
       if (res.status === 401) {
         localStorage.removeItem('_pgsk_ai_jwt');
         _token = null; _tokenExp = 0;
@@ -338,11 +362,63 @@ const TaksakaGroup = (() => {
     return d.reply || d.message || 'Maaf, tidak ada respons.';
   }
 
+  // ── 🎭 TAMPILKAN TYPING INDICATOR ────────────────────────────
+  function _showTyping(persona) {
+    const el  = document.getElementById('aiMessages');
+    const id  = `ttyp_${persona.id}_${Date.now()}`;
+    if (el) {
+      el.innerHTML += `<div class="msg-wrap them" id="${id}">
+        <div style="display:flex;align-items:flex-end;gap:6px">
+          ${_avatar(persona, 24)}
+          <div>
+            <div style="font-size:.6rem;color:${persona.color};font-weight:700;margin-bottom:3px">${persona.name}</div>
+            <div class="msg-bubble" style="opacity:.55;border-left:2px solid ${persona.color}40">
+              <i class="fas fa-circle-notch spin" style="margin-right:5px"></i>Sedang mengetik...
+            </div>
+          </div>
+        </div>
+      </div>`;
+      el.scrollTop = el.scrollHeight;
+    }
+    return id;
+  }
+
+  // ── 🤖 PROSES SATU AI DAN SIMPAN HASILNYA ────────────────────
+  async function _processAI(persona, msg, token) {
+    const typId = _showTyping(persona);
+    try {
+      const raw = await _callAI(persona, msg, token);
+      const { clean, mood: aiMood } = _extractSong(raw);
+      const detectedMood = aiMood || _detectMood(msg);
+      let song = null;
+      if (detectedMood) song = await _fetchSong(detectedMood);
+
+      document.getElementById(typId)?.remove();
+
+      _loadMsgs();
+      const entry = { role: 'assistant', persona: persona.id, content: clean, ts: new Date().toISOString() };
+      if (song) entry.song = song;
+      _msgs.push(entry);
+      _saveMsgs();
+      _updatePreview(persona.id, clean);
+      _render();
+    } catch (err) {
+      document.getElementById(typId)?.remove();
+      _loadMsgs();
+      _msgs.push({
+        role: 'assistant', persona: persona.id,
+        content: `⚠️ ${err.message || 'AI tidak dapat dihubungi saat ini.'}`,
+        ts: new Date().toISOString()
+      });
+      _saveMsgs();
+      _render();
+    }
+  }
+
   // ══════════════════════════════════════════════════════════════
   //  PUBLIC API
   // ══════════════════════════════════════════════════════════════
 
-  /** Buka chat room grup */
   function open() {
     _loadMsgs();
     document.getElementById('aiChatRoom')?.classList.add('open');
@@ -350,24 +426,21 @@ const TaksakaGroup = (() => {
     _updateTabs();
     _render();
     setTimeout(() => document.getElementById('aiChatInput')?.focus(), 100);
-    // Reset unread badge
     const badge = document.getElementById('taksakaUnreadBadge');
     if (badge) badge.style.display = 'none';
   }
 
-  /** Tutup chat room */
   function close() {
     document.getElementById('aiChatRoom')?.classList.remove('open');
     document.body.style.overflow = '';
   }
 
-  /** Ganti mode: 'kak' | 'dokter' | 'bergantian' */
   function setMode(m) {
     _mode = m;
     _updateTabs();
   }
 
-  /** Kirim pesan */
+  // ── 📤 KIRIM PESAN — FIX #1: Mode bergantian = KEDUANYA jawab ─
   async function send() {
     const input = document.getElementById('aiChatInput');
     if (!input) return;
@@ -385,69 +458,61 @@ const TaksakaGroup = (() => {
     _saveMsgs();
     _render();
 
-    // Tentukan persona
-    const persona = _whoAnswers(msg);
-
-    // Typing indicator
-    const el    = document.getElementById('aiMessages');
-    const typId = `ttyp_${Date.now()}`;
-    if (el) {
-      el.innerHTML += `<div class="msg-wrap them" id="${typId}">
-        <div style="display:flex;align-items:flex-end;gap:6px">
-          ${_avatar(persona, 24)}
-          <div>
-            <div style="font-size:.6rem;color:${persona.color};font-weight:700;margin-bottom:3px">${persona.name}</div>
-            <div class="msg-bubble" style="opacity:.55;border-left:2px solid ${persona.color}40">
-              <i class="fas fa-circle-notch spin" style="margin-right:5px"></i>Sedang mengetik...
-            </div>
-          </div>
-        </div>
-      </div>`;
-      el.scrollTop = el.scrollHeight;
-    }
-
     try {
-      // Auth
       const token = await _ensureToken();
 
-      // Panggil AI
-      const raw = await _callAI(persona, msg, token);
+      if (_mode === 'kak') {
+        // Hanya Kak Taksaka yang jawab
+        await _processAI(PERSONAS.kak, msg, token);
 
-      // Extract [SEND_SONG] tag
-      const { clean, mood: aiMood } = _extractSong(raw);
+      } else if (_mode === 'dokter') {
+        // Hanya Dokter Taksaka yang jawab
+        await _processAI(PERSONAS.dokter, msg, token);
 
-      // Fallback mood detection dari pesan user kalau AI tidak kasih tag
-      const detectedMood = aiMood || _detectMood(msg);
+      } else {
+        // ── FIX #1: Mode BERGANTIAN = KEDUANYA jawab berurutan ──
+        // Tentukan siapa yang jawab duluan berdasarkan konten pesan
+        const t = msg.toLowerCase();
+        const isEmotional = /sedih|nangis|galau|patah hati|kecewa|stress|capek|lelah|bosen|jenuh|penat|sendiri|sepi|lonely|takut|cemas|panik|khawatir|gelisah|bingung|hilang arah|overwhelm/.test(t);
 
-      // Cari lagu hanya kalau ada mood (AI minta atau user detect)
-      let song = null;
-      if (detectedMood) song = await _fetchSong(detectedMood);
+        let first, second;
+        if (isEmotional) {
+          // Pesan emosional: Dokter duluan, Kak menyusul
+          first  = PERSONAS.dokter;
+          second = PERSONAS.kak;
+        } else {
+          // Pesan biasa: bergantian berdasarkan giliran
+          _turn++;
+          if (_turn % 2 === 1) {
+            first  = PERSONAS.kak;
+            second = PERSONAS.dokter;
+          } else {
+            first  = PERSONAS.dokter;
+            second = PERSONAS.kak;
+          }
+        }
 
-      document.getElementById(typId)?.remove();
-
-      _loadMsgs();
-      const entry = { role: 'assistant', persona: persona.id, content: clean, ts: new Date().toISOString() };
-      if (song) entry.song = song;
-      _msgs.push(entry);
-      _saveMsgs();
-      _updatePreview(persona.id, clean);
+        // Jawab keduanya — pertama langsung, kedua menyusul setelah 800ms jeda
+        await _processAI(first, msg, token);
+        await new Promise(r => setTimeout(r, 800));
+        await _processAI(second, msg, token);
+      }
 
     } catch (err) {
-      document.getElementById(typId)?.remove();
+      // Error saat auth (sebelum proses AI individual)
       _loadMsgs();
       _msgs.push({
-        role: 'assistant', persona: persona.id,
+        role: 'assistant', persona: 'kak',
         content: `⚠️ ${err.message || 'AI tidak dapat dihubungi saat ini.'}`,
         ts: new Date().toISOString()
       });
       _saveMsgs();
+      _render();
     }
 
     if (btn) btn.disabled = false;
-    _render();
   }
 
-  /** Hapus semua riwayat chat */
   function clear() {
     if (!confirm('Hapus semua riwayat chat dengan Kak & Dokter Taksaka?')) return;
     _msgs = []; _saveMsgs();
@@ -458,7 +523,6 @@ const TaksakaGroup = (() => {
     if (el) el.textContent = 'Kak Taksaka & Dokter Taksaka siap membantu...';
   }
 
-  /** Play lagu yang dikirim AI */
   async function playSong(encoded) {
     try {
       const song = JSON.parse(decodeURIComponent(encoded));
@@ -478,7 +542,6 @@ const TaksakaGroup = (() => {
     }
   }
 
-  /** Keyboard handler untuk textarea */
   function onKeydown(e) {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
   }
@@ -489,7 +552,7 @@ const TaksakaGroup = (() => {
 
 window.TaksakaGroup = TaksakaGroup;
 
-// Legacy compat — kalau ada bagian lain di index.html yang masih panggil ini
+// Legacy compat
 window.openAIChat  = () => TaksakaGroup.open();
 window.closeAIChat = () => TaksakaGroup.close();
 window.clearAIChat = () => TaksakaGroup.clear();
