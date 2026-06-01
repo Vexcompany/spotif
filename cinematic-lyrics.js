@@ -244,8 +244,105 @@ function inject() {
   btn.innerHTML = `CC<span id="clm-tooltip">Cinematic Lyrics</span>`;
   document.body.appendChild(btn);
 
+  // ── DRAGGABLE CC BUTTON ──────────────────────────────────────
+  // Simpan posisi terakhir di localStorage supaya persisten
+  (function makeDraggable(el) {
+    const STORE_KEY = 'pgsk_clm_btn_pos';
+    let dragging = false, startX, startY, origLeft, origBottom, hasMoved = false;
+
+    // Restore posisi tersimpan
+    try {
+      const saved = JSON.parse(localStorage.getItem(STORE_KEY) || 'null');
+      if (saved) {
+        el.style.right  = 'auto';
+        el.style.bottom = 'auto';
+        el.style.left   = saved.left + 'px';
+        el.style.top    = saved.top  + 'px';
+      }
+    } catch {}
+
+    function savePos() {
+      try {
+        const r = el.getBoundingClientRect();
+        localStorage.setItem(STORE_KEY, JSON.stringify({ left: r.left, top: r.top }));
+      } catch {}
+    }
+
+    // Touch drag
+    el.addEventListener('touchstart', e => {
+      dragging = true; hasMoved = false;
+      const t = e.touches[0];
+      const r = el.getBoundingClientRect();
+      startX = t.clientX - r.left;
+      startY = t.clientY - r.top;
+      el.style.transition = 'none';
+      el.style.right  = 'auto';
+      el.style.bottom = 'auto';
+      el.style.left   = r.left + 'px';
+      el.style.top    = r.top  + 'px';
+    }, { passive: true });
+
+    el.addEventListener('touchmove', e => {
+      if (!dragging) return;
+      hasMoved = true;
+      e.preventDefault();
+      const t = e.touches[0];
+      const btnW = el.offsetWidth, btnH = el.offsetHeight;
+      const maxX = window.innerWidth  - btnW;
+      const maxY = window.innerHeight - btnH;
+      el.style.left = Math.max(0, Math.min(maxX, t.clientX - startX)) + 'px';
+      el.style.top  = Math.max(0, Math.min(maxY, t.clientY - startY)) + 'px';
+    }, { passive: false });
+
+    el.addEventListener('touchend', () => {
+      if (!dragging) return;
+      dragging = false;
+      el.style.transition = '';
+      savePos();
+      // Kalau cuma tap (tidak gerak), biarkan click handler jalan
+      if (hasMoved) el.dataset.wasDragged = '1';
+      else delete el.dataset.wasDragged;
+    });
+
+    // Mouse drag (desktop)
+    el.addEventListener('mousedown', e => {
+      dragging = true; hasMoved = false;
+      const r = el.getBoundingClientRect();
+      startX = e.clientX - r.left;
+      startY = e.clientY - r.top;
+      el.style.transition = 'none';
+      el.style.right  = 'auto';
+      el.style.bottom = 'auto';
+      el.style.left   = r.left + 'px';
+      el.style.top    = r.top  + 'px';
+      document.addEventListener('mousemove', onMouseMove);
+      document.addEventListener('mouseup',   onMouseUp);
+    });
+
+    function onMouseMove(e) {
+      if (!dragging) return;
+      hasMoved = true;
+      const btnW = el.offsetWidth, btnH = el.offsetHeight;
+      const maxX = window.innerWidth  - btnW;
+      const maxY = window.innerHeight - btnH;
+      el.style.left = Math.max(0, Math.min(maxX, e.clientX - startX)) + 'px';
+      el.style.top  = Math.max(0, Math.min(maxY, e.clientY - startY)) + 'px';
+    }
+    function onMouseUp() {
+      dragging = false;
+      el.style.transition = '';
+      savePos();
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup',   onMouseUp);
+      if (hasMoved) el.dataset.wasDragged = '1';
+      else delete el.dataset.wasDragged;
+    }
+  })(btn);
+
   // Tombol ditekan — AudioContext HARUS dibuat di sini (synchronous user gesture)
   btn.addEventListener('click', function () {
+    // Kalau selesai drag, jangan toggle
+    if (btn.dataset.wasDragged) { delete btn.dataset.wasDragged; return; }
     // Init audio graph synchronously saat gesture ini — browser policy mengharuskan ini
     initAudioGraph();
     // Lalu toggle mode
