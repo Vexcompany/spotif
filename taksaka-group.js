@@ -137,46 +137,126 @@ const TaksakaGroup = (() => {
       : { clean: text, mood: null };
   }
 
-  // ── 🎵 CARI LAGU DARI SUPABASE SESUAI MOOD ──────────────────
+  // ── 🎵 SMART SONG SELECTION — UPDATE #2 ─────────────────────
+  // Tidak lagi cari berdasarkan keyword nama lagu.
+  // Ambil pool besar dari DB, filter pakai mood tags/genre,
+  // lalu exclude lagu yang baru-baru ini sudah dimainkan AI.
+
+  // History lagu yang sudah dikirim AI (max 30, reset saat clear)
+  let _songHistory = (() => {
+    try { return JSON.parse(localStorage.getItem('pgsk_ai_song_hist') || '[]'); }
+    catch { return []; }
+  })();
+
+  function _saveSongHistory() {
+    try { localStorage.setItem('pgsk_ai_song_hist', JSON.stringify(_songHistory.slice(-30))); }
+    catch {}
+  }
+
+  // Mapping mood → genre/tag yang dicari di kolom `genre` atau `tags` supabase
+  // Juga ada keyword fallback di judul/artis sebagai jaring pengaman
+  const _moodProfile = {
+    happy:   { genres: ['pop','indie pop','dance','funk','soul','acoustic pop'],   vibes: ['happy','ceria','gembira','feel good','upbeat'] },
+    sad:     { genres: ['ballad','sad','ost','acoustic','blues','r&b'],            vibes: ['sedih','galau','rindu','patah hati','melankolis','sendu'] },
+    stress:  { genres: ['lofi','ambient','jazz','classical','instrumental','chill'],vibes: ['santai','tenang','relax','damai','mellow'] },
+    excited: { genres: ['rock','edm','hiphop','rap','trap','pop punk','metal'],    vibes: ['hype','energik','semangat','bangkit','gaspol'] },
+    lonely:  { genres: ['acoustic','folk','indie','singer-songwriter','ost'],      vibes: ['sendiri','sepi','malam','sunyi','rindu'] },
+    healing: { genres: ['acoustic','gospel','ambient','lofi','indie folk'],        vibes: ['healing','sembuh','damai','lembut','syukur'] },
+  };
+
   async function _fetchSong(mood) {
-    const kwMap = {
-      happy:   ['semangat','happy','gembira','ceria'],
-      sad:     ['sedih','galau','rindu','sendu'],
-      stress:  ['santai','tenang','relax','instrumental'],
-      excited: ['hype','energik','upbeat','semangat'],
-      lonely:  ['teman','malam','sendiri','sunyi'],
-      healing: ['healing','damai','lembut','menenangkan'],
-    };
+    const sbUrl = (typeof SB_URL !== 'undefined') ? SB_URL : '';
+    const sbKey = (typeof SB_KEY !== 'undefined') ? SB_KEY : '';
+    if (!sbUrl || !sbKey) return null;
 
-    const kws = kwMap[mood] || ['populer','indonesia'];
-    for (const kw of kws) {
-      try {
-        const sbUrl = (typeof SB_URL !== 'undefined') ? SB_URL : '';
-        const sbKey = (typeof SB_KEY !== 'undefined') ? SB_KEY : '';
-        if (!sbUrl || !sbKey) break;
+    const profile = _moodProfile[mood] || _moodProfile.happy;
 
-        const res = await fetch(
-          `${sbUrl}/rest/v1/tracks?or=(title.ilike.*${encodeURIComponent(kw)}*,artist.ilike.*${encodeURIComponent(kw)}*)&order=play_count.desc&limit=8`,
-          { headers: { apikey: sbKey, Authorization: `Bearer ${sbKey}` } }
-        );
-        if (!res.ok) continue;
+    // ── Strategi 1: Ambil pool besar dari DB (50 lagu terpopuler)
+    //   lalu filter secara client-side berdasarkan genre/tags/vibe
+    try {
+      const res = await fetch(
+        `${sbUrl}/rest/v1/tracks?select=*&audio_url=not.is.null&order=play_count.desc&limit=50`,
+        { headers: { apikey: sbKey, Authorization: `Bearer ${sbKey}` } }
+      );
+      if (res.ok) {
         const rows = await res.json();
-        if (!rows?.length) continue;
+        if (rows?.length) {
+          // Skor setiap lagu: cocok genre +2, cocok vibe +1
+          const scored = rows.map(r => {
+            let score = 0;
+            const rGenre = (r.genre || r.tags || '').toLowerCase();
+            const rTitle = (r.title || '').toLowerCase();
+            const rArtist = (r.artist || '').toLowerCase();
+            const rAll = `${rGenre} ${rTitle} ${rArtist}`;
 
-        const valid = rows.filter(r => r.audio_url);
-        if (!valid.length) continue;
+            profile.genres.forEach(g => { if (rAll.includes(g)) score += 2; });
+            profile.vibes.forEach(v  => { if (rAll.includes(v)) score += 1; });
+            return { ...r, _score: score };
+          });
 
-        const pick = valid[Math.floor(Math.random() * Math.min(3, valid.length))];
-        return {
-          title:     pick.title     || 'Unknown',
-          artist:    pick.artist    || 'Unknown',
-          thumbnail: pick.thumbnail || null,
-          audioUrl:  pick.audio_url,
-          trackId:   pick.id || ('db_' + Date.now()),
-          source:    'db'
-        };
-      } catch { continue; }
-    }
+          // Ambil yang ada skor > 0, lalu exclude yang ada di history
+          let pool = scored
+            .filter(r => r._score > 0 && !_songHistory.includes(r.id))
+            .sort((a, b) => b._score - a._score);
+
+          // Fallback: kalau pool kosong (semua sudah pernah diputar), reset history dan coba lagi
+          if (!pool.length) {
+            _songHistory = [];
+            _saveSongHistory();
+            pool = scored.filter(r => r._score > 0).sort((a, b) => b._score - a._score);
+          }
+
+          // Masih kosong? Ambil dari semua lagu yang ada tanpa filter mood (fallback total)
+          if (!pool.length) {
+            pool = rows.filter(r => !_songHistory.includes(r.id));
+            if (!pool.length) { _songHistory = []; pool = rows; }
+          }
+
+          // Pilih secara weighted-random dari top 5 hasil skor tertinggi
+          const top  = pool.slice(0, Math.min(5, pool.length));
+          const pick = top[Math.floor(Math.random() * top.length)];
+
+          // Catat di history supaya tidak muncul lagi
+          _songHistory.push(pick.id);
+          _saveSongHistory();
+
+          return {
+            title:     pick.title     || 'Unknown',
+            artist:    pick.artist    || 'Unknown',
+            thumbnail: pick.thumbnail || null,
+            audioUrl:  pick.audio_url,
+            trackId:   pick.id || ('db_' + Date.now()),
+            source:    'db'
+          };
+        }
+      }
+    } catch { /* lanjut ke fallback */ }
+
+    // ── Strategi 2: Fallback — ambil lagu acak apapun dari DB ──
+    try {
+      const res = await fetch(
+        `${sbUrl}/rest/v1/tracks?select=*&audio_url=not.is.null&order=play_count.desc&limit=20`,
+        { headers: { apikey: sbKey, Authorization: `Bearer ${sbKey}` } }
+      );
+      if (res.ok) {
+        const rows = await res.json();
+        const valid = (rows || []).filter(r => r.audio_url && !_songHistory.includes(r.id));
+        if (valid.length) {
+          const pick = valid[Math.floor(Math.random() * Math.min(5, valid.length))];
+          _songHistory.push(pick.id);
+          _saveSongHistory();
+          return {
+            title:     pick.title     || 'Unknown',
+            artist:    pick.artist    || 'Unknown',
+            thumbnail: pick.thumbnail || null,
+            audioUrl:  pick.audio_url,
+            trackId:   pick.id || ('db_' + Date.now()),
+            source:    'db'
+          };
+        }
+      }
+    } catch {}
+
     return null;
   }
 
@@ -517,7 +597,9 @@ const TaksakaGroup = (() => {
     if (!confirm('Hapus semua riwayat chat dengan Kak & Dokter Taksaka?')) return;
     _msgs = []; _saveMsgs();
     localStorage.removeItem('_pgsk_ai_jwt');
+    localStorage.removeItem('pgsk_ai_song_hist');
     _token = null; _tokenExp = 0; _turn = 0;
+    _songHistory = [];
     _render();
     const el = document.getElementById('taksakaGroupPreview');
     if (el) el.textContent = 'Kak Taksaka & Dokter Taksaka siap membantu...';
