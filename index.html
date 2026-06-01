@@ -950,8 +950,8 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
     <button class="nav-item" id="nav-playlist" onclick="navigate('playlist')">
       <div class="nav-icon-wrap"><i class="fas fa-list-music"></i></div><span>Playlist</span>
     </button>
-    <button class="nav-item" id="nav-chat" onclick="navigate('chat')">
-      <div class="nav-icon-wrap"><i class="fas fa-comment-dots"></i><div class="nav-badge" id="chatBadge"></div></div><span>Chat</span>
+    <button class="nav-item" id="nav-party" onclick="navigate('party')">
+      <div class="nav-icon-wrap"><i class="fas fa-users"></i><div class="nav-badge" id="partyBadge">LIVE</div></div><span>Party</span>
     </button>
     <button class="nav-item" id="nav-profil" onclick="navigate('profil')">
       <div class="nav-icon-wrap"><i class="fas fa-user"></i></div><span>Profil</span>
@@ -1019,7 +1019,8 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
       <button class="np-act" id="npShuf" onclick="toggleShuffle()"><i class="fas fa-random"></i></button>
       <button class="np-act" id="npRep" onclick="toggleRepeat()"><i class="fas fa-redo"></i></button>
       <button class="np-act" id="npLikeBtn" onclick="toggleLikeCurrent()"><i class="far fa-heart" id="npLikeIco"></i></button>
-      <button class="np-act" onclick="addToPartyQueueFromNP()"><i class="fas fa-users"></i></button>
+      <button class="np-act" onclick="addToPartyQueueFromNP()" title="Tambah ke Party Queue"><i class="fas fa-users"></i></button>
+      <button class="np-act" onclick="if(currentTrack)PlaylistManager.showAddToPlaylist(currentTrack)" title="Tambah ke Playlist"><i class="fas fa-list-music"></i></button>
     </div>
     <div class="np-prog">
       <div class="np-prbar" id="npPrbar" onclick="npSeek(event)"><div class="np-prfill" id="npPrfill"></div></div>
@@ -1190,7 +1191,7 @@ function navigate(page){
   const nav=document.getElementById(`nav-${page}`);if(nav)nav.classList.add('active');
   currentPage=page;
   if(page==='chart')loadTopChart();
-  if(page==='chat')loadChatList();
+  if(page==='chat'){loadChatList();document.getElementById('chatDot')&&(document.getElementById('chatDot').style.display='none');}
   if(page==='party'){loadPartyQueue();updatePartyStatus();}
   if(page==='profil')loadProfil();
   if(page==='beranda'){loadTopChartHome();loadLiveActivity();loadQuickPlay();}
