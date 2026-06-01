@@ -639,6 +639,41 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 .presence-offline{background:var(--mt)}
 .presence-listening{background:var(--b2);box-shadow:0 0 6px var(--b2)}
 .chat-room-status .track-name{color:var(--tx);font-weight:600;font-size:.72rem}
+
+/* ── PLAYLIST STYLES (UPDATE #3) ── */
+.pl-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:4px}
+.pl-card{background:var(--s2);border:1px solid var(--bd);border-radius:14px;overflow:hidden;cursor:pointer;transition:all .18s;position:relative}
+.pl-card:hover{border-color:var(--bd2);background:var(--s3)}
+.pl-card-art{height:90px;background:linear-gradient(135deg,var(--s3),var(--s4));display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+.pl-card-play{position:absolute;bottom:6px;right:6px;width:28px;height:28px;border-radius:50%;background:var(--g);display:flex;align-items:center;justify-content:center;color:#000;font-size:.65rem;opacity:0;transition:opacity .18s}
+.pl-card:hover .pl-card-play{opacity:1}
+.pl-card-info{padding:8px 10px 10px}
+.pl-card-title{font-size:.78rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px}
+.pl-card-owner{font-size:.6rem;color:var(--g);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pl-card-meta{font-size:.6rem;color:var(--mt)}
+.pl-card-del{position:absolute;top:6px;right:6px;width:24px;height:24px;border-radius:7px;background:rgba(255,77,109,.15);border:1px solid rgba(255,77,109,.3);color:var(--rd);font-size:.6rem;cursor:pointer;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .18s}
+.pl-card:hover .pl-card-del{opacity:1}
+.pl-track-row{display:flex;align-items:center;gap:8px;padding:8px 4px;border-radius:10px;cursor:pointer;transition:background .15s}
+.pl-track-row:hover{background:var(--s3)}
+.pl-track-num{width:20px;text-align:center;font-size:.65rem;color:var(--mt);flex-shrink:0}
+.pl-track-thumb{flex-shrink:0}
+.pl-track-info{flex:1;min-width:0}
+.pl-track-title{font-size:.76rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pl-track-artist{font-size:.62rem;color:var(--mt)}
+.pl-track-del{width:24px;height:24px;border-radius:7px;background:transparent;border:none;color:var(--mt);font-size:.7rem;cursor:pointer;flex-shrink:0;opacity:0;transition:opacity .15s;display:flex;align-items:center;justify-content:center}
+.pl-track-row:hover .pl-track-del{opacity:1}
+.pl-pick-row{display:flex;align-items:center;gap:10px;padding:10px 8px;border-radius:10px;cursor:pointer;transition:background .15s}
+.pl-pick-row:hover{background:var(--s3)}
+/* Modal shared */
+.pl-modal{position:fixed;inset:0;z-index:1200;background:rgba(0,0,0,.6);backdrop-filter:blur(8px);display:none;align-items:flex-end;justify-content:center}
+.pl-modal.open{display:flex}
+.pl-modal-box{background:var(--s1);border:1px solid var(--bd);border-radius:20px 20px 0 0;width:100%;max-width:600px;max-height:88vh;overflow:hidden;display:flex;flex-direction:column;animation:slideUp .3s cubic-bezier(.16,1,.3,1)}
+.pl-modal-head{padding:14px 16px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.pl-modal-title{font-family:'Syne',sans-serif;font-size:.95rem;font-weight:800}
+.pl-modal-close{width:30px;height:30px;border-radius:9px;background:var(--s3);border:1px solid var(--bd);color:var(--mt);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:.8rem}
+.pl-modal-body{flex:1;overflow-y:auto;padding:14px 16px;scrollbar-width:none}
+.pl-modal-body::-webkit-scrollbar{display:none}
+#plEmpty{flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;gap:10px;display:none}
 </style>
 </head>
 <body>
@@ -743,6 +778,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
               </button>
               <div class="ico-btn" id="hLike" onclick="toggleLikeCurrent()"><i class="far fa-heart"></i></div>
               <div class="ico-btn" onclick="shareCurrentTrack()" title="Bagikan ke anggota"><i class="fas fa-share"></i></div>
+              <div class="ico-btn" onclick="if(currentTrack)PlaylistManager.showAddToPlaylist(currentTrack)" title="Tambah ke Playlist"><i class="fas fa-list-music"></i></div>
               <div class="ico-btn" onclick="openNP()" title="Now Playing"><i class="fas fa-music"></i></div>
             </div>
           </div>
@@ -864,6 +900,22 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
       </div>
     </div>
 
+    <!-- PLAYLIST PAGE (UPDATE #3) -->
+    <div class="page" id="page-playlist">
+      <div class="sec-row">
+        <div class="sec-title" style="margin-bottom:0"><i class="fas fa-list-music" style="color:var(--p2)"></i> Playlist</div>
+        <button onclick="PlaylistManager.showCreate()" style="display:flex;align-items:center;gap:5px;padding:7px 12px;border-radius:10px;background:var(--g);color:#000;border:none;font-size:.72rem;font-weight:700;cursor:pointer"><i class="fas fa-plus"></i> Buat</button>
+      </div>
+      <p style="font-size:.7rem;color:var(--mt);margin:5px 0 14px">Playlist kamu & semua anggota Pagaska</p>
+      <div class="pl-grid" id="plGrid"></div>
+      <div id="plEmpty" style="display:none;flex-direction:column;align-items:center;padding:40px 20px;gap:10px">
+        <i class="fas fa-music" style="font-size:2rem;opacity:.2"></i>
+        <div style="font-size:.8rem;font-weight:700">Belum ada playlist</div>
+        <div style="font-size:.7rem;color:var(--mt);text-align:center">Jadilah yang pertama buat playlist<br>dan bagikan ke semua anggota!</div>
+        <button onclick="PlaylistManager.showCreate()" style="margin-top:6px;padding:9px 20px;border-radius:10px;background:var(--g);color:#000;border:none;font-size:.75rem;font-weight:700;cursor:pointer"><i class="fas fa-plus"></i> Buat Playlist</button>
+      </div>
+    </div>
+
     <!-- PROFIL PAGE -->
     <div class="page" id="page-profil">
       <div class="sec-title"><i class="fas fa-user-circle" style="color:var(--p2)"></i> Profil Saya</div>
@@ -895,8 +947,8 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
     <button class="nav-item" id="nav-chart" onclick="navigate('chart')">
       <div class="nav-icon-wrap"><i class="fas fa-fire"></i></div><span>Chart</span>
     </button>
-    <button class="nav-item" id="nav-party" onclick="navigate('party')">
-      <div class="nav-icon-wrap"><i class="fas fa-users"></i><div class="nav-badge" id="partyBadge">LIVE</div></div><span>Party</span>
+    <button class="nav-item" id="nav-playlist" onclick="navigate('playlist')">
+      <div class="nav-icon-wrap"><i class="fas fa-list-music"></i></div><span>Playlist</span>
     </button>
     <button class="nav-item" id="nav-chat" onclick="navigate('chat')">
       <div class="nav-icon-wrap"><i class="fas fa-comment-dots"></i><div class="nav-badge" id="chatBadge"></div></div><span>Chat</span>
@@ -1142,6 +1194,7 @@ function navigate(page){
   if(page==='party'){loadPartyQueue();updatePartyStatus();}
   if(page==='profil')loadProfil();
   if(page==='beranda'){loadTopChartHome();loadLiveActivity();loadQuickPlay();}
+  if(page==='playlist')PlaylistManager.loadAll();
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -2897,5 +2950,64 @@ if (document.readyState === 'loading') {
 <script src="taksaka-group.js"></script>
 <script src="music-room.js"></script>
 <script src="cinematic-lyrics.js"></script>
+<script src="playlist.js"></script>
+
+<!-- ── PLAYLIST MODALS (UPDATE #3) ─────────────────────────── -->
+
+<!-- Modal: Buat Playlist Baru -->
+<div class="pl-modal" id="plCreateModal">
+  <div class="pl-modal-box" style="max-height:320px">
+    <div class="pl-modal-head">
+      <div class="pl-modal-title"><i class="fas fa-plus" style="color:var(--g);margin-right:6px"></i>Buat Playlist Baru</div>
+      <button class="pl-modal-close" onclick="PlaylistManager.closeCreate()"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="pl-modal-body">
+      <div style="font-size:.72rem;color:var(--mt);margin-bottom:8px">Nama playlist akan terlihat oleh semua anggota Pagaska</div>
+      <input id="plNewName" type="text" maxlength="60" placeholder="Nama playlistmu..."
+        onkeydown="if(event.key==='Enter')PlaylistManager.createPlaylist()"
+        style="width:100%;padding:11px 14px;border-radius:11px;background:var(--s3);border:1px solid var(--bd);color:var(--tx);font-size:.82rem;font-family:inherit;outline:none;box-sizing:border-box;margin-bottom:12px">
+      <button id="plCreateBtn" onclick="PlaylistManager.createPlaylist()" style="width:100%;padding:11px;border-radius:11px;background:var(--g);color:#000;border:none;font-size:.82rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px">
+        <i class="fas fa-plus"></i> Buat Playlist
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Detail Playlist -->
+<div class="pl-modal" id="plDetailModal">
+  <div class="pl-modal-box">
+    <div class="pl-modal-head">
+      <div>
+        <div class="pl-modal-title" id="plDetailName">Playlist</div>
+        <div style="font-size:.62rem;color:var(--g);margin-top:2px" id="plDetailOwner"></div>
+        <div style="font-size:.6rem;color:var(--mt)" id="plDetailMeta"></div>
+      </div>
+      <div style="display:flex;gap:6px;align-items:center">
+        <button id="plDetailRenameBtn" onclick="PlaylistManager.renamePlaylist()" style="display:none;align-items:center;gap:4px;padding:6px 10px;border-radius:9px;background:var(--s3);border:1px solid var(--bd);color:var(--mt);font-size:.65rem;cursor:pointer">
+          <i class="fas fa-pen"></i> Rename
+        </button>
+        <button class="pl-modal-close" onclick="PlaylistManager.closeDetail()"><i class="fas fa-times"></i></button>
+      </div>
+    </div>
+    <!-- Play All bar -->
+    <div style="padding:10px 16px;border-bottom:1px solid var(--bd);display:flex;gap:8px;flex-shrink:0">
+      <button id="plDetailPlayAll" onclick="PlaylistManager.playAllFromDetail()" style="flex:1;padding:9px;border-radius:10px;background:var(--g);color:#000;border:none;font-size:.78rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px">
+        <i class="fas fa-play"></i> Putar Semua
+      </button>
+    </div>
+    <div class="pl-modal-body" id="plDetailList"></div>
+  </div>
+</div>
+
+<!-- Modal: Pilih Playlist (Add Track) -->
+<div class="pl-modal" id="plPickModal">
+  <div class="pl-modal-box" style="max-height:60vh">
+    <div class="pl-modal-head">
+      <div class="pl-modal-title"><i class="fas fa-plus-circle" style="color:var(--g);margin-right:6px"></i>Tambah ke Playlist</div>
+      <button class="pl-modal-close" onclick="PlaylistManager.closePickModal()"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="pl-modal-body" id="plPickList"></div>
+  </div>
+</div>
 </body>
 </html>
