@@ -345,3 +345,48 @@ async function getCacheStats() {
     return { error: e.message };
   }
 }
+
+// ═══════════════════════════════════════════════════════════════
+//  UPDATE #4 — PUSH NOTIFICATION HANDLER
+// ═══════════════════════════════════════════════════════════════
+
+// ── PUSH EVENT — terima notif dari server ────────────────────
+self.addEventListener('push', event => {
+  let data = {};
+  try { data = event.data ? event.data.json() : {}; } catch {}
+
+  const title   = data.title   || 'Pagaska Music';
+  const body    = data.body    || 'Ada pesan baru dari admin!';
+  const icon    = data.icon    || '/icons/icon-192.png';
+  const badge   = data.badge   || '/icons/icon-192.png';
+  const tag     = data.tag     || 'pagaska-notif-' + Date.now();
+  const url     = data.url     || '/index.html';
+
+  event.waitUntil(
+    self.registration.showNotification(title, {
+      body,
+      icon,
+      badge,
+      tag,
+      data: { url },
+      vibrate: [200, 100, 200],
+      requireInteraction: false,
+    })
+  );
+});
+
+// ── NOTIFICATION CLICK — buka app ────────────────────────────
+self.addEventListener('notificationclick', event => {
+  event.notification.close();
+  const url = event.notification.data?.url || '/index.html';
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
+      // Kalau app sudah terbuka, fokus ke sana
+      for (const c of list) {
+        if (c.url.includes(self.location.origin) && 'focus' in c) return c.focus();
+      }
+      // Kalau belum terbuka, buka baru
+      if (clients.openWindow) return clients.openWindow(url);
+    })
+  );
+});
