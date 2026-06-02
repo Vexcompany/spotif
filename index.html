@@ -160,18 +160,18 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 .main-content{flex:1;padding-bottom:calc(var(--nav-h) + 80px);padding-top:var(--topbar-h)}
 
 /* TOPBAR */
-.topbar{position:fixed;top:0;left:0;right:0;z-index:100;height:var(--topbar-h);background:rgba(7,7,26,.92);backdrop-filter:blur(20px);border-bottom:1px solid var(--bd);display:flex;align-items:center;padding:0 16px;gap:10px;}
+.topbar{position:fixed;top:0;left:0;right:0;z-index:100;height:var(--topbar-h);background:rgba(7,7,26,.92);backdrop-filter:blur(20px);border-bottom:1px solid var(--bd);display:flex;align-items:center;padding:0 12px;gap:8px;}
 .tb-brand{display:flex;align-items:center;gap:8px;flex-shrink:0;text-decoration:none;color:var(--tx)}
 .tb-logo{width:34px;height:34px;border-radius:10px;flex-shrink:0;background:linear-gradient(135deg,var(--dyn1),var(--p));display:flex;align-items:center;justify-content:center;font-size:.95rem;color:#fff;box-shadow:0 0 16px var(--dyn-glow);transition:box-shadow .5s;}
 .tb-name{font-family:'Syne',sans-serif;font-size:1rem;font-weight:800;background:linear-gradient(90deg,#fff 30%,var(--dyn1));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
-.tb-search{flex:1;min-width:0;display:flex;align-items:center;gap:8px;background:var(--s2);border:1px solid var(--bd);border-radius:12px;padding:6px 6px 6px 12px;transition:all .22s;}
+.tb-search{flex:1;min-width:0;display:flex;align-items:center;gap:8px;background:var(--s2);border:1px solid var(--bd);border-radius:12px;padding:6px 6px 6px 12px;transition:all .3s cubic-bezier(.16,1,.3,1);}
 .tb-search:focus-within{border-color:var(--dyn1);box-shadow:0 0 0 3px var(--dyn-bg)}
 .tb-search input{flex:1;background:transparent;border:none;outline:none;color:var(--tx);font-size:.85rem;font-family:inherit}
 .tb-search input::placeholder{color:var(--mt)}
 .search-btn{background:linear-gradient(135deg,var(--dyn1),var(--dyn2));border:none;border-radius:9px;padding:6px 12px;color:#000;font-weight:700;font-size:.75rem;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:5px;font-family:inherit;white-space:nowrap;}
 .search-btn:hover{transform:scale(1.04);box-shadow:0 4px 16px var(--dyn-glow)}
 .search-btn:disabled{opacity:.6;cursor:not-allowed;transform:none}
-.tb-right{display:flex;align-items:center;gap:6px;flex-shrink:0}
+.tb-right{display:flex;align-items:center;gap:5px;flex-shrink:0}
 .user-pill{display:flex;align-items:center;gap:6px;background:var(--s2);border:1px solid var(--bd);border-radius:20px;padding:4px 10px 4px 4px;cursor:pointer;transition:all .2s;}
 .user-pill:hover{background:var(--s3)}
 .u-av{width:26px;height:26px;border-radius:50%;flex-shrink:0;background:linear-gradient(135deg,var(--p),var(--dyn1));display:flex;align-items:center;justify-content:center;font-size:.62rem;font-weight:800;color:#fff;}
@@ -179,6 +179,20 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 .tb-notif{position:relative;width:34px;height:34px;border-radius:10px;background:var(--s2);border:1px solid var(--bd);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .2s;color:var(--mt);font-size:.85rem;}
 .tb-notif:hover{background:var(--s3);color:var(--tx)}
 .notif-dot{position:absolute;top:6px;right:6px;width:7px;height:7px;border-radius:50%;background:var(--rd);border:1.5px solid var(--bg);display:none;}
+@media(max-width:600px){
+  .tb-name{display:none}
+  .tb-search{flex:0 0 34px;padding:0;overflow:hidden;border-radius:10px;cursor:pointer;justify-content:center;}
+  .tb-search.tb-expanded{flex:1;padding:6px 6px 6px 12px;cursor:default;border-radius:12px;}
+  .tb-search .tb-sico{width:34px;height:34px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--mt);font-size:.85rem;pointer-events:none;}
+  .tb-search input{width:0;padding:0;font-size:.82rem;opacity:0;pointer-events:none;}
+  .tb-search.tb-expanded input{width:auto;padding:0;opacity:1;pointer-events:auto;}
+  .tb-search .search-btn{display:none;}
+  .tb-search.tb-expanded .search-btn{display:flex;padding:5px 8px;}
+  .tb-search.tb-expanded .tb-sico{display:none;}
+  #sBtnTxt{display:none}
+  .u-nm{display:none}
+  .user-pill{padding:4px;}
+}
 .notif-dot.show{display:block}
 
 /* BOTTOM NAV */
@@ -699,9 +713,10 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
       <div class="tb-logo"><i class="fab fa-spotify"></i></div>
       <span class="tb-name">Pagaska</span>
     </a>
-    <div class="tb-search">
-      <i class="fas fa-search" style="color:var(--mt);font-size:.75rem;flex-shrink:0"></i>
-      <input type="text" id="sInput" placeholder="Cari lagu di Apple Music..." autocomplete="off">
+    <div class="tb-search" id="tbSearch" onclick="expandSearch(event)">
+      <i class="fas fa-search tb-sico" style="color:var(--mt);font-size:.75rem;flex-shrink:0"></i>
+      <input type="text" id="sInput" placeholder="Cari lagu di Apple Music..." autocomplete="off"
+        onblur="collapseSearch()" onkeydown="if(event.key==='Enter')doSearch()">
       <button class="search-btn" id="sBtn" onclick="doSearch()">
         <i id="sBtnIco" class="fas fa-search"></i>
         <span id="sBtnTxt">Cari</span>
@@ -1259,6 +1274,32 @@ function setBtnLoad(on){
 function setStLoad(t,m){
   document.getElementById('stLoadT').textContent=t;
   document.getElementById('stLoadM').textContent=m;
+}
+
+// ── MOBILE SEARCH EXPAND/COLLAPSE ────────────────────────────
+function expandSearch(e) {
+  const wrap = document.getElementById('tbSearch');
+  if (!wrap) return;
+  // Hanya expand kalau belum expanded (mobile)
+  if (window.innerWidth <= 600 && !wrap.classList.contains('tb-expanded')) {
+    e.stopPropagation();
+    wrap.classList.add('tb-expanded');
+    setTimeout(() => {
+      const inp = document.getElementById('sInput');
+      if (inp) inp.focus();
+    }, 50);
+  }
+}
+
+function collapseSearch() {
+  // Delay sedikit supaya klik tombol Cari sempat terjadi dulu
+  setTimeout(() => {
+    const wrap = document.getElementById('tbSearch');
+    const inp  = document.getElementById('sInput');
+    if (wrap && inp && !inp.value.trim()) {
+      wrap.classList.remove('tb-expanded');
+    }
+  }, 200);
 }
 
 async function doSearch(){
