@@ -15,7 +15,7 @@ const PagaskaNotif = (() => {
   // Atau pakai: npx web-push generate-vapid-keys
   // Isi VAPID_PUBLIC_KEY dengan public key kamu, lalu simpan private key
   // di backend/Supabase secret untuk kirim push nanti
-  const VAPID_PUBLIC_KEY = ''; // ← ISI DENGAN VAPID PUBLIC KEY KAMU
+  const VAPID_PUBLIC_KEY = 'BPdMohfhdsCfr81OTVYNhf2RDlNuOqON2ip2r-ZU3vM47-kPKjPYQ8AVni9-39myVAKoNOGjJP0LtjVo-8q0T7E'; // ← ISI DENGAN VAPID PUBLIC KEY KAMU
 
   const POLL_INTERVAL = 30000; // 30 detik
   let _pollTimer = null;
