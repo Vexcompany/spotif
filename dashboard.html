@@ -301,12 +301,15 @@ loadStats();
 </script>
 <script src="_lib/db.js"></script>
 
-<!-- ── ADMIN NOTIFIKASI PANEL (UPDATE #4) ──────────────────── -->
+<!-- ── ADMIN NOTIFIKASI PANEL (UPDATE #4 fixed) ────────────── -->
 <script>
 const SB_URL_DASH = 'https://ygwoddwdhelqcwhpqasl.supabase.co';
 const SB_KEY_DASH = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlnd29kZHdkaGVscWN3aHBxYXNsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MTg1MTA3NywiZXhwIjoyMDg3NDI3MDc3fQ.2-pBR-YtAySMSYQ9fK1OtJobSTnsLJS8O1NEWdW8-oE';
 
-const AdminNotif = (() => {
+// ── ADMIN PANEL — selalu tampil, ada password gate sendiri ───
+(function buildAdminPanel() {
+  const ADMIN_PASS_KEY = 'pgsk_admin_unlocked';
+
   const _h = () => ({
     'Content-Type': 'application/json',
     apikey: SB_KEY_DASH,
@@ -314,192 +317,211 @@ const AdminNotif = (() => {
     Prefer: 'return=representation'
   });
 
-  // Cek apakah sesi admin aktif
-  function _isAdmin() {
-    try {
-      const s = JSON.parse(localStorage.getItem('pgsk_admin_session') || 'null');
-      return !!(s?.isAdmin);
-    } catch { return false; }
+  // Inject section ke halaman
+  const sec = document.createElement('section');
+  sec.id    = 'adminNotifSection';
+  sec.style.cssText = 'scroll-snap-align:start;min-height:auto;padding:60px 20px 80px';
+  document.body.appendChild(sec);
+
+  // Render gate atau panel
+  function render() {
+    const unlocked = sessionStorage.getItem(ADMIN_PASS_KEY) === '1';
+    sec.innerHTML = unlocked ? _panelHtml() : _gateHtml();
+    if (unlocked) loadHistory();
   }
 
-  async function sendNotif() {
-    const title   = document.getElementById('an-title')?.value.trim();
-    const body    = document.getElementById('an-body')?.value.trim();
-    const type    = document.getElementById('an-type')?.value || 'info';
-    const target  = document.getElementById('an-target')?.value.trim() || 'all';
+  function _gateHtml() {
+    return `<div style="max-width:400px;margin:0 auto;text-align:center">
+      <div style="display:inline-flex;align-items:center;gap:8px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.25);border-radius:30px;padding:6px 16px;font-size:.72rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#ef4444;margin-bottom:24px">
+        <i class="fas fa-shield-alt"></i> Admin Only
+      </div>
+      <div style="background:rgba(13,13,36,.9);border:1px solid rgba(255,255,255,.07);border-radius:20px;padding:32px 24px;backdrop-filter:blur(20px)">
+        <i class="fas fa-lock" style="font-size:2rem;color:#ef4444;margin-bottom:16px;display:block"></i>
+        <h2 style="font-family:'Syne',sans-serif;font-size:1.3rem;font-weight:800;margin-bottom:8px">Admin Panel</h2>
+        <p style="color:#8888bb;font-size:.8rem;margin-bottom:20px">Masukkan password admin untuk lanjut</p>
+        <input id="an-gate-pass" type="password" placeholder="Password admin..."
+          onkeydown="if(event.key==='Enter')window._adminUnlock()"
+          style="width:100%;padding:11px 14px;border-radius:11px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);color:#eeeeff;font-size:.82rem;font-family:inherit;outline:none;box-sizing:border-box;margin-bottom:12px;text-align:center">
+        <button onclick="window._adminUnlock()"
+          style="width:100%;padding:11px;border-radius:11px;background:linear-gradient(135deg,#ef4444,#dc2626);color:#fff;border:none;font-size:.82rem;font-weight:700;cursor:pointer;font-family:inherit">
+          <i class="fas fa-unlock"></i> Masuk Admin
+        </button>
+        <div id="an-gate-err" style="color:#ef4444;font-size:.72rem;margin-top:10px;display:none"></div>
+      </div>
+    </div>`;
+  }
 
-    if (!title) { _anStatus('⚠️ Judul tidak boleh kosong', 'warn'); return; }
-    if (!body)  { _anStatus('⚠️ Isi notifikasi tidak boleh kosong', 'warn'); return; }
+  function _panelHtml() {
+    return `<div style="width:100%;max-width:560px;margin:0 auto">
+      <div style="text-align:center;margin-bottom:28px">
+        <div style="display:inline-flex;align-items:center;gap:8px;background:rgba(29,185,84,.1);border:1px solid rgba(29,185,84,.25);border-radius:30px;padding:6px 16px;font-size:.72rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--g);margin-bottom:12px">
+          <i class="fas fa-shield-alt"></i> Admin Panel · Aktif
+        </div>
+        <h2 style="font-family:'Syne',sans-serif;font-size:1.6rem;font-weight:800;margin-bottom:6px">Kirim Notifikasi</h2>
+        <p style="color:#8888bb;font-size:.8rem">Broadcast pesan ke semua anggota atau user tertentu</p>
+      </div>
+
+      <!-- Form kirim notif -->
+      <div style="background:rgba(13,13,36,.9);border:1px solid rgba(255,255,255,.07);border-radius:20px;padding:24px;backdrop-filter:blur(20px);margin-bottom:16px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+          <div>
+            <label style="font-size:.65rem;color:#8888bb;display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:1px">Judul</label>
+            <input id="an-title" type="text" maxlength="80" placeholder="Judul notifikasi..."
+              style="width:100%;padding:10px 12px;border-radius:10px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);color:#eeeeff;font-size:.8rem;font-family:inherit;outline:none;box-sizing:border-box">
+          </div>
+          <div>
+            <label style="font-size:.65rem;color:#8888bb;display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:1px">Tipe</label>
+            <select id="an-type" style="width:100%;padding:10px 12px;border-radius:10px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);color:#eeeeff;font-size:.8rem;font-family:inherit;outline:none;box-sizing:border-box">
+              <option value="info">ℹ️ Info</option>
+              <option value="success">✅ Success</option>
+              <option value="warning">⚠️ Warning</option>
+              <option value="promo">🎁 Promo</option>
+            </select>
+          </div>
+        </div>
+        <div style="margin-bottom:12px">
+          <label style="font-size:.65rem;color:#8888bb;display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:1px">Isi Notifikasi</label>
+          <textarea id="an-body" maxlength="300" placeholder="Tulis pesan di sini..."
+            style="width:100%;padding:10px 12px;border-radius:10px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);color:#eeeeff;font-size:.8rem;font-family:inherit;outline:none;resize:vertical;min-height:75px;box-sizing:border-box"></textarea>
+        </div>
+        <div style="margin-bottom:16px">
+          <label style="font-size:.65rem;color:#8888bb;display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:1px">Target</label>
+          <input id="an-target" type="text" placeholder="all  —  atau  nama_generasi  (contoh: Budi_2025)"
+            style="width:100%;padding:10px 12px;border-radius:10px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);color:#eeeeff;font-size:.8rem;font-family:inherit;outline:none;box-sizing:border-box">
+          <div style="font-size:.6rem;color:#555;margin-top:4px">Kosongkan = kirim ke semua user</div>
+        </div>
+        <button id="an-send-btn" onclick="window._adminSend()"
+          style="width:100%;padding:12px;border-radius:12px;background:linear-gradient(135deg,#1DB954,#17a348);color:#000;border:none;font-size:.85rem;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;font-family:inherit">
+          <i class="fas fa-paper-plane"></i> Kirim Notifikasi
+        </button>
+        <div id="an-status" style="display:none;font-size:.75rem;margin-top:10px;text-align:center;font-weight:600"></div>
+      </div>
+
+      <!-- Riwayat -->
+      <div style="background:rgba(13,13,36,.9);border:1px solid rgba(255,255,255,.07);border-radius:20px;padding:20px;backdrop-filter:blur(20px)">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+          <h3 style="font-family:'Syne',sans-serif;font-size:.92rem;font-weight:800"><i class="fas fa-history" style="color:#1DB954;margin-right:6px"></i>Riwayat Terkirim</h3>
+          <button onclick="loadHistory()" style="background:none;border:none;color:#8888bb;font-size:.7rem;cursor:pointer"><i class="fas fa-sync-alt"></i> Refresh</button>
+        </div>
+        <div id="an-history"><div style="text-align:center;padding:20px;color:#666;font-size:.75rem">Memuat...</div></div>
+      </div>
+
+      <button onclick="sessionStorage.removeItem('${ADMIN_PASS_KEY}');render()"
+        style="margin-top:16px;width:100%;padding:10px;border-radius:12px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2);color:#ef4444;font-size:.75rem;font-weight:700;cursor:pointer;font-family:inherit">
+        <i class="fas fa-sign-out-alt"></i> Keluar dari Admin
+      </button>
+    </div>`;
+  }
+
+  // ── Auth ──────────────────────────────────────────────────
+  window._adminUnlock = function() {
+    const pass = document.getElementById('an-gate-pass')?.value || '';
+    // Ambil password dari sesi admin yang tersimpan atau dari PAGASKA_DB
+    const adminSess = JSON.parse(localStorage.getItem('pgsk_admin_session') || 'null');
+    const isOk = adminSess?.isAdmin ||
+                 (window.PAGASKA_DB && window.PAGASKA_DB.verifyAdmin && window.PAGASKA_DB.verifyAdmin(pass)) ||
+                 pass === 'pagaska2025admin'; // fallback hardcode — ganti sesuai password adminmu
+
+    if (isOk) {
+      sessionStorage.setItem(ADMIN_PASS_KEY, '1');
+      localStorage.setItem('pgsk_admin_session', JSON.stringify({ isAdmin: true }));
+      render();
+    } else {
+      const errEl = document.getElementById('an-gate-err');
+      if (errEl) { errEl.textContent = '❌ Password salah'; errEl.style.display = 'block'; }
+    }
+  };
+
+  // ── Kirim notif ──────────────────────────────────────────
+  window._adminSend = async function() {
+    const title  = document.getElementById('an-title')?.value.trim();
+    const body   = document.getElementById('an-body')?.value.trim();
+    const type   = document.getElementById('an-type')?.value || 'info';
+    const target = document.getElementById('an-target')?.value.trim() || 'all';
+
+    if (!title) { _setStatus('⚠️ Judul tidak boleh kosong', '#f59e0b'); return; }
+    if (!body)  { _setStatus('⚠️ Isi tidak boleh kosong', '#f59e0b'); return; }
 
     const btn = document.getElementById('an-send-btn');
     if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-circle-notch" style="animation:spin .8s linear infinite"></i> Mengirim...'; }
 
     try {
       const res = await fetch(`${SB_URL_DASH}/rest/v1/notifications`, {
-        method: 'POST',
-        headers: _h(),
-        body: JSON.stringify({
-          title,
-          body,
-          type,
-          target_user: target || 'all',
-          created_at: new Date().toISOString()
-        })
+        method: 'POST', headers: _h(),
+        body: JSON.stringify({ title, body, type, target_user: target || 'all', created_at: new Date().toISOString() })
       });
-
-      if (!res.ok) {
-        const err = await res.text();
-        throw new Error(err);
-      }
-
-      _anStatus(`✅ Notifikasi "${title}" berhasil dikirim ke ${target === 'all' ? 'semua user' : target}!`, 'ok');
+      if (!res.ok) throw new Error(await res.text());
+      _setStatus(`✅ Notif "${title}" berhasil dikirim ke ${target === 'all' ? 'semua user' : target}!`, '#1DB954');
       document.getElementById('an-title').value = '';
       document.getElementById('an-body').value  = '';
-      loadNotifHistory();
-    } catch (e) {
-      _anStatus('❌ Gagal: ' + e.message, 'err');
+      loadHistory();
+    } catch(e) {
+      _setStatus('❌ Gagal: ' + e.message, '#ef4444');
     }
-
     if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-paper-plane"></i> Kirim Notifikasi'; }
+  };
+
+  function _setStatus(msg, color) {
+    const el = document.getElementById('an-status');
+    if (!el) return;
+    el.textContent = msg; el.style.color = color; el.style.display = 'block';
+    setTimeout(() => el.style.display = 'none', 5000);
   }
 
-  async function deleteNotif(id) {
-    if (!confirm('Hapus notifikasi ini?')) return;
-    try {
-      await fetch(`${SB_URL_DASH}/rest/v1/notifications?id=eq.${id}`, { method: 'DELETE', headers: _h() });
-      loadNotifHistory();
-    } catch(e) { alert('Gagal hapus: ' + e.message); }
-  }
-
-  async function loadNotifHistory() {
+  // ── Riwayat ──────────────────────────────────────────────
+  window.loadHistory = async function() {
     const el = document.getElementById('an-history');
     if (!el) return;
-    el.innerHTML = '<div style="text-align:center;padding:16px;color:#888"><i class="fas fa-circle-notch" style="animation:spin .8s linear infinite"></i></div>';
+    el.innerHTML = '<div style="text-align:center;padding:16px;color:#888;font-size:.75rem"><i class="fas fa-circle-notch" style="animation:spin .8s linear infinite"></i></div>';
     try {
-      const res = await fetch(`${SB_URL_DASH}/rest/v1/notifications?order=created_at.desc&limit=20`, { headers: _h() });
+      const res = await fetch(`${SB_URL_DASH}/rest/v1/notifications?order=created_at.desc&limit=25`,
+        { headers: { apikey: SB_KEY_DASH, Authorization: `Bearer ${SB_KEY_DASH}` } });
       const rows = await res.json();
-      if (!rows?.length) { el.innerHTML = '<div style="text-align:center;padding:16px;color:#666;font-size:.75rem">Belum ada notifikasi terkirim</div>'; return; }
-
-      const typeColor = { info:'#3b82f6', success:'#1DB954', warning:'#f59e0b', promo:'#a78bfa' };
+      if (!rows?.length) { el.innerHTML = '<div style="text-align:center;padding:16px;color:#555;font-size:.75rem">Belum ada notifikasi terkirim</div>'; return; }
+      const tc = { info:'#3b82f6', success:'#1DB954', warning:'#f59e0b', promo:'#a78bfa' };
       el.innerHTML = rows.map(n => `
-        <div style="padding:10px 12px;border:1px solid rgba(255,255,255,.07);border-radius:10px;margin-bottom:6px;display:flex;gap:10px;align-items:flex-start;background:rgba(255,255,255,.02)">
+        <div style="padding:10px 12px;border:1px solid rgba(255,255,255,.06);border-radius:10px;margin-bottom:7px;display:flex;gap:10px;align-items:flex-start">
           <div style="flex:1;min-width:0">
-            <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px">
-              <span style="font-size:.72rem;font-weight:700;color:${typeColor[n.type]||'#1DB954'}">${n.title}</span>
-              <span style="font-size:.58rem;background:${typeColor[n.type]||'#1DB954'}22;color:${typeColor[n.type]||'#1DB954'};padding:1px 6px;border-radius:20px">${n.type}</span>
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;flex-wrap:wrap">
+              <span style="font-size:.75rem;font-weight:700;color:${tc[n.type]||'#1DB954'}">${n.title}</span>
+              <span style="font-size:.58rem;background:${tc[n.type]||'#1DB954'}22;color:${tc[n.type]||'#1DB954'};padding:1px 7px;border-radius:20px">${n.type}</span>
             </div>
-            <div style="font-size:.68rem;color:#999;line-height:1.4">${n.body}</div>
-            <div style="font-size:.58rem;color:#555;margin-top:4px">
-              Target: <b style="color:#888">${n.target_user === 'all' ? '👥 Semua User' : n.target_user}</b>
+            <div style="font-size:.7rem;color:#999;line-height:1.4;margin-bottom:3px">${n.body}</div>
+            <div style="font-size:.58rem;color:#555">
+              Target: <b style="color:#777">${n.target_user === 'all' ? '👥 Semua User' : n.target_user}</b>
               · ${new Date(n.created_at).toLocaleString('id-ID')}
             </div>
           </div>
-          <button onclick="AdminNotif.deleteNotif('${n.id}')" style="background:none;border:none;color:#ef4444;font-size:.7rem;cursor:pointer;padding:4px;flex-shrink:0" title="Hapus">
+          <button onclick="window._adminDelNotif('${n.id}')" title="Hapus"
+            style="background:none;border:none;color:#ef4444;font-size:.7rem;cursor:pointer;padding:4px;flex-shrink:0">
             <i class="fas fa-trash-alt"></i>
           </button>
-        </div>
-      `).join('');
+        </div>`).join('');
     } catch(e) {
-      el.innerHTML = `<div style="color:#ef4444;font-size:.73rem;padding:12px">⚠️ Gagal memuat: ${e.message}</div>`;
+      el.innerHTML = `<div style="color:#ef4444;font-size:.73rem;padding:12px">⚠️ Gagal: ${e.message}</div>`;
     }
-  }
+  };
 
-  function _anStatus(msg, type) {
-    const el = document.getElementById('an-status');
-    if (!el) return;
-    el.textContent = msg;
-    el.style.color = type === 'ok' ? '#1DB954' : type === 'warn' ? '#f59e0b' : '#ef4444';
-    el.style.display = 'block';
-    setTimeout(() => { el.style.display = 'none'; }, 4000);
-  }
+  window._adminDelNotif = async function(id) {
+    if (!confirm('Hapus notifikasi ini?')) return;
+    try {
+      await fetch(`${SB_URL_DASH}/rest/v1/notifications?id=eq.${id}`, { method:'DELETE', headers:_h() });
+      loadHistory();
+    } catch(e) { alert('Gagal: ' + e.message); }
+  };
 
-  function init() {
-    // Inject admin panel section ke halaman
-    const existing = document.getElementById('adminNotifSection');
-    if (existing) { loadNotifHistory(); return; }
-
-    const sec = document.createElement('section');
-    sec.id    = 'adminNotifSection';
-    sec.style.cssText = 'position:relative;z-index:1;padding:60px 20px;display:flex;flex-direction:column;align-items:center;gap:0;min-height:auto;scroll-snap-align:none';
-
-    sec.innerHTML = `
-      <div style="width:100%;max-width:540px">
-        <div style="text-align:center;margin-bottom:32px">
-          <div style="display:inline-flex;align-items:center;gap:8px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.25);border-radius:30px;padding:6px 16px;font-size:.72rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#ef4444;margin-bottom:12px">
-            <i class="fas fa-shield-alt"></i> Admin Only
-          </div>
-          <h2 style="font-family:'Syne',sans-serif;font-size:1.8rem;font-weight:800;margin-bottom:8px">Kirim Notifikasi</h2>
-          <p style="color:#8888bb;font-size:.82rem">Broadcast pesan ke semua anggota atau user tertentu</p>
-        </div>
-
-        <div style="background:rgba(13,13,36,.8);border:1px solid rgba(255,255,255,.07);border-radius:20px;padding:24px;backdrop-filter:blur(20px);margin-bottom:20px">
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
-            <div>
-              <label style="font-size:.68rem;color:#8888bb;display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:1px">Judul</label>
-              <input id="an-title" type="text" maxlength="80" placeholder="Judul notifikasi..."
-                style="width:100%;padding:10px 12px;border-radius:10px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);color:#eeeeff;font-size:.8rem;font-family:inherit;outline:none;box-sizing:border-box">
-            </div>
-            <div>
-              <label style="font-size:.68rem;color:#8888bb;display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:1px">Tipe</label>
-              <select id="an-type" style="width:100%;padding:10px 12px;border-radius:10px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);color:#eeeeff;font-size:.8rem;font-family:inherit;outline:none;box-sizing:border-box">
-                <option value="info">ℹ️ Info</option>
-                <option value="success">✅ Success</option>
-                <option value="warning">⚠️ Warning</option>
-                <option value="promo">🎁 Promo</option>
-              </select>
-            </div>
-          </div>
-
-          <div style="margin-bottom:12px">
-            <label style="font-size:.68rem;color:#8888bb;display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:1px">Isi Notifikasi</label>
-            <textarea id="an-body" maxlength="300" placeholder="Tulis pesan notifikasi di sini..."
-              style="width:100%;padding:10px 12px;border-radius:10px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);color:#eeeeff;font-size:.8rem;font-family:inherit;outline:none;resize:vertical;min-height:80px;box-sizing:border-box"></textarea>
-          </div>
-
-          <div style="margin-bottom:16px">
-            <label style="font-size:.68rem;color:#8888bb;display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:1px">Target User</label>
-            <input id="an-target" type="text" placeholder="all — atau ketik nama_generasi (contoh: Budi_2025)"
-              style="width:100%;padding:10px 12px;border-radius:10px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);color:#eeeeff;font-size:.8rem;font-family:inherit;outline:none;box-sizing:border-box">
-            <div style="font-size:.62rem;color:#555;margin-top:4px">Kosongkan atau ketik "all" untuk kirim ke semua user</div>
-          </div>
-
-          <button id="an-send-btn" onclick="AdminNotif.sendNotif()"
-            style="width:100%;padding:12px;border-radius:12px;background:linear-gradient(135deg,#1DB954,#17a348);color:#000;border:none;font-size:.85rem;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;font-family:inherit;transition:all .2s">
-            <i class="fas fa-paper-plane"></i> Kirim Notifikasi
-          </button>
-          <div id="an-status" style="display:none;font-size:.75rem;margin-top:10px;text-align:center;font-weight:600"></div>
-        </div>
-
-        <!-- Riwayat Notif -->
-        <div style="background:rgba(13,13,36,.8);border:1px solid rgba(255,255,255,.07);border-radius:20px;padding:20px;backdrop-filter:blur(20px)">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-            <h3 style="font-family:'Syne',sans-serif;font-size:.95rem;font-weight:800"><i class="fas fa-history" style="color:#1DB954;margin-right:6px"></i>Riwayat Terkirim</h3>
-            <button onclick="AdminNotif.loadNotifHistory()" style="background:none;border:none;color:#8888bb;font-size:.7rem;cursor:pointer"><i class="fas fa-sync-alt"></i> Refresh</button>
-          </div>
-          <div id="an-history"><div style="text-align:center;padding:20px;color:#666;font-size:.75rem">Memuat...</div></div>
-        </div>
-      </div>
-    `;
-
-    // Tambahkan sebelum </body> yang terakhir
-    document.body.appendChild(sec);
-    loadNotifHistory();
-  }
-
-  return { init, sendNotif, deleteNotif, loadNotifHistory };
-})();
-
-window.AdminNotif = AdminNotif;
-
-// Init admin panel kalau login admin
-const _dashSess = JSON.parse(localStorage.getItem('pgsk_admin_session') || 'null');
-if (_dashSess?.isAdmin) {
+  // Render panel saat page load
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => AdminNotif.init());
+    document.addEventListener('DOMContentLoaded', render);
   } else {
-    AdminNotif.init();
+    render();
   }
-}
+})();
+</script>
+</body>
+</html>
+
+
 </script>
 </body>
 </html>
