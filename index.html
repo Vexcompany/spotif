@@ -1550,14 +1550,22 @@ async function playTrackObj(t){
     navigator.mediaSession.setActionHandler('seekto', (e) => {
       if (audio.duration) {
         audio.currentTime = e.seekTime;
+        _updatePositionState();
       }
     });
     navigator.mediaSession.setActionHandler('seekbackward', (e) => {
       audio.currentTime = Math.max(0, audio.currentTime - (e.seekOffset || 10));
+      _updatePositionState();
     });
     navigator.mediaSession.setActionHandler('seekforward', (e) => {
       audio.currentTime = Math.min(audio.duration || 0, audio.currentTime + (e.seekOffset || 10));
+      _updatePositionState();
     });
+
+    // Panggil setPositionState segera setelah audio siap — ini kunci agar
+    // notifikasi lockscreen TIDAK hilang saat di-pause
+    audio.addEventListener('loadedmetadata', _updatePositionState, { once: false });
+    _updatePositionState();
   }
   // ────────────────────────────────────────────────────────────
 
@@ -1636,6 +1644,28 @@ function updAll(){
 
   if ('mediaSession' in navigator) {
     navigator.mediaSession.playbackState = p ? 'playing' : 'paused';
+    // Selalu update posisi agar notifikasi lockscreen TIDAK hilang saat pause
+    _updatePositionState();
+  }
+}
+
+// ── MEDIA SESSION POSITION STATE ─────────────────────────────
+// Tanpa ini, browser akan hide notifikasi lockscreen setelah
+// beberapa detik karena tidak tahu posisi/durasi audio.
+function _updatePositionState() {
+  if (!('mediaSession' in navigator)) return;
+  try {
+    const dur = audio.duration;
+    const pos = audio.currentTime;
+    if (dur && isFinite(dur) && isFinite(pos)) {
+      navigator.mediaSession.setPositionState({
+        duration:     dur,
+        position:     Math.min(pos, dur),
+        playbackRate: audio.playbackRate || 1,
+      });
+    }
+  } catch (e) {
+    // setPositionState belum didukung semua browser, ignore
   }
 }
 
@@ -1652,6 +1682,8 @@ function startProg(){
       document.getElementById('npCur').textContent=fmt(audio.currentTime);
       document.getElementById('npTot').textContent=fmt(audio.duration);
     }
+    // Update posisi di media session setiap tick agar notif lockscreen stay
+    _updatePositionState();
   },400);
 }
 
@@ -2994,6 +3026,7 @@ if (document.readyState === 'loading') {
 <script src="cinematic-lyrics.js"></script>
 <script src="playlist.js"></script>
 <script src="notif.js"></script>
+<script src="sync.js"></script>
 
 <!-- ── PLAYLIST MODALS (UPDATE #3) ─────────────────────────── -->
 
