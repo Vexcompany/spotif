@@ -180,7 +180,6 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 .tb-notif:hover{background:var(--s3);color:var(--tx)}
 .notif-dot{position:absolute;top:6px;right:6px;width:7px;height:7px;border-radius:50%;background:var(--rd);border:1.5px solid var(--bg);display:none;}
 @media(max-width:600px){
-  .tb-name{display:none}
   .tb-search{flex:0 0 34px;padding:0;overflow:hidden;border-radius:10px;cursor:pointer;justify-content:center;}
   .tb-search.tb-expanded{flex:1;padding:6px 6px 6px 12px;cursor:default;border-radius:12px;}
   .tb-search .tb-sico{width:34px;height:34px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--mt);font-size:.85rem;pointer-events:none;}
@@ -207,7 +206,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 .nav-icon-wrap{position:relative;display:flex;align-items:center;justify-content:center}
 
 /* PAGES */
-.page{display:none;padding:16px;animation:pageIn .3s ease}
+.page{display:none;padding:16px;padding-top:20px;animation:pageIn .3s ease}
 .page.active{display:block}
 @keyframes pageIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 
