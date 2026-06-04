@@ -465,7 +465,7 @@ async function initMusicRoom(mode) {
   await sb.post('messages', {
     from_key: USER_KEY,
     to_key: currentChatWith,
-    content: `🎵 _music_room_invite_|${sessionId}|${mode}|${currentTrack.title}`,
+    content: `🎵 _music_room_invite_|${sessionId}|${mode}|${encodeURIComponent(currentTrack.title)}`,
     created_at: new Date().toISOString(),
   }).catch(() => {});
 
@@ -635,6 +635,31 @@ function startRoomSync() {
     if (s.isHost) {
       // Host: hanya tulis posisi ke DB, TIDAK membaca atau mengubah currentTime
       if (!currentTrack) return;
+      // Fix Bug 6b: kalau track berubah (host skip/next), update DB dan broadcast ke guest
+      const dbTrackChanged = s._lastBroadcastTrackId !== currentTrack.id;
+      if (dbTrackChanged) {
+        musicRoomState._lastBroadcastTrackId = currentTrack.id;
+        sb.patch(MUSIC_ROOM_TABLE, `session_id=eq.${encodeURIComponent(s.sessionId)}`, {
+          track_id:     currentTrack.id,
+          track_title:  currentTrack.title,
+          track_artist: currentTrack.artist,
+          track_audio:  currentTrack.audio,
+          track_thumb:  currentTrack.thumbnail,
+          host_pos:     0,
+          updated_at:   new Date().toISOString(),
+          status: 'active',
+        }).catch(() => {});
+        sendSignal('track_change', {
+          track: {
+            id: currentTrack.id, title: currentTrack.title, artist: currentTrack.artist,
+            audio: currentTrack.audio, thumbnail: currentTrack.thumbnail,
+          },
+          pos: audio.currentTime,
+        });
+        if (s.mode === 'karaoke') setTimeout(() => loadKaraokeLyrics(), 600);
+        renderMusicRoomBody();
+        return;
+      }
       sb.patch(MUSIC_ROOM_TABLE, `session_id=eq.${encodeURIComponent(s.sessionId)}`, {
         host_pos: audio.currentTime,
         updated_at: new Date().toISOString(),
@@ -713,6 +738,18 @@ async function handleSignal(sig) {
       musicRoomState.karaokeMyTurn = data.yourTurn === true;
       updateKaraokeTurnUI();
       applyKaraokeVocalFilter();
+      break;
+    case 'track_change':
+      // Fix Bug 6b: host broadcast track baru ke guest
+      if (!musicRoomState.isHost && data.track) {
+        const t = data.track;
+        if (!currentTrack || currentTrack.id !== t.id) {
+          await playTrackObj(t);
+          await new Promise(r => setTimeout(r, 400));
+          if (data.pos > 0) audio.currentTime = data.pos;
+        }
+        renderMusicRoomBody();
+      }
       break;
     case 'webrtc_offer':
       await handleWebRTCOffer(data);
@@ -1044,7 +1081,7 @@ window.renderMessages = function(msgs) {
     if (m.from_key !== USER_KEY && m.content?.startsWith('🎵 _music_room_invite_|')) {
       const parts = m.content.split('|');
       if (parts.length >= 4) {
-        showInviteBanner(parts[1], parts[2], parts[3], m.from_key);
+        showInviteBanner(parts[1], parts[2], decodeURIComponent(parts[3]||''), m.from_key);
       }
       break;
     }

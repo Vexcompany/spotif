@@ -175,6 +175,9 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
       <button class="sb-item" id="nav-stats" onclick="showPanel('stats')">
         <i class="fas fa-chart-bar"></i> Statistik
       </button>
+      <button class="sb-item" id="nav-notif" onclick="showPanel('notif')">
+        <i class="fas fa-bell"></i> Kirim Notifikasi
+      </button>
     </nav>
     <div class="sb-bottom">
       <a href="index.html"><i class="fas fa-arrow-left"></i> Kembali ke Player</a>
@@ -245,6 +248,54 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
       </div>
 
       <!-- PANEL: STATS -->
+      <div class="panel" id="panel-notif">
+        <div class="panel-head">
+          <div class="panel-title"><i class="fas fa-bell" style="color:var(--yw)"></i> Kirim Notifikasi ke User</div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+          <div>
+            <div style="background:var(--s1);border:1px solid var(--bd);border-radius:14px;padding:20px">
+              <div style="font-size:.82rem;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:6px"><i class="fas fa-paper-plane" style="color:var(--g)"></i> Buat Notifikasi</div>
+              <div style="display:flex;flex-direction:column;gap:10px">
+                <div>
+                  <label style="font-size:.65rem;font-weight:700;color:var(--mt);text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:4px">Judul *</label>
+                  <input id="notifTitle" type="text" placeholder="Contoh: Update Baru!" style="width:100%;padding:10px 12px;border-radius:9px;border:1px solid var(--bd);background:rgba(255,255,255,.05);color:var(--tx);font-size:.82rem;font-family:inherit;outline:none">
+                </div>
+                <div>
+                  <label style="font-size:.65rem;font-weight:700;color:var(--mt);text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:4px">Isi Pesan *</label>
+                  <textarea id="notifBody" placeholder="Tulis isi notifikasi..." rows="3" style="width:100%;padding:10px 12px;border-radius:9px;border:1px solid var(--bd);background:rgba(255,255,255,.05);color:var(--tx);font-size:.82rem;font-family:inherit;outline:none;resize:vertical"></textarea>
+                </div>
+                <div>
+                  <label style="font-size:.65rem;font-weight:700;color:var(--mt);text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:4px">Tipe</label>
+                  <select id="notifType" style="width:100%;padding:10px 12px;border-radius:9px;border:1px solid var(--bd);background:var(--s2);color:var(--tx);font-size:.82rem;font-family:inherit;outline:none">
+                    <option value="info">ℹ️ Info</option>
+                    <option value="success">✅ Success</option>
+                    <option value="warning">⚠️ Warning</option>
+                    <option value="promo">🎁 Promo</option>
+                  </select>
+                </div>
+                <div>
+                  <label style="font-size:.65rem;font-weight:700;color:var(--mt);text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:4px">Target User (kosongkan = semua)</label>
+                  <input id="notifTarget" type="text" placeholder="nama_generasi atau kosongkan untuk semua" style="width:100%;padding:10px 12px;border-radius:9px;border:1px solid var(--bd);background:rgba(255,255,255,.05);color:var(--tx);font-size:.82rem;font-family:inherit;outline:none">
+                </div>
+                <button onclick="sendAdminNotif()" style="padding:11px;border-radius:10px;border:none;background:linear-gradient(135deg,var(--g),#00b4d8);color:#000;font-size:.82rem;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px">
+                  <i class="fas fa-paper-plane"></i> Kirim Notifikasi
+                </button>
+                <div id="notifSendResult" style="font-size:.75rem;text-align:center;min-height:16px"></div>
+              </div>
+            </div>
+          </div>
+          <div>
+            <div style="background:var(--s1);border:1px solid var(--bd);border-radius:14px;padding:20px">
+              <div style="font-size:.82rem;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:6px"><i class="fas fa-history" style="color:var(--p2)"></i> Riwayat Notifikasi</div>
+              <div id="notifHistory" style="display:flex;flex-direction:column;gap:8px;max-height:400px;overflow-y:auto;scrollbar-width:none">
+                <div style="text-align:center;color:var(--mt);font-size:.75rem;padding:20px">Memuat...</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div class="panel" id="panel-stats">
         <div class="panel-title" style="margin-bottom:16px"><i class="fas fa-chart-bar" style="color:var(--yw)"></i> Statistik Detail</div>
         <div class="tbl-wrap" id="statsContent">
@@ -261,6 +312,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
   <button class="mn-item active" id="mn-tracks" onclick="showPanel('tracks')"><i class="fas fa-music"></i>Lagu</button>
   <button class="mn-item" id="mn-party" onclick="showPanel('party')"><i class="fas fa-users"></i>Party</button>
   <button class="mn-item" id="mn-stats" onclick="showPanel('stats')"><i class="fas fa-chart-bar"></i>Stats</button>
+  <button class="mn-item" id="mn-notif" onclick="showPanel('notif')"><i class="fas fa-bell"></i>Notif</button>
   <button class="mn-item" onclick="window.location.href='index.html'"><i class="fas fa-home"></i>Player</button>
 </nav>
 
@@ -514,7 +566,7 @@ function previewTrack(encodedUrl){
 }
 
 // ── PANELS ────────────────────────────────────────────────────
-const panels = ['tracks','party','stats'];
+const panels = ['tracks','party','stats','notif'];
 function showPanel(name){
   panels.forEach(p=>{
     document.getElementById(`panel-${p}`).classList.toggle('active', p===name);
@@ -523,6 +575,7 @@ function showPanel(name){
   });
   const titles = { tracks:'Kelola Lagu', party:'Party Queue', stats:'Statistik' };
   document.getElementById('panelTitle').textContent = titles[name] || name;
+  if (name === 'notif') loadNotifHistory();
   if(name==='stats') loadStats();
 }
 
@@ -553,6 +606,94 @@ function toast(m){
 // ── INIT ──────────────────────────────────────────────────────
 loadTracks();
 loadParty();
+
+
+// ── KIRIM NOTIFIKASI (Bug 4 Fix) ─────────────────────────────────────────────
+async function sendAdminNotif() {
+  const title  = document.getElementById('notifTitle').value.trim();
+  const body   = document.getElementById('notifBody').value.trim();
+  const type   = document.getElementById('notifType').value;
+  const target = document.getElementById('notifTarget').value.trim();
+  const result = document.getElementById('notifSendResult');
+
+  if (!title || !body) {
+    result.style.color = 'var(--rd)';
+    result.textContent = '⚠️ Judul dan isi wajib diisi';
+    return;
+  }
+
+  result.style.color = 'var(--mt)';
+  result.textContent = '⏳ Mengirim...';
+
+  try {
+    const row = {
+      title,
+      body,
+      type,
+      target_user: target || 'all',
+      created_at: new Date().toISOString(),
+    };
+
+    const res = await fetch(`${SB_URL}/rest/v1/notifications`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        apikey: SB_KEY,
+        Authorization: `Bearer ${SB_KEY}`,
+        Prefer: 'return=minimal',
+      },
+      body: JSON.stringify(row),
+    });
+
+    if (!res.ok) {
+      const err = await res.text();
+      throw new Error(err || 'Gagal menyimpan notifikasi');
+    }
+
+    result.style.color = 'var(--g)';
+    result.textContent = `✅ Notifikasi "${title}" berhasil dikirim ke ${target||'semua user'}`;
+    document.getElementById('notifTitle').value = '';
+    document.getElementById('notifBody').value  = '';
+    loadNotifHistory();
+  } catch (e) {
+    result.style.color = 'var(--rd)';
+    result.textContent = '❌ Error: ' + e.message;
+  }
+}
+
+async function loadNotifHistory() {
+  const el = document.getElementById('notifHistory');
+  if (!el) return;
+  try {
+    const res = await fetch(`${SB_URL}/rest/v1/notifications?order=created_at.desc&limit=20`, {
+      headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` },
+    });
+    const rows = await res.json();
+    if (!rows?.length) {
+      el.innerHTML = '<div style="text-align:center;color:var(--mt);font-size:.75rem;padding:20px">Belum ada notifikasi</div>';
+      return;
+    }
+    const typeColor = { info:'var(--b2)', success:'var(--g)', warning:'var(--yw)', promo:'var(--p2)' };
+    const typeIcon  = { info:'fa-info-circle', success:'fa-check-circle', warning:'fa-exclamation-triangle', promo:'fa-gift' };
+    el.innerHTML = rows.map(n => {
+      const clr  = typeColor[n.type] || 'var(--g)';
+      const ico  = typeIcon[n.type]  || 'fa-bell';
+      const time = new Date(n.created_at).toLocaleString('id-ID',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+      return `<div style="padding:10px 12px;background:var(--s2);border-radius:10px;border:1px solid var(--bd)">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+          <i class="fas ${ico}" style="color:${clr};font-size:.75rem"></i>
+          <span style="font-size:.78rem;font-weight:700;flex:1">${n.title||''}</span>
+          <span style="font-size:.6rem;color:var(--mt)">${time}</span>
+        </div>
+        <div style="font-size:.7rem;color:var(--mt)">${n.body||''}</div>
+        <div style="font-size:.6rem;color:var(--mt);margin-top:4px">Target: ${n.target_user||'all'}</div>
+      </div>`;
+    }).join('');
+  } catch (e) {
+    el.innerHTML = `<div style="color:var(--rd);font-size:.75rem;text-align:center;padding:10px">Error: ${e.message}</div>`;
+  }
+}
+
 </script>
 </body>
 </html>

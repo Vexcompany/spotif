@@ -1242,7 +1242,7 @@ async function safePlay(){
     const p=audio.play();
     if(p&&typeof p.then==='function')await p;
     if(cancelled)audio.pause();
-    else{isPlaying=true;updAll();}
+    else{isPlaying=true;if('mediaSession' in navigator){navigator.mediaSession.playbackState='playing';_updatePositionState();}updAll();}
   }catch(e){
     if(e.name!=='AbortError'&&e.name!=='NotAllowedError')toast('⚠️ Gagal memutar: '+e.message);
     isPlaying=false;updAll();
@@ -1251,7 +1251,14 @@ async function safePlay(){
 
 function safePause(){
   if(_playAbort){_playAbort();_playAbort=null;}
-  audio.pause();isPlaying=false;updAll();
+  audio.pause();
+  isPlaying=false;
+  // Fix Bug 7: langsung update mediaSession tanpa nunggu interval 400ms
+  if('mediaSession' in navigator){
+    navigator.mediaSession.playbackState='paused';
+    _updatePositionState();
+  }
+  updAll();
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -1987,7 +1994,7 @@ function switchTab(t){
 // ══════════════════════════════════════════════════════════════
 async function loadQuickPlay(){
   try{
-    const rows=await sb.get('tracks','order=last_played.desc.nullslast&limit=20');
+    const rows=await sb.get('tracks','order=last_played.desc.nullslast&limit=50');
     document.getElementById('quickPlaySec').style.display=rows.length?'block':'none';
     document.getElementById('qpCnt').textContent=rows.length;
     const el=document.getElementById('qpGrid');
@@ -2112,27 +2119,39 @@ let currentChatWith=null,pendingShareTrack=null,selectedShareMembers=[],_allShar
 
 async function loadChatList(){
   try{
-    const sent=await sb.get('messages',`from_key=eq.${encodeURIComponent(USER_KEY)}&order=created_at.desc`);
-    const recv=await sb.get('messages',`to_key=eq.${encodeURIComponent(USER_KEY)}&order=created_at.desc`);
+    // Fix Bug 5: guard kalau USER_KEY kosong/guest
+    if(!USER_KEY||USER_KEY==='guest'){
+      const el=document.getElementById('chatList');
+      if(el)el.innerHTML='<div class="empty-ti"><i class="fas fa-user-slash"></i>Login dulu untuk melihat chat</div>';
+      return;
+    }
+    const sent=await sb.get('messages',`from_key=eq.${encodeURIComponent(USER_KEY)}&order=created_at.desc&limit=100`);
+    const recv=await sb.get('messages',`to_key=eq.${encodeURIComponent(USER_KEY)}&order=created_at.desc&limit=100`);
     const convMap={};
-    [...sent,...recv].forEach(m=>{
+    [...(sent||[]),...(recv||[])].forEach(m=>{
+      if(!m||!m.from_key||!m.to_key)return;
       const other=m.from_key===USER_KEY?m.to_key:m.from_key;
+      if(!other)return;
       if(!convMap[other]||new Date(m.created_at)>new Date(convMap[other].created_at))convMap[other]=m;
     });
     const convs=Object.entries(convMap).sort((a,b)=>new Date(b[1].created_at)-new Date(a[1].created_at));
     const el=document.getElementById('chatList');
     if(!convs.length){el.innerHTML='<div class="empty-ti"><i class="fas fa-comment-slash"></i>Belum ada percakapan</div>';return;}
-    const unreadTotal=recv.filter(m=>!m.read_at&&m.from_key!==USER_KEY).length;
+    const unreadTotal=(recv||[]).filter(m=>!m.read_at&&m.from_key!==USER_KEY).length;
     updateChatBadge(unreadTotal);
     el.innerHTML=convs.map(([otherKey,lastMsg])=>{
-      const name=otherKey.split('_').slice(0,-1).join(' ')||otherKey;
-      const ini=name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+      // Fix Bug 5: nama dari otherKey — format "NamaLengkap_generasi" → ambil semua kecuali segment terakhir
+      const parts=otherKey.split('_');
+      const name=(parts.length>1?parts.slice(0,-1).join(' '):otherKey)||otherKey;
+      const ini=name.split(' ').map(w=>w[0]||'').join('').toUpperCase().slice(0,2)||'?';
       const isUnread=lastMsg.to_key===USER_KEY&&!lastMsg.read_at;
       const timeAgo=getTimeAgo(lastMsg.created_at);
       const preview=lastMsg.track_id?'🎵 Berbagi lagu':(lastMsg.content||'');
-      return `<div class="chat-item ${isUnread?'unread':''}" data-user-key="${otherKey}" onclick="openChatRoom('${otherKey}','${name}')"><div class="chat-av">${ini}<div class="chat-online"></div></div><div class="chat-info"><div class="chat-name">${name}</div><div class="chat-preview ${lastMsg.track_id?'track':''}">${preview}</div></div><div class="chat-meta"><div class="chat-time">${timeAgo}</div>${isUnread?'<div class="chat-unread-cnt">•</div>':''}</div></div>`;
+      const escapedKey=otherKey.replace(/'/g,"\'");
+      const escapedName=name.replace(/'/g,"\'");
+      return `<div class="chat-item ${isUnread?'unread':''}" data-user-key="${otherKey}" onclick="openChatRoom('${escapedKey}','${escapedName}')"><div class="chat-av">${ini}<div class="chat-online"></div></div><div class="chat-info"><div class="chat-name">${name}</div><div class="chat-preview ${lastMsg.track_id?'track':''}">${preview}</div></div><div class="chat-meta"><div class="chat-time">${timeAgo}</div>${isUnread?'<div class="chat-unread-cnt">•</div>':''}</div></div>`;
     }).join('');
-  }catch(e){console.warn(e.message);}
+  }catch(e){console.warn('[chat]',e.message);}
 }
 
 async function openChatRoom(otherKey,name){
@@ -2756,7 +2775,7 @@ function subscribeMessages() {
       }
       if (msg.to_key === USER_KEY && msg.from_key !== USER_KEY) {
         loadChatList();
-        const name = msg.from_key.split('_').slice(0, -1).join(' ') || msg.from_key;
+        const _parts = (msg.from_key||'').split('_'); const name = (_parts.length>1?_parts.slice(0,-1).join(' '):msg.from_key)||msg.from_key;
         toast(`💬 Pesan baru dari ${name}`);
       }
     })
@@ -2907,7 +2926,7 @@ async function sbCheckNewMessages() {
     if (rows?.length) {
       _lastMsgCheck = rows[0].created_at;
       loadChatList();
-      const name = rows[0].from_key.split('_').slice(0, -1).join(' ') || rows[0].from_key;
+      const _fp=((rows[0].from_key)||'').split('_'); const name=(_fp.length>1?_fp.slice(0,-1).join(' '):rows[0].from_key)||rows[0].from_key;
       toast(`💬 Pesan baru dari ${name}`);
     }
   } catch (e) { /* silent */ }
@@ -2935,6 +2954,17 @@ async function registerSW() {
     });
     navigator.serviceWorker.addEventListener('message', onSWMessage);
     navigator.serviceWorker.ready.then(() => requestCacheStats());
+    // Fix Bug 1: kirim APP_CLOSING ke SW saat tab/window mau ditutup
+    window.addEventListener('beforeunload', () => {
+      if(navigator.serviceWorker.controller){
+        navigator.serviceWorker.controller.postMessage({type:'APP_CLOSING'});
+      }
+    });
+    window.addEventListener('focus', () => {
+      if(navigator.serviceWorker.controller){
+        navigator.serviceWorker.controller.postMessage({type:'APP_ACTIVE'});
+      }
+    });
   } catch (e) {
     console.warn('[PWA] SW registration failed:', e.message);
   }
