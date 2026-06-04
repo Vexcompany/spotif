@@ -234,7 +234,7 @@ const PagaskaNotif = (() => {
       // Simpan subscription ke Supabase
       await fetch(`${SB_URL}/rest/v1/push_subscriptions`, {
         method: 'POST',
-        headers: { ..._h(), Prefer: 'return=representation,resolution=merge-duplicates' },
+        headers: { ..._h(), Prefer: 'resolution=merge-duplicates,return=minimal' },
         body: JSON.stringify({
           user_key: `${s.nama}_${s.generasi}`,
           nama: s.nama,

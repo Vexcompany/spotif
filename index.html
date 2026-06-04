@@ -2122,7 +2122,8 @@ async function loadChatList(){
     // Fix Bug 5: guard kalau USER_KEY kosong/guest
     if(!USER_KEY||USER_KEY==='guest'){
       const el=document.getElementById('chatList');
-      if(el)el.innerHTML='<div class="empty-ti"><i class="fas fa-user-slash"></i>Login dulu untuk melihat chat</div>';
+      const elGuest=document.getElementById('chatList');
+      if(elGuest)elGuest.innerHTML='<div class="empty-ti"><i class="fas fa-user-slash"></i>Login dulu untuk melihat chat</div>';
       return;
     }
     const sent=await sb.get('messages',`from_key=eq.${encodeURIComponent(USER_KEY)}&order=created_at.desc&limit=100`);
@@ -2136,6 +2137,7 @@ async function loadChatList(){
     });
     const convs=Object.entries(convMap).sort((a,b)=>new Date(b[1].created_at)-new Date(a[1].created_at));
     const el=document.getElementById('chatList');
+    if(!el)return; // Fix: element belum ada di DOM (halaman chat belum dibuka)
     if(!convs.length){el.innerHTML='<div class="empty-ti"><i class="fas fa-comment-slash"></i>Belum ada percakapan</div>';return;}
     const unreadTotal=(recv||[]).filter(m=>!m.read_at&&m.from_key!==USER_KEY).length;
     updateChatBadge(unreadTotal);
