@@ -2127,7 +2127,12 @@ async function toggleLikeCurrent(){
   }else{
     likedArr.unshift(currentTrack);
     toast('❤️ Ditambahkan ke Disukai');
-    sb.post('liked',{user_key:USER_KEY,track_id:currentTrack.id}).catch(()=>{});
+    // Fix liked 409: pakai upsert (on_conflict) bukan plain insert
+    fetch(`${SB_URL}/rest/v1/liked?on_conflict=user_key,track_id`, {
+      method: 'POST',
+      headers: { ...sb._h, 'Prefer': 'resolution=merge-duplicates,return=minimal' },
+      body: JSON.stringify({ user_key: USER_KEY, track_id: currentTrack.id })
+    }).catch(()=>{});
   }
   LS.sl(likedArr);
   updHeroLike();

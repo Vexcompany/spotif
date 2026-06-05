@@ -119,6 +119,8 @@ const PagaskaNotif = (() => {
         `${SB_URL}/rest/v1/notifications?or=(target_user.eq.all,target_user.eq.${encodeURIComponent(s.nama+'_'+s.generasi)})&order=created_at.desc&limit=30`,
         { headers: _h() }
       );
+      // 404 = tabel belum dibuat di Supabase, skip tanpa error
+      if (res.status === 404) { _renderEmpty(); return; }
       if (!res.ok) return;
       const rows = await res.json();
       if (!rows?.length) { _renderEmpty(); return; }
@@ -205,7 +207,7 @@ const PagaskaNotif = (() => {
         `${SB_URL}/rest/v1/notifications?or=(target_user.eq.all,target_user.eq.${encodeURIComponent(s.nama+'_'+s.generasi)})&order=created_at.desc&limit=30`,
         { headers: _h() }
       );
-      if (!res.ok) return;
+      if (res.status === 404 || !res.ok) return;
       const rows = await res.json();
       if (!rows?.length) return;
       const ids = rows.map(r => r.id);
