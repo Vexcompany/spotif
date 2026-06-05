@@ -13,14 +13,18 @@ const AUDIO_CACHE   = `${SW_VERSION}-audio`;
 const IMAGE_CACHE   = `${SW_VERSION}-images`;
 
 const SHELL_FILES = [
-  '/index.html',
-  '/login.html',
-  '/dashboard.html',
-  '/explore.js',
-  '/_lib/db.js',
+  // index.html SENGAJA tidak di-cache agar selalu fresh dari network
   '/manifest.json',
   '/icons/icon-192.png',
   '/icons/icon-512.png',
+];
+
+// File-file ini TIDAK pernah di-cache oleh SW (selalu network)
+const NEVER_CACHE = [
+  '/index.html',
+  '/login.html',
+  '/dashboard.html',
+  '/',
 ];
 
 const NETWORK_ONLY_DOMAINS = [
@@ -57,6 +61,7 @@ self.addEventListener('install', event => {
 self.addEventListener('activate', event => {
   console.log('[SW] Activating...', SW_VERSION);
   event.waitUntil(
+    // Hapus semua cache lama (termasuk index.html yang mungkin ter-cache)
     caches.keys().then(keys => Promise.all(
       keys
         .filter(key => key.startsWith('pagaska-') && !key.startsWith(SW_VERSION))
@@ -148,11 +153,14 @@ self.addEventListener('fetch', event => {
 
 // ── STRATEGY: Shell — Network First, tapi TIDAK update cache saat app closing ──
 async function shellCacheStrategy(request) {
+  const url = new URL(request.url);
+  const isNeverCache = NEVER_CACHE.some(p => url.pathname === p || url.pathname === p + 'index.html');
+
   const cache = await caches.open(SHELL_CACHE);
   try {
     const response = await fetch(request);
-    // Hanya update cache kalau app masih aktif (tidak sedang closing)
-    if (response.ok && _appActive) {
+    // Jangan cache file yang masuk NEVER_CACHE list
+    if (response.ok && _appActive && !isNeverCache) {
       cache.put(request, response.clone());
     }
     return response;

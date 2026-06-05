@@ -2,6 +2,10 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8">
+  <!-- Cache busting: selalu ambil fresh dari server -->
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>Pagaska Music</title>
 <link rel="manifest" href="/manifest.json">
@@ -2231,10 +2235,11 @@ function chatInputKeydown(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault()
 function autoResizeChatInput(el){el.style.height='42px';el.style.height=Math.min(el.scrollHeight,100)+'px';}
 
 function updateChatBadge(count){
-  const badge=document.getElementById('chatBadge');
-  badge.textContent=count||'';
-  badge.classList.toggle('show',count>0);
-  document.getElementById('chatDot').classList.toggle('show',count>0);
+  const badge = document.getElementById('chatBadge');
+  const dot   = document.getElementById('chatDot');
+  // Fix: null guard — elemen mungkin belum ada saat polling pertama jalan
+  if(badge){ badge.textContent=count||''; badge.classList.toggle('show',count>0); }
+  if(dot)  { dot.classList.toggle('show',count>0); }
 }
 
 function shareCurrentTrack(){
@@ -2952,7 +2957,19 @@ let cachedAudioUrls = new Set();
 async function registerSW() {
   if (!('serviceWorker' in navigator)) return;
   try {
-    swRegistration = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+    swRegistration = await navigator.serviceWorker.register('/sw.js', { scope: '/', updateViaCache: 'none' });
+    // Force check update setiap load — pastikan SW terbaru selalu dipakai
+    swRegistration.update().catch(()=>{});
+    swRegistration.addEventListener('updatefound', () => {
+      const newWorker = swRegistration.installing;
+      newWorker.addEventListener('statechange', () => {
+        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+          // Ada SW baru — kirim SKIP_WAITING supaya langsung aktif
+          newWorker.postMessage({ type: 'SKIP_WAITING' });
+          window.location.reload();
+        }
+      });
+    });
     swRegistration.addEventListener('updatefound', () => {
       const newWorker = swRegistration.installing;
       newWorker.addEventListener('statechange', () => {
