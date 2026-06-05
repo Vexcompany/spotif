@@ -2333,7 +2333,7 @@ async function loadTopChartHome(){
 
 async function loadTopChart(){
   try{
-    const rows=await sb.get('tracks','order=play_count.desc&limit=20&play_count=gt.0');
+    const rows=await sb.get('tracks','order=play_count.desc&limit=50&play_count=gt.0');
     renderChartList(rows,'chartListFull');
   }catch(e){toast('Gagal load chart: '+e.message);}
 }
