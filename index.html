@@ -2063,19 +2063,17 @@ async function loadQuickPlay(){
     const EAGER_COUNT = 12;
     function _buildCard(r, eager){
       const t       = rowToTrack(r,'db');
-      const tEsc    = esc(t);
       const isNow   = currentTrack?.id === r.id;
       const isCached= r.audio_url && cachedAudioUrls.has(r.audio_url);
       const imgSrc  = eager ? (r.thumbnail||PH) : PH;
 
-      // Bungkus div utama
       const card = document.createElement('div');
       card.className = 'qp-card' + (isNow?' playing':'');
       card.id = 'qpc-' + CSS.escape(r.id);
       card.dataset.audioUrl = r.audio_url||'';
-      card.setAttribute('onclick','playTrackObj('+tEsc+')');
+      // Gunakan addEventListener — tidak ada encoding issue
+      card.addEventListener('click', () => playTrackObj(t));
 
-      // Thumb
       const thumb = document.createElement('div');
       thumb.className = 'qp-thumb';
 
@@ -2088,53 +2086,46 @@ async function loadQuickPlay(){
 
       const playBtn = document.createElement('button');
       playBtn.className = 'qp-play';
-      playBtn.setAttribute('onclick','event.stopPropagation();playTrackObj('+tEsc+')');
+      playBtn.addEventListener('click', (e) => { e.stopPropagation(); playTrackObj(t); });
       playBtn.innerHTML = '<i class="fas fa-play"></i>';
 
       thumb.appendChild(img);
       thumb.appendChild(playBtn);
       card.appendChild(thumb);
 
-      // Admin delete button
       if(IS_ADMIN){
         const del = document.createElement('button');
         del.style.cssText = 'position:absolute;top:6px;left:6px;z-index:3;width:24px;height:24px;border-radius:6px;border:none;background:rgba(255,77,109,.85);color:#fff;font-size:.6rem;cursor:pointer;display:flex;align-items:center;justify-content:center;opacity:0.9';
         del.title = 'Hapus (Admin)';
         del.innerHTML = '<i class="fas fa-trash-alt"></i>';
-        del.addEventListener('click', (e) => adminDeleteTrack(r.id, r.title||'', e));
+        del.addEventListener('click', (e) => { e.stopPropagation(); adminDeleteTrack(r.id, r.title||'', e); });
         card.appendChild(del);
       }
 
-      // Cached badge
       const badge = document.createElement('div');
       badge.className = 'qp-cached-badge' + (isCached?' show':'');
       card.appendChild(badge);
 
-      // Now playing
       const now = document.createElement('div');
       now.className = 'qp-now';
       now.textContent = '▶ NOW';
       card.appendChild(now);
 
-      // Title
       const titleEl = document.createElement('div');
       titleEl.className = 'qp-title';
       titleEl.textContent = r.title||'';
       card.appendChild(titleEl);
 
-      // Artist
       const artistEl = document.createElement('div');
       artistEl.className = 'qp-artist';
       artistEl.textContent = r.artist||'';
       card.appendChild(artistEl);
 
-      // Meta
       const meta = document.createElement('div');
       meta.className = 'qp-meta';
       meta.innerHTML = '<span><i class="fas fa-headphones" style="font-size:.48rem"></i> '+(r.play_count||0)+'×</span>'+(r.duration?'<span>'+r.duration+'</span>':'');
       card.appendChild(meta);
 
-      // Searched by
       if(r.searched_by){
         const by = document.createElement('div');
         by.className = 'qp-by';
