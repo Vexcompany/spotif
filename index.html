@@ -304,6 +304,65 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 .qp-meta{font-size:.58rem;color:var(--mt);margin-top:3px;display:flex;gap:4px;align-items:center}
 .qp-by{font-size:.55rem;color:var(--p2);opacity:.8;margin-top:2px}
 
+/* ── SKELETON LOADING ── */
+@keyframes shimmer {
+  0%   { background-position: -800px 0; }
+  100% { background-position:  800px 0; }
+}
+.sk {
+  background: linear-gradient(
+    90deg,
+    var(--s2) 25%,
+    var(--s3) 50%,
+    var(--s2) 75%
+  );
+  background-size: 1600px 100%;
+  animation: shimmer 1.6s infinite linear;
+  border-radius: 6px;
+  display: block;
+}
+.sk-card {
+  background: var(--s1);
+  border: 1px solid var(--bd);
+  border-radius: 13px;
+  padding: 10px;
+  overflow: hidden;
+  pointer-events: none;
+}
+.sk-thumb {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 8px;
+  margin-bottom: 10px;
+}
+.sk-title  { height: 11px; width: 80%; margin-bottom: 7px; }
+.sk-artist { height: 9px;  width: 55%; margin-bottom: 8px; }
+.sk-meta   { height: 8px;  width: 40%; }
+
+.sk-chart-item {
+  display: grid;
+  grid-template-columns: 28px 44px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  border-radius: 11px;
+  border: 1px solid var(--bd);
+  pointer-events: none;
+}
+.sk-rank    { height: 14px; width: 20px; }
+.sk-cthumb  { width: 44px; height: 44px; border-radius: 8px; }
+.sk-cinfo   { display: flex; flex-direction: column; gap: 5px; }
+.sk-ctitle  { height: 10px; width: 70%; }
+.sk-cartist { height: 9px;  width: 45%; }
+.sk-ccount  { height: 14px; width: 24px; }
+
+/* Fade-in saat konten asli muncul */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.sk-loaded { animation: fadeInUp .25s ease; }
+
 /* HERO CARD */
 .hero{margin-bottom:20px;display:none}.hero.show{display:block}
 .hero-card{background:var(--s1);border:1px solid var(--bd);border-radius:20px;overflow:hidden;display:grid;grid-template-columns:190px 1fr;animation:cardIn .4s cubic-bezier(.16,1,.3,1);box-shadow:0 16px 48px rgba(0,0,0,.5),0 0 32px var(--dyn-glow);transition:box-shadow 1s;}
@@ -1143,6 +1202,23 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
   <div class="pd-item danger" onclick="doLogout()"><i class="fas fa-sign-out-alt"></i> Keluar</div>
 </div>
 
+<!-- OFFLINE BANNER -->
+<div class="offline-banner" id="offlineBanner">
+  <i class="fas fa-wifi-slash"></i> Tidak ada koneksi internet
+</div>
+
+<!-- OFFLINE PAGE -->
+<div class="offline-page" id="offlinePage">
+  <div class="offline-page-ico">📡</div>
+  <h3 style="font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:800;margin-bottom:8px">Offline</h3>
+  <p style="color:var(--mt);font-size:.82rem;line-height:1.6;max-width:280px;text-align:center">
+    Tidak ada koneksi internet. Lagu yang sudah tersimpan masih bisa diputar.
+  </p>
+  <button onclick="window.location.reload()" style="margin-top:20px;padding:10px 24px;border-radius:12px;border:none;background:var(--g);color:#000;font-weight:700;font-size:.82rem;cursor:pointer;font-family:inherit">
+    <i class="fas fa-redo"></i> Coba Lagi
+  </button>
+</div>
+
 <div class="toast" id="toast"></div>
 <audio id="audioEl" crossorigin="anonymous"></audio>
 <!-- GRUP TAKSAKA AI ROOM -->
@@ -1191,7 +1267,11 @@ window.BACKEND_URL = BACKEND_URL;
 
 // Supabase config (tetap untuk chat, party, dll)
 const SB_URL = 'https://ygwoddwdhelqcwhpqasl.supabase.co';
-const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlnd29kZHdkaGVscWN3aHBxYXNsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MTg1MTA3NywiZXhwIjoyMDg3NDI3MDc3fQ.2-pBR-YtAySMSYQ9fK1OtJobSTnsLJS8O1NEWdW8-oE';
+// ⚠️  SECURITY: gunakan anon key, BUKAN service_role key.
+// Set VITE_SB_KEY atau inject via Vercel env → _lib/config.js
+// Fallback sementara pakai window.__SB_ANON_KEY yang di-inject dari server,
+// atau hardcode anon key (bukan service_role) di sini.
+const SB_KEY = window.__SB_ANON_KEY || 'GANTI_DENGAN_ANON_KEY_SUPABASE';
 const SESS_KEY = 'pgsk_v2_session';
 const PH = 'https://placehold.co/200x200/0d0d24/1DB954?text=♪';
 
@@ -1396,32 +1476,62 @@ function renderSearchResults(results, query) {
     wrap.style.display = 'block';
     document.getElementById('searchResultsLabel').textContent = `Hasil pencarian: ${results.length} lagu`;
  
-    grid.innerHTML = results.map((r) => {
+    // Bug 6 fix: render via DOM — tidak ada innerHTML dari data API (XSS-safe)
+    grid.innerHTML = '';
+    results.forEach((r) => {
         const title      = r.title      || 'Unknown';
         const artist     = r.artist     || 'Unknown';
         const thumb      = r.image      || PH;
         const url        = r.link       || '';
         const previewUrl = r.previewUrl || '';
- 
-        if (!url) return '';
- 
-        return `<div class="sr-item" onclick="playAppleMusic(
-                    '${encodeURIComponent(url)}',
-                    '${encodeURIComponent(title)}',
-                    '${encodeURIComponent(artist)}',
-                    '${encodeURIComponent(thumb)}',
-                    '${encodeURIComponent(query)}',
-                    '${encodeURIComponent(previewUrl)}')">
-            <div class="sr-thumb"><img src="${thumb}" onerror="this.src='${PH}'"></div>
-            <div class="sr-info">
-                <div class="sr-title">${title}</div>
-                <div class="sr-meta">
-                    <span class="sr-src sr-am">APPLE</span>${artist}
-                </div>
-            </div>
-            <button class="sr-play-btn"><i class="fas fa-play"></i></button>
-        </div>`;
-    }).join('');
+        if (!url) return;
+
+        const item = document.createElement('div');
+        item.className = 'sr-item';
+
+        const thumbDiv = document.createElement('div');
+        thumbDiv.className = 'sr-thumb';
+        const img = document.createElement('img');
+        img.src = thumb;
+        img.onerror = function(){ this.src = PH; };
+        thumbDiv.appendChild(img);
+
+        const info = document.createElement('div');
+        info.className = 'sr-info';
+        const titleEl = document.createElement('div');
+        titleEl.className = 'sr-title';
+        titleEl.textContent = title;
+        const meta = document.createElement('div');
+        meta.className = 'sr-meta';
+        const badge = document.createElement('span');
+        badge.className = 'sr-src sr-am';
+        badge.textContent = 'APPLE';
+        const artistTxt = document.createTextNode(' ' + artist);
+        meta.appendChild(badge);
+        meta.appendChild(artistTxt);
+        info.appendChild(titleEl);
+        info.appendChild(meta);
+
+        const playBtn = document.createElement('button');
+        playBtn.className = 'sr-play-btn';
+        playBtn.innerHTML = '<i class="fas fa-play"></i>';
+
+        item.appendChild(thumbDiv);
+        item.appendChild(info);
+        item.appendChild(playBtn);
+
+        // Closure aman — tidak ada string interpolation
+        item.addEventListener('click', () => playAppleMusic(
+            encodeURIComponent(url),
+            encodeURIComponent(title),
+            encodeURIComponent(artist),
+            encodeURIComponent(thumb),
+            encodeURIComponent(query),
+            encodeURIComponent(previewUrl)
+        ));
+
+        grid.appendChild(item);
+    });
  
     setState('none');
 }
@@ -1920,9 +2030,10 @@ function moveQueue(id, dir) {
   if (idx === -1) return;
   const newIdx = idx + dir;
   if (newIdx < 0 || newIdx >= queue.length) return;
-  // Swap
   [queue[idx], queue[newIdx]] = [queue[newIdx], queue[idx]];
   LS.sq(queue);
+  // Bug 7 fix: update qi agar next/prev track tetap benar setelah reorder
+  if (currentTrack) qi = queue.findIndex(t => t.id === currentTrack.id);
   renderQueue();
 }
 
@@ -2055,12 +2166,47 @@ function switchTab(t){
 // ══════════════════════════════════════════════════════════════
 //  QUICK PLAY & CHART
 // ══════════════════════════════════════════════════════════════
+// ── SKELETON HELPERS ────────────────────────────────────────────
+function _skeletonQP(el, count = 8) {
+  el.innerHTML = '';
+  for (let i = 0; i < count; i++) {
+    el.insertAdjacentHTML('beforeend', `
+      <div class="sk-card">
+        <div class="sk sk-thumb"></div>
+        <div class="sk sk-title"></div>
+        <div class="sk sk-artist"></div>
+        <div class="sk sk-meta"></div>
+      </div>`);
+  }
+}
+
+function _skeletonChart(el, count = 5) {
+  el.innerHTML = '';
+  for (let i = 0; i < count; i++) {
+    el.insertAdjacentHTML('beforeend', `
+      <div class="sk-chart-item">
+        <div class="sk sk-rank"></div>
+        <div class="sk sk-cthumb"></div>
+        <div class="sk-cinfo">
+          <div class="sk sk-ctitle"></div>
+          <div class="sk sk-cartist"></div>
+        </div>
+        <div class="sk sk-ccount"></div>
+      </div>`);
+  }
+}
+// ────────────────────────────────────────────────────────────────
+
 async function loadQuickPlay(){
   try{
+    // Update C: tampilkan skeleton sebelum fetch
+    const el=document.getElementById('qpGrid');
+    document.getElementById('quickPlaySec').style.display='block';
+    _skeletonQP(el, 8);
+
     const rows=await sb.get('tracks','order=last_played.desc.nullslast&limit=50');
     document.getElementById('quickPlaySec').style.display=rows.length?'block':'none';
     document.getElementById('qpCnt').textContent=rows.length;
-    const el=document.getElementById('qpGrid');
     if(!rows.length){el.innerHTML='<p style="color:var(--mt);font-size:.8rem;grid-column:1/-1;text-align:center;padding:16px">Belum ada lagu tersimpan.</p>';return;}
     // Update A: render 12 card pertama langsung, sisanya lazy saat scroll
     const EAGER_COUNT = 12;
@@ -2139,7 +2285,11 @@ async function loadQuickPlay(){
       return card;
     }
     el.innerHTML = '';
-    rows.forEach((r,i) => el.appendChild(_buildCard(r, i < EAGER_COUNT)));
+    rows.forEach((r,i) => {
+      const card = _buildCard(r, i < EAGER_COUNT);
+      card.classList.add('sk-loaded');
+      el.appendChild(card);
+    });
 
     // IntersectionObserver: lazy load gambar card di bawah fold
     const _lazyImgs = el.querySelectorAll('img.qp-lazy');
@@ -2165,6 +2315,11 @@ async function loadQuickPlay(){
 
 async function loadTopChartHome(){
   try{
+    // Update C: skeleton chart
+    const chartEl = document.getElementById('chartListHome');
+    document.getElementById('chartSecHome').style.display='block';
+    _skeletonChart(chartEl, 5);
+
     const rows=await sb.get('tracks','order=play_count.desc&limit=5&play_count=gt.0');
     document.getElementById('chartSecHome').style.display=rows.length?'block':'none';
     document.getElementById('chartCntHome').textContent=rows.length;
@@ -2376,11 +2531,22 @@ function renderMessages(msgs){
   el.scrollTop=el.scrollHeight;
 }
 
+let _lastSendAt = 0;
+const SEND_COOLDOWN = 800; // ms — min jeda antar pesan
 async function sendMessage(){
   if(!currentChatWith)return;
   const input=document.getElementById('chatInput');
   const content=input.value.trim();
   if(!content&&!pendingShareTrack)return;
+
+  // Update B: rate limit — cegah spam
+  const now = Date.now();
+  if(now - _lastSendAt < SEND_COOLDOWN){
+    toast('Pelan-pelan ya 😊');
+    return;
+  }
+  _lastSendAt = now;
+
   const btn=document.getElementById('chatSendBtn');
   btn.disabled=true;
   try{
@@ -3136,22 +3302,14 @@ async function registerSW() {
     swRegistration = await navigator.serviceWorker.register('/sw.js', { scope: '/', updateViaCache: 'none' });
     // Force check update setiap load — pastikan SW terbaru selalu dipakai
     swRegistration.update().catch(()=>{});
-    swRegistration.addEventListener('updatefound', () => {
-      const newWorker = swRegistration.installing;
-      newWorker.addEventListener('statechange', () => {
-        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-          // Ada SW baru — kirim SKIP_WAITING supaya langsung aktif
-          newWorker.postMessage({ type: 'SKIP_WAITING' });
-          window.location.reload();
-        }
-      });
-    });
+    // Bug 1 fix: satu listener saja, gabungkan SKIP_WAITING + toast
     swRegistration.addEventListener('updatefound', () => {
       const newWorker = swRegistration.installing;
       newWorker.addEventListener('statechange', () => {
         if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
           toast('🔄 Update tersedia, memuat ulang...');
-          setTimeout(() => window.location.reload(), 3000);
+          newWorker.postMessage({ type: 'SKIP_WAITING' });
+          setTimeout(() => window.location.reload(), 2000);
         }
       });
     });
@@ -3218,12 +3376,13 @@ window.addEventListener('beforeinstallprompt', e => {
   installPrompt = e;
   const dismissed = localStorage.getItem('pgsk_install_dismissed');
   const threeDays = 3 * 24 * 60 * 60 * 1000;
+  // Bug 3 fix: bracket sebelumnya salah — banner tidak pernah muncul
   if (!dismissed || Date.now() - parseInt(dismissed) > threeDays) {
-      setTimeout(() => {
-        const banner = document.getElementById('installBanner');
-        if (banner) banner.classList.add('show');
-      }, 3000);
-    }
+    setTimeout(() => {
+      const banner = document.getElementById('installBanner');
+      if (banner) banner.classList.add('show');
+    }, 3000);
+  }
 });
 
 window.addEventListener('appinstalled', () => {

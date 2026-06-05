@@ -237,28 +237,32 @@ async function imageCacheStrategy(request) {
 // ── TRIM AUDIO CACHE ──────────────────────────────────────────
 const MAX_AUDIO_MB    = 500;
 const MAX_AUDIO_BYTES = MAX_AUDIO_MB * 1024 * 1024;
-
+// Bug 5 fix: pakai Storage API estimate dulu sebelum baca semua blob
+// Ini jauh lebih ringan — tidak perlu buka semua response
+let _trimRunning = false;
 async function trimAudioCache(cache) {
-  try {
-    const keys = await cache.keys();
-    let totalSize = 0;
-    const entries = [];
-    for (const req of keys) {
-      const res  = await cache.match(req);
-      const blob = await res.blob();
-      totalSize += blob.size;
-      entries.push({ req, size: blob.size });
-    }
-    if (totalSize > MAX_AUDIO_BYTES) {
-      let freed = 0;
-      const toFree = totalSize - MAX_AUDIO_BYTES;
-      for (const entry of entries) {
-        if (freed >= toFree) break;
-        await cache.delete(entry.req);
-        freed += entry.size;
+  if (_trimRunning) return; // skip kalau sudah jalan
+  _trimRunning = true;
+  // Jalankan di background setelah response sudah dikirim ke client
+  setTimeout(async () => {
+    try {
+      // Pakai StorageManager estimate kalau tersedia (jauh lebih cepat)
+      if ('storage' in navigator && 'estimate' in navigator.storage) {
+        const { usage, quota } = await navigator.storage.estimate();
+        // Kalau total storage masih < 80% quota, skip trim
+        if (usage / quota < 0.8) { _trimRunning = false; return; }
       }
-    }
-  } catch (e) { console.warn('[SW] trimAudioCache error:', e.message); }
+      const keys = await cache.keys();
+      // Batasi: max 120 file audio di cache (FIFO — hapus yang paling lama)
+      const MAX_FILES = 120;
+      if (keys.length > MAX_FILES) {
+        const toDelete = keys.slice(0, keys.length - MAX_FILES);
+        await Promise.all(toDelete.map(k => cache.delete(k)));
+        console.log('[SW] trimAudioCache: deleted', toDelete.length, 'old entries');
+      }
+    } catch (e) { console.warn('[SW] trimAudioCache error:', e.message); }
+    _trimRunning = false;
+  }, 0);
 }
 
 // ── NOTIFY CLIENTS ────────────────────────────────────────────
