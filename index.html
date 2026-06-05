@@ -1534,8 +1534,10 @@ async function _saveTrackToSupabase(track, audioUrl) {
 //  PLAYER CORE
 // ══════════════════════════════════════════════════════════════
 async function playTrackObj(t){
-  if(!t?.audio){toast('⚠️ Audio tidak tersedia');return;}
+  const audioSrc = t?.audio || t?.audioUrl || t?.audio_url || null;
+  if(!audioSrc){toast('⚠️ Audio tidak tersedia');return;}
 
+  t.audio = audioSrc;
   safePause();
   audio.src='';
   await new Promise(r=>setTimeout(r,50));
@@ -2330,8 +2332,9 @@ async function openChatRoom(otherKey,name){
   chatRoomEl.classList.add('open');
   nameEl.textContent   = name||otherKey;
   avEl.textContent     = (name||otherKey).split(' ').map(w=>w[0]||'').join('').toUpperCase().slice(0,2)||'?';
-  if(statusEl) statusEl.textContent='Online';
+  if(statusEl) statusEl.textContent='Memuat...';
   messagesEl.innerHTML ='<div class="empty-ti"><i class="fas fa-circle-notch spin"></i>Memuat...</div>';
+  updatePresenceUI();
   await loadMessages(otherKey);
   fetch(`${SB_URL}/rest/v1/messages?from_key=eq.${encodeURIComponent(otherKey)}&to_key=eq.${encodeURIComponent(USER_KEY)}&read_at=is.null`,{method:'PATCH',headers:sb._h,body:JSON.stringify({read_at:new Date().toISOString()})}).catch(()=>{});
 }

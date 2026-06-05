@@ -455,7 +455,7 @@ async function initMusicRoom(mode) {
     track_id: currentTrack.id,
     track_title: currentTrack.title,
     track_artist: currentTrack.artist,
-    track_audio: currentTrack.audio,
+    track_audio: currentTrack.audio || audio.src || null,
     track_thumb: currentTrack.thumbnail,
     status: 'waiting',
     host_pos: audio.currentTime,
@@ -639,11 +639,12 @@ function startRoomSync() {
       const dbTrackChanged = s._lastBroadcastTrackId !== currentTrack.id;
       if (dbTrackChanged) {
         musicRoomState._lastBroadcastTrackId = currentTrack.id;
+        const trackAudio = currentTrack.audio || audio.src || null;
         sb.patch(MUSIC_ROOM_TABLE, `session_id=eq.${encodeURIComponent(s.sessionId)}`, {
           track_id:     currentTrack.id,
           track_title:  currentTrack.title,
           track_artist: currentTrack.artist,
-          track_audio:  currentTrack.audio,
+          track_audio:  trackAudio,
           track_thumb:  currentTrack.thumbnail,
           host_pos:     0,
           updated_at:   new Date().toISOString(),
@@ -652,7 +653,7 @@ function startRoomSync() {
         sendSignal('track_change', {
           track: {
             id: currentTrack.id, title: currentTrack.title, artist: currentTrack.artist,
-            audio: currentTrack.audio, thumbnail: currentTrack.thumbnail,
+            audio: trackAudio, thumbnail: currentTrack.thumbnail,
           },
           pos: audio.currentTime,
         });
@@ -742,7 +743,11 @@ async function handleSignal(sig) {
     case 'track_change':
       // Fix Bug 6b: host broadcast track baru ke guest
       if (!musicRoomState.isHost && data.track) {
-        const t = data.track;
+        let t = data.track;
+        if (!t.audio && t.id) {
+          const rows = await sb.get('tracks', `id=eq.${encodeURIComponent(t.id)}`);
+          if (rows?.length) t = rowToTrack(rows[0], 'db');
+        }
         if (!currentTrack || currentTrack.id !== t.id) {
           await playTrackObj(t);
           await new Promise(r => setTimeout(r, 400));
@@ -1124,13 +1129,20 @@ async function acceptMusicRoom() {
 
     // Play lagu host jika belum/berbeda
     if (!currentTrack || currentTrack.id !== room.track_id) {
-      await playTrackObj({
+      let guestTrack = {
         id: room.track_id,
         title: room.track_title,
         artist: room.track_artist,
-        audio: room.track_audio,
+        audio: room.track_audio || null,
         thumbnail: room.track_thumb,
-      });
+      };
+      if (!guestTrack.audio && room.track_id) {
+        const rows = await sb.get('tracks', `id=eq.${encodeURIComponent(room.track_id)}`);
+        if (rows?.length) {
+          guestTrack = rowToTrack(rows[0], 'db');
+        }
+      }
+      await playTrackObj(guestTrack);
       await new Promise(r => setTimeout(r, 600)); // biarkan audio init
       if (room.host_pos > 0) audio.currentTime = room.host_pos;
     }
