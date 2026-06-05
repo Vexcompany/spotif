@@ -102,16 +102,35 @@
 /* ── CACHED INDICATOR di QP Card ── */
 .qp-cached-badge {
   position: absolute;
-  top: 6px; right: 6px;
-  width: 20px; height: 20px;
-  border-radius: 50%;
-  background: rgba(29,185,84,.9);
+  bottom: 38px; right: 7px;
+  padding: 2px 7px;
+  border-radius: 20px;
+  background: rgba(0,0,0,.55);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border: 1px solid rgba(255,255,255,.10);
   display: none;
   align-items: center;
-  justify-content: center;
-  font-size: .55rem;
-  color: #000;
+  gap: 4px;
   z-index: 2;
+  pointer-events: none;
+}
+.qp-cached-badge::before {
+  content: '';
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: #1db954;
+  flex-shrink: 0;
+  display: block;
+}
+.qp-cached-badge::after {
+  content: 'tersimpan';
+  font-size: .52rem;
+  font-weight: 600;
+  letter-spacing: .04em;
+  color: rgba(255,255,255,.75);
+  text-transform: lowercase;
+  font-family: inherit;
 }
 .qp-cached-badge.show { display: flex; }
 
@@ -401,7 +420,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 .chat-preview.track{color:var(--dyn1)}
 .chat-meta{display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0}
 .chat-time{font-size:.6rem;color:var(--mt)}
-.chat-unread-cnt{background:var(--dyn1);color:#000;font-size:.6rem;font-weight:800;padding:1px 7px;border-radius:20px}
+.chat-unread-cnt{background:var(--dyn1);color:#000;font-size:.58rem;font-weight:800;padding:2px 6px;border-radius:20px;min-width:18px;text-align:center;line-height:1.4}
 
 /* CHAT ROOM */
 .chat-room{position:fixed;inset:0;z-index:500;background:var(--bg);display:flex;flex-direction:column;transform:translateX(100%);transition:transform .3s cubic-bezier(.16,1,.3,1);}
@@ -1312,10 +1331,15 @@ function collapseSearch() {
   }, 200);
 }
 
+let _searchAbort = null;
 async function doSearch(){
   const q=document.getElementById('sInput').value.trim();
   if(!q){toast('Masukkan kata kunci pencarian');return;}
-  
+
+  // Bug 3 fix: cancel search sebelumnya
+  if(_searchAbort){ _searchAbort.abort(); }
+  _searchAbort = new AbortController();
+
   _currentSearchQuery=q;
   if(currentPage!=='beranda')navigate('beranda');
   
@@ -1325,6 +1349,7 @@ async function doSearch(){
 
   try{
     // 1. Cek database lokal dulu
+    const _sig=_searchAbort?.signal;
     const cached=await sb.get('tracks',`search_query=ilike.${encodeURIComponent('%'+q+'%')}&order=play_count.desc&limit=1`);
     if(cached?.length&&cached[0].audio_url){
       const t=rowToTrack(cached[0],'db');
@@ -1448,9 +1473,10 @@ async function playAppleMusic(url, title, artist, thumb, query, previewUrl) {
             album:       '',
             duration:    streamData?.result?.duration  || '0:00',
             year:        new Date().getFullYear(),
-            thumbnail:   streamData?.result?.thumbnail || decodedThumb,
+            thumbnail:   resizeThumb(streamData?.result?.thumbnail || decodedThumb, 300),
             audio:       audioUrl,
             appleUrl:    appleUrl,
+            previewUrl:  decodedPreview || null,
             searchQuery: decodedQuery,
             source:      'apple',
         };
@@ -1717,10 +1743,40 @@ function setVol(e){
 }
 
 audio.addEventListener('ended',()=>{isRepeat?safePlay():nextTrack();});
-audio.addEventListener('error',()=>{
-  // Abaikan error jika src sedang dikosongkan (reset sebelum load lagu baru)
+audio.addEventListener('error', async ()=>{
   if(!audio.src || audio.src===location.href || audio.src==='')return;
-  toast('❌ Error audio');isPlaying=false;updAll();
+
+  // Bug 4 fix: kalau R2 URL error, coba fallback ke previewUrl (iTunes 30 detik)
+  if(currentTrack?.appleUrl && !audio.src.includes('preview') && !audio._triedPreview){
+    audio._triedPreview = true;
+    console.warn('[audio] R2 error, mencoba fallback previewUrl...');
+    try{
+      const res = await fetch(`${BACKEND_URL}/api/stream`,{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({
+          previewUrl: currentTrack.previewUrl || null,
+          trackId:    currentTrack.id,
+          title:      currentTrack.title,
+          artist:     currentTrack.artist,
+          thumbnail:  currentTrack.thumbnail,
+        }),
+      });
+      const data = await res.json();
+      if(data?.result?.url){
+        audio.src = data.result.url;
+        audio._triedPreview = true;
+        await safePlay();
+        toast('⚠️ Memuat ulang audio...');
+        return;
+      }
+    }catch(fe){ console.warn('[audio] fallback gagal:', fe.message); }
+  }
+
+  toast('❌ Audio tidak dapat diputar');
+  isPlaying=false;
+  audio._triedPreview=false;
+  updAll();
 });
 
 // Touch progress
@@ -2003,25 +2059,48 @@ async function loadQuickPlay(){
     document.getElementById('qpCnt').textContent=rows.length;
     const el=document.getElementById('qpGrid');
     if(!rows.length){el.innerHTML='<p style="color:var(--mt);font-size:.8rem;grid-column:1/-1;text-align:center;padding:16px">Belum ada lagu tersimpan.</p>';return;}
-    el.innerHTML=rows.map(r=>{
+    // Update A: render 12 card pertama langsung, sisanya lazy saat scroll
+    const EAGER_COUNT = 12;
+    function _buildCard(r, eager){
       const t=rowToTrack(r,'db');
       const tEsc=esc(t);
       const isNow=currentTrack?.id===r.id;
-      const adminDelBtn=IS_ADMIN?`<button onclick="adminDeleteTrack('${r.id}','${(r.title||'').replace(/'/g,"\\'")}',event)" style="position:absolute;top:6px;left:6px;z-index:3;width:24px;height:24px;border-radius:6px;border:none;background:rgba(255,77,109,.85);color:#fff;font-size:.6rem;cursor:pointer;display:flex;align-items:center;justify-content:center;opacity:0.9" title="Hapus (Admin)"><i class="fas fa-trash-alt"></i></button>`:'';
-      return `<div class="qp-card ${isNow?'playing':''}" id="qpc-${CSS.escape(r.id)}" data-audio-url="${r.audio_url||''}" onclick='playTrackObj(${tEsc})'>
+      const isCached=r.audio_url && cachedAudioUrls.has(r.audio_url);
+      const adminDelBtn=IS_ADMIN?`<button onclick="adminDeleteTrack('${r.id}','${(r.title||'').replace(/'/g,"\\\\'")},event)" style="position:absolute;top:6px;left:6px;z-index:3;width:24px;height:24px;border-radius:6px;border:none;background:rgba(255,77,109,.85);color:#fff;font-size:.6rem;cursor:pointer;display:flex;align-items:center;justify-content:center;opacity:0.9" title="Hapus (Admin)"><i class="fas fa-trash-alt"></i></button>`:'';
+      const imgSrc = eager ? (r.thumbnail||PH) : PH;
+      const lazyAttr = eager ? '' : `data-src="${r.thumbnail||PH}"`;
+      return `<div class="qp-card ${isNow?'playing':''}" id="qpc-${CSS.escape(r.id)}" data-audio-url="${r.audio_url||\'\'}" onclick='playTrackObj(${tEsc})'>
         <div class="qp-thumb">
-          <img src="${r.thumbnail||PH}" onerror="this.src='${PH}'" loading="lazy">
+          <img src="${imgSrc}" ${lazyAttr} onerror="this.src='${PH}'" loading="lazy" class="${eager?'':'qp-lazy'}">
           <button class="qp-play" onclick="event.stopPropagation();playTrackObj(${tEsc})"><i class="fas fa-play"></i></button>
         </div>
         ${adminDelBtn}
-        <div class="qp-cached-badge ${r.audio_url && cachedAudioUrls.has(r.audio_url) ? 'show' : ''}"><i class="fas fa-check"></i></div>
+        <div class="qp-cached-badge ${isCached?'show':''}"></div>
         <div class="qp-now">▶ NOW</div>
         <div class="qp-title">${r.title}</div>
         <div class="qp-artist">${r.artist}</div>
         <div class="qp-meta"><span><i class="fas fa-headphones" style="font-size:.48rem"></i> ${r.play_count||0}×</span>${r.duration?`<span>${r.duration}</span>`:''}</div>
         ${r.searched_by?`<div class="qp-by">oleh ${r.searched_by}</div>`:''}
       </div>`;
-    }).join('');
+    }
+    el.innerHTML = rows.map((r,i) => _buildCard(r, i < EAGER_COUNT)).join('');
+
+    // IntersectionObserver: lazy load gambar card di bawah fold
+    const _lazyImgs = el.querySelectorAll('img.qp-lazy');
+    if(_lazyImgs.length && 'IntersectionObserver' in window){
+      const _obs = new IntersectionObserver((entries)=>{
+        entries.forEach(entry=>{
+          if(entry.isIntersecting){
+            const img = entry.target;
+            if(img.dataset.src){ img.src = img.dataset.src; delete img.dataset.src; img.classList.remove('qp-lazy'); }
+            _obs.unobserve(img);
+          }
+        });
+      },{rootMargin:'200px'});
+      _lazyImgs.forEach(img => _obs.observe(img));
+    } else {
+      _lazyImgs.forEach(img=>{ if(img.dataset.src){img.src=img.dataset.src;} });
+    }
     if (cachedAudioUrls.size > 0) updateCachedBadges();
   } catch(e) {
     console.warn(e.message);
@@ -2080,6 +2159,23 @@ function renderActivity(){
   }).join('');
 }
 
+function resizeThumb(url, size=300){
+  if(!url)return url;
+  // Apple Music thumbnail: ubah resolusi di URL mzstatic.com
+  // Format: .../600x600bb.jpg → .../300x300bb.jpg
+  return url.replace(/\/\d+x\d+bb\./, `/${size}x${size}bb.`);
+}
+
+function escapeHtml(str){
+  if(!str)return'';
+  return String(str)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;')
+    .replace(/'/g,'&#039;');
+}
+
 function getTimeAgo(dateStr){
   if(!dateStr)return'';
   const diff=Date.now()-new Date(dateStr).getTime();
@@ -2133,6 +2229,12 @@ async function loadChatList(){
     const sent=await sb.get('messages',`from_key=eq.${encodeURIComponent(USER_KEY)}&order=created_at.desc&limit=100`);
     const recv=await sb.get('messages',`to_key=eq.${encodeURIComponent(USER_KEY)}&order=created_at.desc&limit=100`);
     const convMap={};
+    const unreadPerKey={}; // { otherKey: count }
+    // Hitung unread per conversation
+    (recv||[]).forEach(m=>{
+      if(!m||!m.from_key||m.read_at)return;
+      unreadPerKey[m.from_key]=(unreadPerKey[m.from_key]||0)+1;
+    });
     [...(sent||[]),...(recv||[])].forEach(m=>{
       if(!m||!m.from_key||!m.to_key)return;
       const other=m.from_key===USER_KEY?m.to_key:m.from_key;
@@ -2150,12 +2252,14 @@ async function loadChatList(){
       const parts=otherKey.split('_');
       const name=(parts.length>1?parts.slice(0,-1).join(' '):otherKey)||otherKey;
       const ini=name.split(' ').map(w=>w[0]||'').join('').toUpperCase().slice(0,2)||'?';
-      const isUnread=lastMsg.to_key===USER_KEY&&!lastMsg.read_at;
+      const unreadCnt=unreadPerKey[otherKey]||0;
+      const isUnread=unreadCnt>0;
       const timeAgo=getTimeAgo(lastMsg.created_at);
       const preview=lastMsg.track_id?'🎵 Berbagi lagu':(lastMsg.content||'');
-      const escapedKey=otherKey.replace(/'/g,"\'");
-      const escapedName=name.replace(/'/g,"\'");
-      return `<div class="chat-item ${isUnread?'unread':''}" data-user-key="${otherKey}" onclick="openChatRoom('${escapedKey}','${escapedName}')"><div class="chat-av">${ini}<div class="chat-online"></div></div><div class="chat-info"><div class="chat-name">${name}</div><div class="chat-preview ${lastMsg.track_id?'track':''}">${preview}</div></div><div class="chat-meta"><div class="chat-time">${timeAgo}</div>${isUnread?'<div class="chat-unread-cnt">•</div>':''}</div></div>`;
+      const escapedKey=otherKey.replace(/'/g,"\\'");
+      const escapedName=name.replace(/'/g,"\\'");
+      const unreadBadge=unreadCnt>0?`<div class="chat-unread-cnt">${unreadCnt>99?'99+':unreadCnt}</div>`:'';
+      return `<div class="chat-item ${isUnread?'unread':''}" data-user-key="${otherKey}" onclick="openChatRoom('${escapedKey}','${escapedName}')"><div class="chat-av">${ini}<div class="chat-online"></div></div><div class="chat-info"><div class="chat-name">${name}</div><div class="chat-preview ${lastMsg.track_id?'track':''}">${escapeHtml(preview)}</div></div><div class="chat-meta"><div class="chat-time">${timeAgo}</div>${unreadBadge}</div></div>`;
     }).join('');
   }catch(e){console.warn('[chat]',e.message);}
 }
@@ -2207,9 +2311,9 @@ function renderMessages(msgs){
     let trackBubble='';
     if(m.track_id){
       const t=histArr.find(h=>h.id===m.track_id)||queue.find(q=>q.id===m.track_id);
-      trackBubble=`<div class="msg-track" onclick="playFromChat('${m.track_id}')"><img src="${t?.thumbnail||PH}" onerror="this.src='${PH}'"><div class="msg-track-inf"><div class="msg-track-t">${t?.title||'Lagu'}</div><div class="msg-track-a">${t?.artist||'–'}</div><div class="msg-track-play"><i class="fas fa-play"></i> Putar</div></div></div>`;
+      trackBubble=`<div class="msg-track" onclick="playFromChat('${escapeHtml(m.track_id)}')"><img src="${t?.thumbnail||PH}" onerror="this.src='${PH}'"><div class="msg-track-inf"><div class="msg-track-t">${escapeHtml(t?.title||'Lagu')}</div><div class="msg-track-a">${escapeHtml(t?.artist||'–')}</div><div class="msg-track-play"><i class="fas fa-play"></i> Putar</div></div></div>`;
     }
-    return `${dateDivider}<div class="msg-wrap ${isMe?'me':'them'}"><div class="msg-bubble">${trackBubble}${m.content||''}</div><div class="${isMe?'msg-read':'msg-time'}">${isMe&&isRead?'✓✓ Dibaca':''} ${time}</div></div>`;
+    return `${dateDivider}<div class="msg-wrap ${isMe?'me':'them'}"><div class="msg-bubble">${trackBubble}${escapeHtml(m.content)}</div><div class="${isMe?'msg-read':'msg-time'}">${isMe&&isRead?'✓✓ Dibaca':''} ${time}</div></div>`;
   }).join('');
   el.scrollTop=el.scrollHeight;
 }
@@ -2465,13 +2569,20 @@ let _lrcLastIdx    = -1;
 let _userScrolling = false;  // true saat user sedang scroll manual
 let _scrollPauseT  = null;   // timer reset _userScrolling
 
+let _lyricsAbort = null;
 async function fetchLyrics(title,artist){
+  // Bug 2 fix: cancel request sebelumnya supaya tidak overwrite lirik lagu yang sedang main
+  if(_lyricsAbort){ _lyricsAbort.abort(); }
+  _lyricsAbort = new AbortController();
+  const signal = _lyricsAbort.signal;
   try{
-    const r=await fetch(`https://lrclib.net/api/search?q=${encodeURIComponent(title+' '+artist)}&limit=1`);
+    const r=await fetch(`https://lrclib.net/api/search?q=${encodeURIComponent(title+' '+artist)}&limit=1`,{signal});
     const data=await r.json();
     if(data?.length&&data[0].syncedLyrics)return{type:'synced',data:parseLRC(data[0].syncedLyrics)};
     if(data?.length&&data[0].plainLyrics)return{type:'plain',data:data[0].plainLyrics};
-  }catch{}
+  }catch(e){
+    if(e.name==='AbortError')return null; // request di-cancel, bukan error sungguhan
+  }
   return null;
 }
 
@@ -2600,7 +2711,7 @@ function rowToTrack(r,src='db'){
     album:r.album||'',
     duration:r.duration||'0:00',
     year:r.year||'–',
-    thumbnail:r.thumbnail||PH,
+    thumbnail:resizeThumb(r.thumbnail||PH, 300),
     audio:r.audio_url||null,   // R2 URL (atau preview URL kalau fallback)
     audioUrl:r.audio_url||null,
     spotifyUrl:r.spotify_url||null,
@@ -2884,7 +2995,7 @@ function updatePresenceUI() {
     const statusEl = document.getElementById('chatRoomStatus');
     if (statusEl) {
       if (p?.online && p?.track) {
-        statusEl.innerHTML = `<span class="presence-dot presence-listening"></span>🎵 ${p.track}`;
+        statusEl.innerHTML = `<span class="presence-dot presence-listening"></span>🎵 ${escapeHtml(p.track)}`;
       } else if (p?.online) {
         statusEl.innerHTML = `<span class="presence-dot presence-online"></span>Online`;
       } else {
