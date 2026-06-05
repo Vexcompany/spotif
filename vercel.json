@@ -4,35 +4,105 @@
   "framework": null,
   "outputDirectory": ".",
   "rewrites": [
-    { "source": "/",          "destination": "/dashboard.html" },
-    { "source": "/dashboard", "destination": "/dashboard.html" },
-    { "source": "/welcome",   "destination": "/dashboard.html" },
-    { "source": "/beranda",   "destination": "/index.html" },
-    { "source": "/radio",     "destination": "/index.html" },
-    { "source": "/party",     "destination": "/index.html" },
-    { "source": "/chart",     "destination": "/index.html" },
-    { "source": "/karaoke",   "destination": "/index.html" },
-    { "source": "/chat",      "destination": "/index.html" },
-    { "source": "/wrapped",   "destination": "/index.html" },
-    { "source": "/capsule",   "destination": "/index.html" },
-    { "source": "/explore",   "destination": "/index.html" },
-    { "source": "/profil",    "destination": "/index.html" },
-    { "source": "/login",     "destination": "/login.html" },
-    { "source": "/admin",     "destination": "/admin.html" }
+    {
+      "source": "/",
+      "destination": "/dashboard.html"
+    },
+    {
+      "source": "/dashboard",
+      "destination": "/dashboard.html"
+    },
+    {
+      "source": "/welcome",
+      "destination": "/dashboard.html"
+    },
+    {
+      "source": "/beranda",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/radio",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/party",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/chart",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/karaoke",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/chat",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/wrapped",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/capsule",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/explore",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/profil",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/login",
+      "destination": "/login.html"
+    },
+    {
+      "source": "/admin",
+      "destination": "/admin.html"
+    }
   ],
   "headers": [
     {
       "source": "/(.*)",
       "headers": [
-        { "key": "X-Content-Type-Options", "value": "nosniff" },
-        { "key": "X-Frame-Options",        "value": "DENY" },
-        { "key": "Referrer-Policy",        "value": "strict-origin-when-cross-origin" }
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        }
       ]
     },
     {
       "source": "/favicon.ico",
       "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=86400" }
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=86400"
+        }
+      ]
+    },
+    {
+      "source": "/api/config",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "private, max-age=300"
+        }
       ]
     }
   ]

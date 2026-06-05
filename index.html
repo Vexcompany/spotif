@@ -1266,12 +1266,10 @@ const STREAM_API       = `${BACKEND_URL}/api/stream`;           // NEW: R2 strea
 window.BACKEND_URL = BACKEND_URL;
 
 // Supabase config (tetap untuk chat, party, dll)
-const SB_URL = 'https://ygwoddwdhelqcwhpqasl.supabase.co';
-// ⚠️  SECURITY: gunakan anon key, BUKAN service_role key.
-// Set VITE_SB_KEY atau inject via Vercel env → _lib/config.js
-// Fallback sementara pakai window.__SB_ANON_KEY yang di-inject dari server,
-// atau hardcode anon key (bukan service_role) di sini.
-const SB_KEY = window.__SB_ANON_KEY || 'GANTI_DENGAN_ANON_KEY_SUPABASE';
+// SB_URL & SB_KEY di-fetch dari /api/config saat initApp (lihat _loadConfig)
+// Tidak ada key yang hardcode di source code.
+let SB_URL = '';
+let SB_KEY = '';
 const SESS_KEY = 'pgsk_v2_session';
 const PH = 'https://placehold.co/200x200/0d0d24/1DB954?text=♪';
 
@@ -1279,8 +1277,9 @@ const PH = 'https://placehold.co/200x200/0d0d24/1DB954?text=♪';
 //  SUPABASE CLIENT
 // ══════════════════════════════════════════════════════════════
 const sb = {
-  _h: {'Content-Type':'application/json',apikey:SB_KEY,Authorization:'Bearer '+SB_KEY,Prefer:'return=representation'},
-  _b: SB_URL+'/rest/v1/',
+  // _h dan _b akan di-set oleh _loadConfig() sebelum initApp jalan
+  _h: {'Content-Type':'application/json',apikey:'',Authorization:'Bearer ',Prefer:'return=representation'},
+  _b: '',
   async req(m,t,q,b){
     const r=await fetch(this._b+t+(q?'?'+q:''),{method:m,headers:this._h,body:b?JSON.stringify(b):undefined});
     const tx=await r.text();let d;try{d=JSON.parse(tx)}catch{d=tx}
@@ -2996,8 +2995,33 @@ function esc(obj){return JSON.stringify(obj).replace(/"/g,'&quot;');}
 // ══════════════════════════════════════════════════════════════
 //  INIT
 // ══════════════════════════════════════════════════════════════
-function initApp(){
+async function _loadConfig() {
+  // Fetch Supabase key dari Vercel env via serverless function
+  // Sehingga key tidak pernah ada di source code / git
+  try {
+    const res  = await fetch('/api/config');
+    if (!res.ok) throw new Error('Config HTTP ' + res.status);
+    const cfg  = await res.json();
+    SB_URL = cfg.url;
+    SB_KEY = cfg.key;
+    // Sinkronkan ke sb object yang sudah terbentuk
+    sb._h  = {
+      'Content-Type': 'application/json',
+      apikey: SB_KEY,
+      Authorization: 'Bearer ' + SB_KEY,
+      Prefer: 'return=representation'
+    };
+    sb._b = SB_URL + '/rest/v1/';
+  } catch (e) {
+    console.error('[config] Gagal load config:', e.message);
+    document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:12px;font-family:sans-serif;background:#07071a;color:#eef"><i class="fas fa-exclamation-triangle" style="font-size:2rem;color:#ffa726"></i><div style="font-weight:700">Gagal memuat konfigurasi</div><div style="font-size:.8rem;color:#8888bb">Coba refresh halaman</div><button onclick="location.reload()" style="margin-top:8px;padding:8px 20px;border-radius:10px;background:#1DB954;color:#000;border:none;font-weight:700;cursor:pointer">Refresh</button></div>';
+    throw e;
+  }
+}
+
+async function initApp(){
   if(!session){window.location.href='login.html';return;}
+  await _loadConfig();
 
   const u=session;
   const ini=(u.nama||'?').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
