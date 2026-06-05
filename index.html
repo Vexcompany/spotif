@@ -413,7 +413,8 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 .chat-item:hover{background:var(--s2);border-color:var(--bd)}
 .chat-item.unread{border-color:rgba(29,185,84,.2);background:rgba(29,185,84,.04)}
 .chat-av{width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--p),var(--b));display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:800;color:#fff;flex-shrink:0;position:relative}
-.chat-online{position:absolute;bottom:1px;right:1px;width:10px;height:10px;border-radius:50%;background:var(--dyn1);border:2px solid var(--bg)}
+.chat-online{position:absolute;bottom:1px;right:1px;width:10px;height:10px;border-radius:50%;background:var(--mt);border:2px solid var(--bg);box-shadow:none}
+.chat-online.online{background:var(--dyn1);box-shadow:0 0 6px var(--dyn1)}
 .chat-info{flex:1;min-width:0}
 .chat-name{font-size:.84rem;font-weight:700;margin-bottom:2px}
 .chat-preview{font-size:.72rem;color:var(--mt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -2316,6 +2317,7 @@ async function loadChatList(){
       const unreadBadge=unreadCnt>0?`<div class="chat-unread-cnt">${unreadCnt>99?'99+':unreadCnt}</div>`:'';
       return `<div class="chat-item ${isUnread?'unread':''}" data-user-key="${otherKey}" onclick="openChatRoom('${escapedKey}','${escapedName}')"><div class="chat-av">${ini}<div class="chat-online"></div></div><div class="chat-info"><div class="chat-name">${name}</div><div class="chat-preview ${lastMsg.track_id?'track':''}">${escapeHtml(preview)}</div></div><div class="chat-meta"><div class="chat-time">${timeAgo}</div>${unreadBadge}</div></div>`;
     }).join('');
+    updatePresenceUI();
   }catch(e){console.warn('[chat]',e.message);}
 }
 
@@ -3042,8 +3044,15 @@ function updatePresenceUI() {
     const key = item.dataset.userKey;
     if (!key) return;
     const p = onlinePresence[key];
-    dot.style.background = p?.online ? 'var(--dyn1)' : 'var(--mt)';
-    dot.style.boxShadow = p?.online ? '0 0 6px var(--dyn1)' : 'none';
+    if (p?.online) {
+      dot.style.background = 'var(--dyn1)';
+      dot.style.boxShadow = '0 0 6px var(--dyn1)';
+      dot.classList.add('online');
+    } else {
+      dot.style.background = 'var(--mt)';
+      dot.style.boxShadow = 'none';
+      dot.classList.remove('online');
+    }
   });
 
   if (currentChatWith) {
