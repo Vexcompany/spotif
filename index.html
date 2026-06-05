@@ -2062,28 +2062,90 @@ async function loadQuickPlay(){
     // Update A: render 12 card pertama langsung, sisanya lazy saat scroll
     const EAGER_COUNT = 12;
     function _buildCard(r, eager){
-      const t=rowToTrack(r,'db');
-      const tEsc=esc(t);
-      const isNow=currentTrack?.id===r.id;
-      const isCached=r.audio_url && cachedAudioUrls.has(r.audio_url);
-      const adminDelBtn=IS_ADMIN?`<button onclick="adminDeleteTrack('${r.id}','${(r.title||'').replace(/'/g,"\\\\'")},event)" style="position:absolute;top:6px;left:6px;z-index:3;width:24px;height:24px;border-radius:6px;border:none;background:rgba(255,77,109,.85);color:#fff;font-size:.6rem;cursor:pointer;display:flex;align-items:center;justify-content:center;opacity:0.9" title="Hapus (Admin)"><i class="fas fa-trash-alt"></i></button>`:'';
-      const imgSrc = eager ? (r.thumbnail||PH) : PH;
-      const lazyAttr = eager ? '' : `data-src="${r.thumbnail||PH}"`;
-      return `<div class="qp-card ${isNow?'playing':''}" id="qpc-${CSS.escape(r.id)}" data-audio-url="${r.audio_url||\'\'}" onclick='playTrackObj(${tEsc})'>
-        <div class="qp-thumb">
-          <img src="${imgSrc}" ${lazyAttr} onerror="this.src='${PH}'" loading="lazy" class="${eager?'':'qp-lazy'}">
-          <button class="qp-play" onclick="event.stopPropagation();playTrackObj(${tEsc})"><i class="fas fa-play"></i></button>
-        </div>
-        ${adminDelBtn}
-        <div class="qp-cached-badge ${isCached?'show':''}"></div>
-        <div class="qp-now">▶ NOW</div>
-        <div class="qp-title">${r.title}</div>
-        <div class="qp-artist">${r.artist}</div>
-        <div class="qp-meta"><span><i class="fas fa-headphones" style="font-size:.48rem"></i> ${r.play_count||0}×</span>${r.duration?`<span>${r.duration}</span>`:''}</div>
-        ${r.searched_by?`<div class="qp-by">oleh ${r.searched_by}</div>`:''}
-      </div>`;
+      const t       = rowToTrack(r,'db');
+      const tEsc    = esc(t);
+      const isNow   = currentTrack?.id === r.id;
+      const isCached= r.audio_url && cachedAudioUrls.has(r.audio_url);
+      const imgSrc  = eager ? (r.thumbnail||PH) : PH;
+
+      // Bungkus div utama
+      const card = document.createElement('div');
+      card.className = 'qp-card' + (isNow?' playing':'');
+      card.id = 'qpc-' + CSS.escape(r.id);
+      card.dataset.audioUrl = r.audio_url||'';
+      card.setAttribute('onclick','playTrackObj('+tEsc+')');
+
+      // Thumb
+      const thumb = document.createElement('div');
+      thumb.className = 'qp-thumb';
+
+      const img = document.createElement('img');
+      img.src = imgSrc;
+      if(!eager && r.thumbnail) img.dataset.src = r.thumbnail;
+      img.onerror = function(){ this.src = PH; };
+      img.loading = 'lazy';
+      if(!eager) img.className = 'qp-lazy';
+
+      const playBtn = document.createElement('button');
+      playBtn.className = 'qp-play';
+      playBtn.setAttribute('onclick','event.stopPropagation();playTrackObj('+tEsc+')');
+      playBtn.innerHTML = '<i class="fas fa-play"></i>';
+
+      thumb.appendChild(img);
+      thumb.appendChild(playBtn);
+      card.appendChild(thumb);
+
+      // Admin delete button
+      if(IS_ADMIN){
+        const del = document.createElement('button');
+        del.style.cssText = 'position:absolute;top:6px;left:6px;z-index:3;width:24px;height:24px;border-radius:6px;border:none;background:rgba(255,77,109,.85);color:#fff;font-size:.6rem;cursor:pointer;display:flex;align-items:center;justify-content:center;opacity:0.9';
+        del.title = 'Hapus (Admin)';
+        del.innerHTML = '<i class="fas fa-trash-alt"></i>';
+        del.addEventListener('click', (e) => adminDeleteTrack(r.id, r.title||'', e));
+        card.appendChild(del);
+      }
+
+      // Cached badge
+      const badge = document.createElement('div');
+      badge.className = 'qp-cached-badge' + (isCached?' show':'');
+      card.appendChild(badge);
+
+      // Now playing
+      const now = document.createElement('div');
+      now.className = 'qp-now';
+      now.textContent = '▶ NOW';
+      card.appendChild(now);
+
+      // Title
+      const titleEl = document.createElement('div');
+      titleEl.className = 'qp-title';
+      titleEl.textContent = r.title||'';
+      card.appendChild(titleEl);
+
+      // Artist
+      const artistEl = document.createElement('div');
+      artistEl.className = 'qp-artist';
+      artistEl.textContent = r.artist||'';
+      card.appendChild(artistEl);
+
+      // Meta
+      const meta = document.createElement('div');
+      meta.className = 'qp-meta';
+      meta.innerHTML = '<span><i class="fas fa-headphones" style="font-size:.48rem"></i> '+(r.play_count||0)+'×</span>'+(r.duration?'<span>'+r.duration+'</span>':'');
+      card.appendChild(meta);
+
+      // Searched by
+      if(r.searched_by){
+        const by = document.createElement('div');
+        by.className = 'qp-by';
+        by.textContent = 'oleh '+r.searched_by;
+        card.appendChild(by);
+      }
+
+      return card;
     }
-    el.innerHTML = rows.map((r,i) => _buildCard(r, i < EAGER_COUNT)).join('');
+    el.innerHTML = '';
+    rows.forEach((r,i) => el.appendChild(_buildCard(r, i < EAGER_COUNT)));
 
     // IntersectionObserver: lazy load gambar card di bawah fold
     const _lazyImgs = el.querySelectorAll('img.qp-lazy');
