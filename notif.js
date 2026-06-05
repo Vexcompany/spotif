@@ -215,36 +215,33 @@ const PagaskaNotif = (() => {
   }
 
   // ── PUSH SUBSCRIBE ───────────────────────────────────────────
+  // Simpan subscription ke localStorage (bukan Supabase push_subscriptions yang sering 404/409).
+  // Push notif tetap berfungsi via polling tabel notifications setiap 30 detik.
   async function _subscribePush(reg) {
-    if (!VAPID_PUBLIC_KEY) return; // Skip kalau VAPID belum diset
-
-    const perm = await Notification.requestPermission();
-    if (perm !== 'granted') return;
-
-    const s = _sess();
-    if (!s) return;
+    if (!VAPID_PUBLIC_KEY) return;
 
     try {
+      const perm = await Notification.requestPermission();
+      if (perm !== 'granted') return;
+
+      const s = _sess();
+      if (!s) return;
+
       const existing = await reg.pushManager.getSubscription();
       const sub = existing || await reg.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: _urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
       });
 
-      // Simpan subscription ke Supabase
-      await fetch(`${SB_URL}/rest/v1/push_subscriptions`, {
-        method: 'POST',
-        headers: { ..._h(), Prefer: 'resolution=merge-duplicates,return=minimal' },
-        body: JSON.stringify({
-          user_key: `${s.nama}_${s.generasi}`,
-          nama: s.nama,
-          generasi: String(s.generasi),
-          endpoint: sub.endpoint,
-          subscription_json: JSON.stringify(sub)
-        })
-      });
+      // Simpan endpoint ke localStorage untuk referensi
+      localStorage.setItem('pgsk_push_sub', JSON.stringify({
+        endpoint:  sub.endpoint,
+        user_key:  `${s.nama}_${s.generasi}`,
+        updated:   new Date().toISOString(),
+      }));
+      console.log('[Notif] Push sub registered (local)');
     } catch (e) {
-      console.log('[Notif] Push sub error:', e.message);
+      console.log('[Notif] Push sub error (non-fatal):', e.message);
     }
   }
 

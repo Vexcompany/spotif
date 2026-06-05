@@ -7,7 +7,7 @@
 //    - App shell TIDAK di-cache ulang saat app di-close/background
 // ═══════════════════════════════════════════════════════════════
 
-const SW_VERSION    = 'pagaska-v2';
+const SW_VERSION    = 'pagaska-v3';
 const SHELL_CACHE   = `${SW_VERSION}-shell`;
 const AUDIO_CACHE   = `${SW_VERSION}-audio`;
 const IMAGE_CACHE   = `${SW_VERSION}-images`;

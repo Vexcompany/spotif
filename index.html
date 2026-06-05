@@ -2035,7 +2035,7 @@ async function loadTopChartHome(){
 
 async function loadTopChart(){
   try{
-    const rows=await sb.get('tracks','order=play_count.desc&limit=50&play_count=gt.0');
+    const rows=await sb.get('tracks','order=play_count.desc&limit=20&play_count=gt.0');
     renderChartList(rows,'chartListFull');
   }catch(e){toast('Gagal load chart: '+e.message);}
 }
@@ -2157,12 +2157,20 @@ async function loadChatList(){
 }
 
 async function openChatRoom(otherKey,name){
+  if(!otherKey)return;
   currentChatWith=otherKey;
-  document.getElementById('chatRoom').classList.add('open');
-  document.getElementById('chatRoomName').textContent=name;
-  document.getElementById('chatRoomAv').textContent=name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
-  document.getElementById('chatRoomStatus').textContent='Online';
-  document.getElementById('chatMessages').innerHTML='<div class="empty-ti"><i class="fas fa-circle-notch spin"></i>Memuat...</div>';
+  const chatRoomEl  = document.getElementById('chatRoom');
+  const nameEl      = document.getElementById('chatRoomName');
+  const avEl        = document.getElementById('chatRoomAv');
+  const statusEl    = document.getElementById('chatRoomStatus');
+  const messagesEl  = document.getElementById('chatMessages');
+  // Guard: kalau element belum ada di DOM, skip
+  if(!chatRoomEl||!nameEl||!avEl||!messagesEl)return;
+  chatRoomEl.classList.add('open');
+  nameEl.textContent   = name||otherKey;
+  avEl.textContent     = (name||otherKey).split(' ').map(w=>w[0]||'').join('').toUpperCase().slice(0,2)||'?';
+  if(statusEl) statusEl.textContent='Online';
+  messagesEl.innerHTML ='<div class="empty-ti"><i class="fas fa-circle-notch spin"></i>Memuat...</div>';
   await loadMessages(otherKey);
   fetch(`${SB_URL}/rest/v1/messages?from_key=eq.${encodeURIComponent(otherKey)}&to_key=eq.${encodeURIComponent(USER_KEY)}&read_at=is.null`,{method:'PATCH',headers:sb._h,body:JSON.stringify({read_at:new Date().toISOString()})}).catch(()=>{});
 }
