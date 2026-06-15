@@ -5,7 +5,26 @@
 
 /**
  * Downloader configuration untuk berbagai service
+ *
+ * Theresav API key TIDAK di-hardcode di sini.
+ * Key diambil dari /api/config (Vercel env var THERESAV_KEY) saat pertama kali dibutuhkan.
  */
+
+let _theresavKey = null; // Cache key setelah fetch
+
+async function _getTheresavKey() {
+  if (_theresavKey) return _theresavKey;
+  try {
+    const res = await fetch('/api/config');
+    if (!res.ok) throw new Error(`config fetch failed: ${res.status}`);
+    const cfg = await res.json();
+    _theresavKey = cfg.theresavKey || null;
+  } catch (e) {
+    console.warn('[Downloader] Gagal ambil Theresav key:', e.message);
+  }
+  return _theresavKey;
+}
+
 const DOWNLOADERS = {
   nexray: {
     name: 'Nexray',
@@ -16,7 +35,6 @@ const DOWNLOADERS = {
       quality: 'quality' // optional: highest, high, medium, low
     },
     parse: (response) => {
-      // Nexray response structure
       if (response.status && response.result?.download?.url) {
         return {
           success: true,
@@ -38,13 +56,12 @@ const DOWNLOADERS = {
     name: 'Theresav',
     icon: '🟢',
     endpoint: 'https://api.theresav.biz.id/download/applemusic',
-    apikey: 'FKbI4', // Atau ambil dari config/env
+    // apikey di-resolve secara async via _getTheresavKey(), bukan hardcoded
     params: {
       url: 'url',
       apikey: 'apikey'
     },
     parse: (response) => {
-      // Theresav response structure (sesuai contoh Anda)
       if (response.status && response.result?.download?.url) {
         return {
           success: true,
@@ -85,10 +102,12 @@ async function downloadFromAppleMusic(appleMusicUrl, source = 'nexray', options 
     // Build request
     const params = new URLSearchParams();
     params.append(config.params.url, appleMusicUrl);
-    
-    // Tambah apikey jika diperlukan (Theresav)
-    if (config.apikey && config.params.apikey) {
-      params.append(config.params.apikey, config.apikey);
+
+    // Ambil Theresav key dari /api/config (env var), bukan hardcoded
+    if (source === 'theresav' && config.params.apikey) {
+      const apikey = await _getTheresavKey();
+      if (!apikey) throw new Error('Theresav API key tidak tersedia. Periksa env var THERESAV_KEY di Vercel.');
+      params.append(config.params.apikey, apikey);
     }
 
     // Add optional quality parameter jika ada

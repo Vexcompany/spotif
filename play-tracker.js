@@ -12,6 +12,7 @@
 let playTrackerInterval = null;
 let localPlayCounts = {}; // Local cache untuk batch update
 let pendingPlaySync = false;
+let syncedPlayCounts = {}; // Cache count terakhir yang sudah di-sync ke DB
 
 /**
  * Initialize play count tracker
@@ -66,7 +67,7 @@ async function trackPlayEvent(track) {
     await updateUserPlayCount(track.id);
     
     // 4. Reload activity feed real-time
-    loadLiveActivity();
+    loadLiveActivityOptimized();
     
     console.log(`[PlayTracker] Recorded: ${track.title} (total local: ${localPlayCounts[track.id]})`);
     
@@ -80,22 +81,25 @@ async function trackPlayEvent(track) {
  */
 async function syncPlayCountToDatabase() {
   if (!Object.keys(localPlayCounts).length) return;
-  
+
+  // Snapshot + clear SEBELUM await — cegah race condition kalau ada
+  // play event masuk selama kita nunggu response DB
+  const snapshot = { ...localPlayCounts };
+  localPlayCounts = {};
+  pendingPlaySync = false;
+
   try {
-    const trackIds = Object.keys(localPlayCounts);
-    
-    // Batch update play_count di table tracks
-    for (const trackId of trackIds) {
-      const count = localPlayCounts[trackId];
-      
-      // Get current count
+    for (const trackId of Object.keys(snapshot)) {
+      const localDelta = snapshot[trackId];
+
+      // Get current count dari DB
       const trackRow = await sb.get('tracks', `id=eq.${encodeURIComponent(trackId)}`);
       if (!trackRow.length) continue;
-      
+
       const currentCount = trackRow[0].play_count || 0;
-      const newCount = currentCount + count;
-      
-      // Update
+      const newCount = currentCount + localDelta;
+
+      // PATCH ke DB
       await fetch(
         `${SB_URL}/rest/v1/tracks?id=eq.${encodeURIComponent(trackId)}`,
         {
@@ -104,18 +108,22 @@ async function syncPlayCountToDatabase() {
           body: JSON.stringify({ play_count: newCount })
         }
       );
-      
+
+      // Simpan hasil sync supaya updatePlayCountDisplay bisa pakai nilai terbaru
+      syncedPlayCounts[trackId] = newCount;
+
       console.log(`[PlayTracker] Synced: ${trackId} → ${newCount} plays`);
     }
-    
-    // Clear local cache setelah sync
-    localPlayCounts = {};
-    pendingPlaySync = false;
-    
-    // Refresh UI
+
+    // Refresh UI setelah semua track selesai
     updatePlayCountDisplay();
-    
+
   } catch (e) {
+    // Kembalikan delta ke localPlayCounts supaya tidak hilang saat error
+    for (const [id, delta] of Object.entries(snapshot)) {
+      localPlayCounts[id] = (localPlayCounts[id] || 0) + delta;
+    }
+    pendingPlaySync = true;
     console.warn('[PlayTracker] Sync error:', e.message);
   }
 }
@@ -166,10 +174,14 @@ function updatePlayCountDisplay() {
   // Update hero card
   const playsEL = document.getElementById('hPlaysN');
   if (playsEL) {
-    const total = localPlayCounts[currentTrack.id] || currentTrack.play_count || 0;
+    // Prioritas: nilai DB terbaru (syncedPlayCounts) → pending local → fallback currentTrack
+    const total = syncedPlayCounts[currentTrack.id]
+      ?? (localPlayCounts[currentTrack.id]
+        ? (syncedPlayCounts[currentTrack.id] || currentTrack.play_count || 0) + localPlayCounts[currentTrack.id]
+        : currentTrack.play_count || 0);
     playsEL.textContent = total;
   }
-  
+
   // Update chart list
   const chartItems = document.querySelectorAll('.chart-item');
   chartItems.forEach(item => {
@@ -177,8 +189,9 @@ function updatePlayCountDisplay() {
     if (cntEl) {
       const trackId = item.getAttribute('data-track-id');
       if (trackId === currentTrack.id) {
-        const total = localPlayCounts[trackId] || currentTrack.play_count || 0;
-        cntEl.textContent = total;
+        const synced = syncedPlayCounts[trackId] ?? currentTrack.play_count ?? 0;
+        const pending = localPlayCounts[trackId] || 0;
+        cntEl.textContent = synced + pending;
       }
     }
   });
