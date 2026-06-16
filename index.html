@@ -218,7 +218,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 .notif-dot.show{display:block}
 
 /* BOTTOM NAV */
-.bottom-nav{position:fixed;bottom:0;left:0;right:0;z-index:100;height:var(--nav-h);background:rgba(7,7,26,.97);backdrop-filter:blur(20px);border-top:1px solid var(--bd);display:flex;align-items:center;justify-content:space-around;padding:0 8px;}
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;z-index:100;height:var(--nav-h);background:rgba(7,7,26,.97);backdrop-filter:blur(20px);border-top:1px solid var(--bd);display:flex;align-items:center;justify-content:space-around;padding:0 8px;transition:transform .35s cubic-bezier(.4,0,.2,1),opacity .35s ease;will-change:transform;}.bottom-nav.nav-hidden{transform:translateY(100%);opacity:0;pointer-events:none;}
 .nav-item{display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 12px;border-radius:12px;cursor:pointer;transition:all .2s;color:var(--mt);font-size:.58rem;font-weight:600;text-transform:uppercase;letter-spacing:.5px;flex:1;border:none;background:transparent;font-family:inherit;-webkit-tap-highlight-color:transparent;}
 .nav-item i{font-size:1.1rem;transition:all .2s}
 .nav-item.active{color:var(--dyn1)}
@@ -402,7 +402,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 .ico-btn.sp{color:var(--g);border-color:rgba(29,185,84,.3)}
 
 /* TOP CHART */
-.chart-list{display:flex;flex-direction:column;gap:3px}
+.chart-list{display:flex;flex-direction:column;gap:3px}.chart-filter{display:flex;gap:8px;margin-bottom:14px;}.cf-btn{flex:1;padding:8px 0;border:1px solid var(--bd);border-radius:20px;background:transparent;color:var(--t2);font-size:.8rem;cursor:pointer;transition:all .2s;}.cf-btn.active{background:var(--g);border-color:var(--g);color:#fff;font-weight:600;}
 .chart-item{display:grid;grid-template-columns:28px 44px 1fr auto;align-items:center;gap:10px;padding:8px 10px;border-radius:11px;cursor:pointer;transition:all .18s;border:1px solid transparent;}
 .chart-item:hover{background:var(--s2);border-color:var(--bd)}
 .chart-item.on{background:rgba(29,185,84,.07);border-color:rgba(29,185,84,.2)}
@@ -466,6 +466,34 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 .act-dot{width:6px;height:6px;border-radius:50%;background:var(--dyn1);animation:pulse 2s infinite;flex-shrink:0}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.2}}
 
+/* WRAPPED PAGE */
+.wr-cards{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px}
+.wr-card{background:var(--s2);border:1px solid var(--bd);border-radius:14px;padding:16px 12px;text-align:center}
+.wr-card-icon{font-size:1.4rem;color:var(--g);margin-bottom:6px}
+.wr-card-val{font-size:1.6rem;font-weight:700;color:var(--t1);line-height:1}
+.wr-card-lbl{font-size:.72rem;color:var(--t2);margin-top:4px}
+.wr-section{margin-bottom:20px}
+.wr-sec-title{font-size:.85rem;font-weight:600;color:var(--t2);margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.wr-sec-title i{color:var(--g)}
+.wr-track-item{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--bd)}
+.wr-track-item:last-child{border-bottom:none}
+.wr-track-rank{width:22px;text-align:center;font-size:.85rem;font-weight:700;color:var(--t2);flex-shrink:0}
+.wr-track-thumb{width:40px;height:40px;border-radius:8px;object-fit:cover;flex-shrink:0}
+.wr-track-info{min-width:0;flex:1}
+.wr-track-title{font-size:.88rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wr-track-artist{font-size:.76rem;color:var(--t2)}
+.wr-track-cnt{font-size:.8rem;color:var(--g);font-weight:600;flex-shrink:0}
+.wr-artist-item{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--bd)}
+.wr-artist-item:last-child{border-bottom:none}
+.wr-artist-name{font-size:.88rem;font-weight:500}
+.wr-artist-cnt{font-size:.8rem;color:var(--g);font-weight:600}
+.wr-timeslot{display:flex;flex-direction:column;gap:6px}
+.wr-ts-row{display:flex;align-items:center;gap:10px}
+.wr-ts-lbl{width:70px;font-size:.78rem;color:var(--t2);flex-shrink:0}
+.wr-ts-bar-wrap{flex:1;background:var(--s2);border-radius:4px;height:8px;overflow:hidden}
+.wr-ts-bar{height:100%;background:var(--g);border-radius:4px;transition:width .6s ease}
+.wr-ts-cnt{width:30px;text-align:right;font-size:.75rem;color:var(--t2)}
+.wr-empty{text-align:center;padding:32px 0;color:var(--t2);font-size:.85rem}
 /* CHAT PAGE */
 .chat-list{display:flex;flex-direction:column;gap:4px}
 .chat-item{display:flex;align-items:center;gap:10px;padding:12px;border-radius:14px;cursor:pointer;transition:all .18s;border:1px solid transparent;background:var(--s1);}
@@ -926,7 +954,67 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
     <div class="page" id="page-chart">
       <div class="sec-title"><i class="fas fa-fire" style="color:var(--rd)"></i> Top Chart Pagaska</div>
       <p class="sec-sub">Lagu paling banyak diputar oleh semua anggota</p>
+      <div class="chart-filter" id="chartFilter">
+        <button class="cf-btn active" data-period="all"   onclick="switchChartPeriod('all')">Semua</button>
+        <button class="cf-btn"       data-period="week"  onclick="switchChartPeriod('week')">Minggu ini</button>
+        <button class="cf-btn"       data-period="month" onclick="switchChartPeriod('month')">Bulan ini</button>
+      </div>
       <div class="chart-list" id="chartListFull"></div>
+    </div>
+
+    <!-- WRAPPED PAGE -->
+    <div class="page" id="page-wrapped">
+      <div class="sec-title"><i class="fas fa-star" style="color:var(--g)"></i> Rekap Kamu</div>
+      <p class="sec-sub">Statistik musikmu di Pagaska</p>
+
+      <!-- Period selector -->
+      <div class="chart-filter" style="margin-bottom:20px">
+        <button class="cf-btn active" data-wp="month"  onclick="switchWrappedPeriod('month')">Bulan ini</button>
+        <button class="cf-btn"       data-wp="year"   onclick="switchWrappedPeriod('year')">Tahun ini</button>
+        <button class="cf-btn"       data-wp="all"    onclick="switchWrappedPeriod('all')">Semua waktu</button>
+      </div>
+
+      <!-- Stats cards -->
+      <div class="wr-cards" id="wrCards">
+        <div class="wr-card">
+          <div class="wr-card-icon"><i class="fas fa-play-circle"></i></div>
+          <div class="wr-card-val" id="wrTotalPlays">–</div>
+          <div class="wr-card-lbl">Total Putar</div>
+        </div>
+        <div class="wr-card">
+          <div class="wr-card-icon"><i class="fas fa-clock"></i></div>
+          <div class="wr-card-val" id="wrTotalMins">–</div>
+          <div class="wr-card-lbl">Menit Didengar</div>
+        </div>
+        <div class="wr-card">
+          <div class="wr-card-icon"><i class="fas fa-music"></i></div>
+          <div class="wr-card-val" id="wrUniqTracks">–</div>
+          <div class="wr-card-lbl">Lagu Berbeda</div>
+        </div>
+        <div class="wr-card">
+          <div class="wr-card-icon"><i class="fas fa-fire"></i></div>
+          <div class="wr-card-val" id="wrStreak">–</div>
+          <div class="wr-card-lbl">Hari Berturut</div>
+        </div>
+      </div>
+
+      <!-- Top lagu -->
+      <div class="wr-section">
+        <div class="wr-sec-title"><i class="fas fa-trophy"></i> Lagu Terfavorit</div>
+        <div id="wrTopTracks" class="wr-track-list"></div>
+      </div>
+
+      <!-- Top artis -->
+      <div class="wr-section">
+        <div class="wr-sec-title"><i class="fas fa-microphone"></i> Artis Terbanyak</div>
+        <div id="wrTopArtists" class="wr-artist-list"></div>
+      </div>
+
+      <!-- Waktu favorit -->
+      <div class="wr-section">
+        <div class="wr-sec-title"><i class="fas fa-moon"></i> Waktu Favorit Mendengarkan</div>
+        <div id="wrTimeSlot" class="wr-timeslot"></div>
+      </div>
     </div>
 
     <!-- CHAT PAGE -->
@@ -1023,6 +1111,9 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
           <div style="font-size:.75rem;color:var(--mt)" id="profilSub">–</div>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px" id="profilStats"></div>
+        <button onclick="navigate('wrapped')" style="width:100%;padding:12px;border-radius:12px;border:1px solid rgba(29,185,84,.3);background:rgba(29,185,84,.08);color:var(--g);font-size:.82rem;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:16px">
+          <i class="fas fa-star"></i> Lihat Rekap Kamu
+        </button>
         <div class="sec-row" style="margin-bottom:10px">
           <h3><i class="fas fa-history" style="color:var(--b2)"></i> Riwayat Saya</h3>
         </div>
@@ -1307,12 +1398,12 @@ function navigate(page){
   const el=document.getElementById(`page-${page}`);if(el)el.classList.add('active');
   const nav=document.getElementById(`nav-${page}`);if(nav)nav.classList.add('active');
   currentPage=page;
-  if(page==='chart')loadTopChart();
+  if(page==='chart'){ _chartPeriod='all'; document.querySelectorAll('.cf-btn').forEach(b=>b.classList.toggle('active',b.dataset.period==='all')); loadTopChart(); }
   if(page==='chat'){loadChatList();document.getElementById('chatDot')&&(document.getElementById('chatDot').style.display='none');}
   if(page==='party'){loadPartyQueue();updatePartyStatus();}
   if(page==='profil')loadProfil();
   if(page==='beranda'){loadTopChartHome();loadLiveActivity();loadQuickPlay();}
-  if(page==='playlist')PlaylistManager.loadAll();
+  if(page==='wrapped'){ _wrappedPeriod='month'; document.querySelectorAll('[data-wp]').forEach(b=>b.classList.toggle('active',b.dataset.wp==='month')); loadWrapped(); }
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -2331,11 +2422,60 @@ async function loadTopChartHome(){
   }catch(e){console.warn(e.message);}
 }
 
+let _chartPeriod = 'all';
+
+function switchChartPeriod(period) {
+  _chartPeriod = period;
+  // Update active tab
+  document.querySelectorAll('.cf-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.period === period);
+  });
+  loadTopChart();
+}
+
 async function loadTopChart(){
+  const el = document.getElementById('chartListFull');
+  _skeletonChart(el, 10);
   try{
-    const rows=await sb.get('tracks','order=play_count.desc&limit=50&play_count=gt.0');
-    renderChartList(rows,'chartListFull');
-  }catch(e){toast('Gagal load chart: '+e.message);}
+    let rows;
+    if (_chartPeriod === 'all') {
+      // Query langsung dari tabel tracks (play_count kumulatif)
+      rows = await sb.get('tracks','order=play_count.desc&limit=50&play_count=gt.0');
+    } else {
+      // Query dari play_history dengan filter waktu, lalu group by track_id
+      const now   = new Date();
+      const since = new Date(now);
+      if (_chartPeriod === 'week')  since.setDate(now.getDate() - 7);
+      if (_chartPeriod === 'month') since.setMonth(now.getMonth() - 1);
+      const sinceISO = since.toISOString();
+
+      // Ambil semua history dalam rentang waktu
+      const history = await sb.get(
+        'play_history',
+        `played_at=gte.${encodeURIComponent(sinceISO)}&select=track_id`
+      );
+
+      if (!history.length) { renderChartList([], 'chartListFull'); return; }
+
+      // Hitung play count per track_id secara lokal
+      const countMap = {};
+      history.forEach(h => { countMap[h.track_id] = (countMap[h.track_id] || 0) + 1; });
+
+      // Ambil detail track untuk setiap track_id yang masuk
+      const trackIds = Object.keys(countMap);
+      const idFilter = `id=in.(${trackIds.map(id => encodeURIComponent(id)).join(',')})`;
+      const tracks   = await sb.get('tracks', idFilter);
+
+      // Inject play_count periode ke masing-masing track, lalu sort
+      rows = tracks
+        .map(t => ({ ...t, play_count: countMap[t.id] || 0 }))
+        .filter(t => t.play_count > 0)
+        .sort((a, b) => b.play_count - a.play_count)
+        .slice(0, 50);
+    }
+    renderChartList(rows, 'chartListFull');
+  }catch(e){ toast('Gagal load chart: '+e.message); }
+}
 }
 
 function renderChartList(rows,elId){
@@ -3505,5 +3645,214 @@ if (document.readyState === 'loading') {
     <div class="pl-modal-body" id="plPickList"></div>
   </div>
 </div>
+<script>
+// ── Wrapped / Rekap Personal ──────────────────────────────────────────────────
+let _wrappedPeriod = 'month';
+
+function switchWrappedPeriod(period) {
+  _wrappedPeriod = period;
+  document.querySelectorAll('[data-wp]').forEach(b => b.classList.toggle('active', b.dataset.wp === period));
+  loadWrapped();
+}
+
+async function loadWrapped() {
+  if (!USER_KEY || USER_KEY === 'guest') {
+    document.getElementById('wrCards').innerHTML = '<div class="wr-empty">Login dulu untuk lihat rekap kamu.</div>';
+    return;
+  }
+
+  // Skeleton
+  ['wrTotalPlays','wrTotalMins','wrUniqTracks','wrStreak'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.textContent = '...';
+  });
+  ['wrTopTracks','wrTopArtists','wrTimeSlot'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.innerHTML = '<div class="wr-empty">Memuat...</div>';
+  });
+
+  try {
+    // Tentukan rentang waktu
+    const now   = new Date();
+    const since = new Date(now);
+    if (_wrappedPeriod === 'month') since.setMonth(now.getMonth() - 1);
+    if (_wrappedPeriod === 'year')  since.setFullYear(now.getFullYear() - 1);
+    const sinceISO = _wrappedPeriod === 'all' ? null : since.toISOString();
+
+    // Query play_history milik user ini
+    const filter = `user_key=eq.${encodeURIComponent(USER_KEY)}`
+      + (sinceISO ? `&played_at=gte.${encodeURIComponent(sinceISO)}` : '')
+      + '&select=track_id,played_at&order=played_at.desc&limit=1000';
+    const history = await sb.get('play_history', filter);
+
+    if (!history.length) {
+      ['wrTopTracks','wrTopArtists','wrTimeSlot'].forEach(id => {
+        document.getElementById(id).innerHTML = '<div class="wr-empty">Belum ada data di periode ini.</div>';
+      });
+      ['wrTotalPlays','wrTotalMins','wrUniqTracks','wrStreak'].forEach(id => {
+        document.getElementById(id).textContent = '0';
+      });
+      return;
+    }
+
+    // Hitung play count per track
+    const countMap = {};
+    history.forEach(h => { countMap[h.track_id] = (countMap[h.track_id] || 0) + 1; });
+    const sortedIds = Object.keys(countMap).sort((a,b) => countMap[b] - countMap[a]);
+
+    // Ambil detail track (top 20 cukup)
+    const top20Ids = sortedIds.slice(0, 20);
+    const idFilter = `id=in.(${top20Ids.map(id => encodeURIComponent(id)).join(',')})&select=id,title,artist,thumbnail,duration`;
+    const tracks   = await sb.get('tracks', idFilter);
+    const trackMap = {};
+    tracks.forEach(t => { trackMap[t.id] = t; });
+
+    // ── Stats cards ──
+    const totalPlays  = history.length;
+    const uniqTracks  = Object.keys(countMap).length;
+
+    // Estimasi total menit: pakai duration dari track jika ada, fallback 3.5 menit
+    let totalSecs = 0;
+    history.forEach(h => {
+      const t = trackMap[h.track_id];
+      if (t?.duration) {
+        // duration bisa "3:45" atau angka detik
+        if (typeof t.duration === 'string' && t.duration.includes(':')) {
+          const [m, s] = t.duration.split(':').map(Number);
+          totalSecs += (m * 60 + (s || 0));
+        } else {
+          totalSecs += Number(t.duration) || 210;
+        }
+      } else {
+        totalSecs += 210; // fallback 3.5 menit
+      }
+    });
+    const totalMins = Math.round(totalSecs / 60);
+
+    // Streak: hitung hari berturut-turut dari hari ini
+    const playDays = new Set(history.map(h => h.played_at?.slice(0, 10)));
+    let streak = 0;
+    const d = new Date();
+    while (true) {
+      const key = d.toISOString().slice(0, 10);
+      if (playDays.has(key)) { streak++; d.setDate(d.getDate() - 1); }
+      else break;
+    }
+
+    document.getElementById('wrTotalPlays').textContent = totalPlays.toLocaleString('id-ID');
+    document.getElementById('wrTotalMins').textContent  = totalMins.toLocaleString('id-ID');
+    document.getElementById('wrUniqTracks').textContent = uniqTracks;
+    document.getElementById('wrStreak').textContent     = streak + 'h';
+
+    // ── Top tracks ──
+    const topTracksEl = document.getElementById('wrTopTracks');
+    const PH_ = typeof PH !== 'undefined' ? PH : '';
+    topTracksEl.innerHTML = top20Ids.slice(0, 10).map((id, i) => {
+      const t = trackMap[id] || {};
+      return `<div class="wr-track-item" onclick='playTrackObj(${esc(trackMap[id]||{})})'>
+        <div class="wr-track-rank">${i + 1}</div>
+        <img class="wr-track-thumb" src="${t.thumbnail || PH_}" onerror="this.src='${PH_}'">
+        <div class="wr-track-info">
+          <div class="wr-track-title">${t.title || 'Unknown'}</div>
+          <div class="wr-track-artist">${t.artist || '–'}</div>
+        </div>
+        <div class="wr-track-cnt">${countMap[id]}×</div>
+      </div>`;
+    }).join('');
+
+    // ── Top artists ──
+    const artistMap = {};
+    Object.keys(countMap).forEach(id => {
+      const t = trackMap[id];
+      if (!t) return;
+      const a = t.artist || 'Unknown';
+      artistMap[a] = (artistMap[a] || 0) + countMap[id];
+    });
+    const topArtists = Object.entries(artistMap).sort((a,b) => b[1] - a[1]).slice(0, 7);
+    document.getElementById('wrTopArtists').innerHTML = topArtists.length
+      ? topArtists.map(([name, cnt]) =>
+          `<div class="wr-artist-item"><div class="wr-artist-name">${name}</div><div class="wr-artist-cnt">${cnt} putar</div></div>`
+        ).join('')
+      : '<div class="wr-empty">Tidak ada data artis.</div>';
+
+    // ── Waktu favorit (per 4 jam) ──
+    const slots = { 'Tengah Malam (00-04)': 0, 'Pagi (04-08)': 0, 'Pagi (08-12)': 0, 'Siang (12-16)': 0, 'Sore (16-20)': 0, 'Malam (20-24)': 0 };
+    history.forEach(h => {
+      if (!h.played_at) return;
+      const hr = new Date(h.played_at).getHours();
+      if (hr < 4)       slots['Tengah Malam (00-04)']++;
+      else if (hr < 8)  slots['Pagi (04-08)']++;
+      else if (hr < 12) slots['Pagi (08-12)']++;
+      else if (hr < 16) slots['Siang (12-16)']++;
+      else if (hr < 20) slots['Sore (16-20)']++;
+      else              slots['Malam (20-24)']++;
+    });
+    const maxSlot = Math.max(...Object.values(slots), 1);
+    document.getElementById('wrTimeSlot').innerHTML = Object.entries(slots).map(([lbl, cnt]) =>
+      `<div class="wr-ts-row">
+        <div class="wr-ts-lbl">${lbl.split(' ')[0]}</div>
+        <div class="wr-ts-bar-wrap"><div class="wr-ts-bar" style="width:${Math.round(cnt/maxSlot*100)}%"></div></div>
+        <div class="wr-ts-cnt">${cnt}</div>
+      </div>`
+    ).join('');
+
+  } catch(e) {
+    toast('Gagal load rekap: ' + e.message);
+  }
+}
+
+// ── Navbar auto-hide saat scroll ─────────────────────────────────────────────
+(function() {
+  const nav = document.querySelector('.bottom-nav');
+  if (!nav) return;
+
+  let lastY     = window.scrollY;
+  let ticking   = false;
+  let hideTimer = null;
+
+  // Jangan sembunyikan navbar kalau halaman hampir tidak bisa di-scroll
+  const canScroll = () => document.documentElement.scrollHeight - window.innerHeight > 80;
+
+  function onScroll() {
+    if (!ticking) {
+      requestAnimationFrame(() => {
+        if (!canScroll()) { showNav(); ticking = false; return; }
+
+        const y     = window.scrollY;
+        const delta = y - lastY;
+
+        if (delta > 6) {
+          // Scroll ke bawah → sembunyikan
+          hideNav();
+        } else if (delta < -4) {
+          // Scroll ke atas → tampilkan
+          showNav();
+        }
+
+        lastY   = y;
+        ticking = false;
+      });
+      ticking = true;
+    }
+  }
+
+  function hideNav() {
+    nav.classList.add('nav-hidden');
+    clearTimeout(hideTimer);
+    // Auto-muncul kembali setelah 4 detik berhenti scroll (safety net)
+    hideTimer = setTimeout(showNav, 4000);
+  }
+
+  function showNav() {
+    nav.classList.remove('nav-hidden');
+    clearTimeout(hideTimer);
+  }
+
+  window.addEventListener('scroll', onScroll, { passive: true });
+
+  // Selalu tampilkan kembali saat user tap di area bawah layar
+  document.addEventListener('touchstart', (e) => {
+    if (e.touches[0].clientY > window.innerHeight * 0.75) showNav();
+  }, { passive: true });
+})();
+</script>
 </body>
 </html>
