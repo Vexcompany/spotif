@@ -402,7 +402,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 .ico-btn.sp{color:var(--g);border-color:rgba(29,185,84,.3)}
 
 /* TOP CHART */
-.chart-list{display:flex;flex-direction:column;gap:3px}
+.chart-list{display:flex;flex-direction:column;gap:3px}.chart-filter{display:flex;gap:8px;margin-bottom:14px;}.cf-btn{flex:1;padding:8px 0;border:1px solid var(--bd);border-radius:20px;background:transparent;color:var(--t2);font-size:.8rem;cursor:pointer;transition:all .2s;}.cf-btn.active{background:var(--g);border-color:var(--g);color:#fff;font-weight:600;}
 .chart-item{display:grid;grid-template-columns:28px 44px 1fr auto;align-items:center;gap:10px;padding:8px 10px;border-radius:11px;cursor:pointer;transition:all .18s;border:1px solid transparent;}
 .chart-item:hover{background:var(--s2);border-color:var(--bd)}
 .chart-item.on{background:rgba(29,185,84,.07);border-color:rgba(29,185,84,.2)}
@@ -926,6 +926,11 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
     <div class="page" id="page-chart">
       <div class="sec-title"><i class="fas fa-fire" style="color:var(--rd)"></i> Top Chart Pagaska</div>
       <p class="sec-sub">Lagu paling banyak diputar oleh semua anggota</p>
+      <div class="chart-filter" id="chartFilter">
+        <button class="cf-btn active" data-period="all"   onclick="switchChartPeriod('all')">Semua</button>
+        <button class="cf-btn"       data-period="week"  onclick="switchChartPeriod('week')">Minggu ini</button>
+        <button class="cf-btn"       data-period="month" onclick="switchChartPeriod('month')">Bulan ini</button>
+      </div>
       <div class="chart-list" id="chartListFull"></div>
     </div>
 
@@ -1307,7 +1312,7 @@ function navigate(page){
   const el=document.getElementById(`page-${page}`);if(el)el.classList.add('active');
   const nav=document.getElementById(`nav-${page}`);if(nav)nav.classList.add('active');
   currentPage=page;
-  if(page==='chart')loadTopChart();
+  if(page==='chart'){ _chartPeriod='all'; document.querySelectorAll('.cf-btn').forEach(b=>b.classList.toggle('active',b.dataset.period==='all')); loadTopChart(); }
   if(page==='chat'){loadChatList();document.getElementById('chatDot')&&(document.getElementById('chatDot').style.display='none');}
   if(page==='party'){loadPartyQueue();updatePartyStatus();}
   if(page==='profil')loadProfil();
@@ -2331,11 +2336,60 @@ async function loadTopChartHome(){
   }catch(e){console.warn(e.message);}
 }
 
+let _chartPeriod = 'all';
+
+function switchChartPeriod(period) {
+  _chartPeriod = period;
+  // Update active tab
+  document.querySelectorAll('.cf-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.period === period);
+  });
+  loadTopChart();
+}
+
 async function loadTopChart(){
+  const el = document.getElementById('chartListFull');
+  _skeletonChart(el, 10);
   try{
-    const rows=await sb.get('tracks','order=play_count.desc&limit=50&play_count=gt.0');
-    renderChartList(rows,'chartListFull');
-  }catch(e){toast('Gagal load chart: '+e.message);}
+    let rows;
+    if (_chartPeriod === 'all') {
+      // Query langsung dari tabel tracks (play_count kumulatif)
+      rows = await sb.get('tracks','order=play_count.desc&limit=50&play_count=gt.0');
+    } else {
+      // Query dari play_history dengan filter waktu, lalu group by track_id
+      const now   = new Date();
+      const since = new Date(now);
+      if (_chartPeriod === 'week')  since.setDate(now.getDate() - 7);
+      if (_chartPeriod === 'month') since.setMonth(now.getMonth() - 1);
+      const sinceISO = since.toISOString();
+
+      // Ambil semua history dalam rentang waktu
+      const history = await sb.get(
+        'play_history',
+        `played_at=gte.${encodeURIComponent(sinceISO)}&select=track_id`
+      );
+
+      if (!history.length) { renderChartList([], 'chartListFull'); return; }
+
+      // Hitung play count per track_id secara lokal
+      const countMap = {};
+      history.forEach(h => { countMap[h.track_id] = (countMap[h.track_id] || 0) + 1; });
+
+      // Ambil detail track untuk setiap track_id yang masuk
+      const trackIds = Object.keys(countMap);
+      const idFilter = `id=in.(${trackIds.map(id => encodeURIComponent(id)).join(',')})`;
+      const tracks   = await sb.get('tracks', idFilter);
+
+      // Inject play_count periode ke masing-masing track, lalu sort
+      rows = tracks
+        .map(t => ({ ...t, play_count: countMap[t.id] || 0 }))
+        .filter(t => t.play_count > 0)
+        .sort((a, b) => b.play_count - a.play_count)
+        .slice(0, 50);
+    }
+    renderChartList(rows, 'chartListFull');
+  }catch(e){ toast('Gagal load chart: '+e.message); }
+}
 }
 
 function renderChartList(rows,elId){
