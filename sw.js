@@ -204,10 +204,16 @@ async function audioCacheStrategy(request) {
     if (!response) throw new Error('CORS fetch gagal');
 
     try {
-      cache.put(request.url, response.clone());
-      notifyClients({ type: 'AUDIO_CACHED', url: request.url });
-      trimAudioCache(cache);
-    } catch (e) { console.warn('[SW] Cache put gagal:', e.message); }
+  if (response.status === 200) {
+    await cache.put(request.url, response.clone());
+    notifyClients({ type: 'AUDIO_CACHED', url: request.url });
+    trimAudioCache(cache);
+  } else {
+    console.log('[SW] Skip cache partial audio:', response.status);
+  }
+} catch (e) {
+  console.warn('[SW] Cache put gagal:', e.message);
+}
 
     return response;
   } catch (e) {
