@@ -494,6 +494,27 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 .wr-ts-bar{height:100%;background:var(--g);border-radius:4px;transition:width .6s ease}
 .wr-ts-cnt{width:30px;text-align:right;font-size:.75rem;color:var(--t2)}
 .wr-empty{text-align:center;padding:32px 0;color:var(--t2);font-size:.85rem}
+/* EXPLORE PAGE */
+.exp-search-wrap{position:relative;margin-bottom:12px}
+.exp-search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--t2);font-size:.85rem;pointer-events:none}
+.exp-search{width:100%;padding:10px 36px 10px 34px;border-radius:20px;border:1px solid var(--bd);background:var(--s2);color:var(--t1);font-size:.88rem;font-family:inherit;outline:none;box-sizing:border-box}
+.exp-search:focus{border-color:var(--g)}
+.exp-clear{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--t2);cursor:pointer;padding:4px}
+.exp-filter-wrap{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none}
+.exp-filter-wrap::-webkit-scrollbar{display:none}
+.exp-chip{flex-shrink:0;padding:6px 14px;border-radius:20px;border:1px solid var(--bd);background:transparent;color:var(--t2);font-size:.78rem;cursor:pointer;transition:all .2s;font-family:inherit}
+.exp-chip.active{background:var(--g);border-color:var(--g);color:#fff;font-weight:600}
+/* LIVE FEED PAGE */
+.lf-list{display:flex;flex-direction:column;gap:10px}
+.lf-item{display:flex;align-items:center;gap:12px;padding:12px;background:var(--s2);border:1px solid var(--bd);border-radius:14px}
+.lf-av{width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--g),var(--b2));display:flex;align-items:center;justify-content:center;font-size:.85rem;font-weight:700;color:#fff;flex-shrink:0}
+.lf-info{flex:1;min-width:0}
+.lf-name{font-size:.88rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lf-track{font-size:.75rem;color:var(--t2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lf-thumb{width:40px;height:40px;border-radius:8px;object-fit:cover;flex-shrink:0}
+.lf-dot{width:8px;height:8px;border-radius:50%;background:var(--g);flex-shrink:0;animation:pulse 1.5s infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.85)}}
+.lf-empty{text-align:center;padding:48px 0;color:var(--t2);font-size:.85rem;display:flex;flex-direction:column;align-items:center;gap:8px}
 /* CHAT PAGE */
 .chat-list{display:flex;flex-direction:column;gap:4px}
 .chat-item{display:flex;align-items:center;gap:10px;padding:12px;border-radius:14px;cursor:pointer;transition:all .18s;border:1px solid transparent;background:var(--s1);}
@@ -919,6 +940,16 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
         <div class="qp-grid" id="qpGrid"></div>
       </div>
 
+      <!-- Quick Shortcuts -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
+        <button onclick="navigate('explore')" style="padding:14px;border-radius:12px;border:1px solid var(--bd);background:var(--s2);color:var(--t1);font-size:.82rem;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .2s">
+          <i class="fas fa-compass"></i> Explore
+        </button>
+        <button onclick="navigate('livefeed')" style="padding:14px;border-radius:12px;border:1px solid var(--bd);background:var(--s2);color:var(--t1);font-size:.82rem;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .2s">
+          <i class="fas fa-satellite-dish"></i> Live
+        </button>
+      </div>
+
       <!-- Live Activity -->
       <div id="activitySec" style="display:none">
         <div class="sec-row">
@@ -1014,6 +1045,36 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
       <div class="wr-section">
         <div class="wr-sec-title"><i class="fas fa-moon"></i> Waktu Favorit Mendengarkan</div>
         <div id="wrTimeSlot" class="wr-timeslot"></div>
+      </div>
+    </div>
+
+    <!-- EXPLORE PAGE -->
+    <div class="page" id="page-explore">
+      <div class="sec-title"><i class="fas fa-compass" style="color:var(--b2)"></i> Explore</div>
+      <p class="sec-sub">Temukan lagu berdasarkan artis atau album</p>
+
+      <!-- Search bar -->
+      <div class="exp-search-wrap">
+        <i class="fas fa-search exp-search-icon"></i>
+        <input id="expSearchInput" class="exp-search" type="text" placeholder="Cari artis, album, atau judul..." oninput="onExpSearch(this.value)">
+        <button id="expSearchClear" class="exp-clear" onclick="clearExpSearch()" style="display:none"><i class="fas fa-times"></i></button>
+      </div>
+
+      <!-- Filter artis -->
+      <div class="exp-filter-wrap" id="expArtistFilter"></div>
+
+      <!-- Hasil -->
+      <div id="expResults" class="tlist" style="margin-top:12px"></div>
+    </div>
+
+    <!-- LIVE FEED PAGE -->
+    <div class="page" id="page-livefeed">
+      <div class="sec-title"><i class="fas fa-satellite-dish" style="color:var(--rd)"></i> Sedang Diputar</div>
+      <p class="sec-sub">Anggota yang aktif mendengarkan saat ini</p>
+      <div id="liveFeedList" class="lf-list"></div>
+      <div id="liveFeedEmpty" class="lf-empty" style="display:none">
+        <i class="fas fa-headphones" style="font-size:2rem;color:var(--t2);margin-bottom:10px"></i>
+        <div>Belum ada yang mendengarkan saat ini</div>
       </div>
     </div>
 
@@ -1289,6 +1350,8 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
   <div class="pd-div"></div>
   <div class="pd-item" onclick="navigate('profil');togglePD()"><i class="fas fa-user" style="color:var(--p2)"></i> Profil Saya</div>
   <div class="pd-item" onclick="navigate('party');togglePD()"><i class="fas fa-users" style="color:var(--pk)"></i> Party Mode</div>
+  <div class="pd-item" onclick="navigate('explore');togglePD()"><i class="fas fa-compass" style="color:var(--b2)"></i> Explore</div>
+  <div class="pd-item" onclick="navigate('livefeed');togglePD()"><i class="fas fa-satellite-dish" style="color:var(--rd)"></i> Sedang Diputar</div>
   <div class="pd-div"></div>
   <div class="pd-item danger" onclick="doLogout()"><i class="fas fa-sign-out-alt"></i> Keluar</div>
 </div>
@@ -1398,6 +1461,9 @@ function navigate(page){
   const el=document.getElementById(`page-${page}`);if(el)el.classList.add('active');
   const nav=document.getElementById(`nav-${page}`);if(nav)nav.classList.add('active');
   currentPage=page;
+  if(page==='explore')loadExplore();
+  if(page==='livefeed'){loadLiveFeed();_liveFeedTimer=setInterval(loadLiveFeed,15000);}
+  else{clearInterval(_liveFeedTimer);}
   if(page==='chart'){ _chartPeriod='all'; document.querySelectorAll('.cf-btn').forEach(b=>b.classList.toggle('active',b.dataset.period==='all')); loadTopChart(); }
   if(page==='chat'){loadChatList();document.getElementById('chatDot')&&(document.getElementById('chatDot').style.display='none');}
   if(page==='party'){loadPartyQueue();updatePartyStatus();}
@@ -2475,6 +2541,7 @@ async function loadTopChart(){
     }
     renderChartList(rows, 'chartListFull');
   }catch(e){ toast('Gagal load chart: '+e.message); }
+}
 }
 
 function renderChartList(rows,elId){
@@ -3645,6 +3712,134 @@ if (document.readyState === 'loading') {
   </div>
 </div>
 <script>
+// ── Explore ───────────────────────────────────────────────────────────────────
+let _expAllTracks  = [];
+let _expActiveChip = null;
+
+async function loadExplore() {
+  if (_expAllTracks.length) { renderExpResults(_expAllTracks); buildExpChips(); return; }
+  document.getElementById('expResults').innerHTML = '<div class="wr-empty">Memuat...</div>';
+  try {
+    const rows = await sb.get('tracks', 'order=title.asc&limit=500&select=id,title,artist,album,thumbnail,play_count,duration,audio_url,year,search_query');
+    _expAllTracks = rows;
+    buildExpChips();
+    renderExpResults(rows);
+  } catch(e) { toast('Gagal load explore: ' + e.message); }
+}
+
+function buildExpChips() {
+  const artists = [...new Set(_expAllTracks.map(t => t.artist).filter(Boolean))].sort();
+  const wrap = document.getElementById('expArtistFilter');
+  wrap.innerHTML = ['Semua', ...artists.slice(0, 30)].map(a =>
+    `<button class="exp-chip${_expActiveChip === a || (!_expActiveChip && a==='Semua') ? ' active' : ''}" onclick="filterExpByArtist('${a.replace(/'/g,"\\'")}')">
+      ${a}
+    </button>`
+  ).join('');
+}
+
+function filterExpByArtist(artist) {
+  _expActiveChip = artist === 'Semua' ? null : artist;
+  document.querySelectorAll('.exp-chip').forEach(b => b.classList.toggle('active', b.textContent.trim() === artist));
+  const q = document.getElementById('expSearchInput').value.trim().toLowerCase();
+  applyExpFilter(q);
+}
+
+function onExpSearch(val) {
+  document.getElementById('expSearchClear').style.display = val ? 'block' : 'none';
+  applyExpFilter(val.toLowerCase());
+}
+
+function clearExpSearch() {
+  document.getElementById('expSearchInput').value = '';
+  document.getElementById('expSearchClear').style.display = 'none';
+  applyExpFilter('');
+}
+
+function applyExpFilter(q) {
+  let results = _expAllTracks;
+  if (_expActiveChip) results = results.filter(t => t.artist === _expActiveChip);
+  if (q) results = results.filter(t =>
+    (t.title||'').toLowerCase().includes(q) ||
+    (t.artist||'').toLowerCase().includes(q) ||
+    (t.album||'').toLowerCase().includes(q)
+  );
+  renderExpResults(results);
+}
+
+function renderExpResults(tracks) {
+  const el = document.getElementById('expResults');
+  if (!tracks.length) { el.innerHTML = '<div class="wr-empty">Tidak ada lagu yang cocok.</div>'; return; }
+  el.innerHTML = tracks.slice(0, 100).map(r => {
+    const t = rowToTrack(r, 'db');
+    return `<div class="track-item" onclick='playTrackObj(${esc(t)})'>
+      <img class="track-thumb" src="${t.thumbnail||PH}" onerror="this.src='${PH}'">
+      <div class="track-meta">
+        <div class="track-title">${escapeHtml(t.title)}</div>
+        <div class="track-artist">${escapeHtml(t.artist||'–')}</div>
+      </div>
+      <div class="track-duration">${t.duration||''}</div>
+    </div>`;
+  }).join('');
+}
+
+// ── Live Feed ─────────────────────────────────────────────────────────────────
+let _liveFeedTimer = null;
+
+async function loadLiveFeed() {
+  const listEl  = document.getElementById('liveFeedList');
+  const emptyEl = document.getElementById('liveFeedEmpty');
+  if (!listEl) return;
+
+  try {
+    // Ambil aktivitas dalam 5 menit terakhir
+    const since = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+    const rows  = await sb.get(
+      'play_history',
+      `played_at=gte.${encodeURIComponent(since)}&order=played_at.desc&limit=50`
+    );
+
+    // Deduplikasi — ambil entry terbaru per user_key
+    const seen = new Set();
+    const unique = rows.filter(r => {
+      if (seen.has(r.user_key)) return false;
+      seen.add(r.user_key); return true;
+    });
+
+    if (!unique.length) {
+      listEl.innerHTML  = '';
+      emptyEl.style.display = 'flex';
+      return;
+    }
+    emptyEl.style.display = 'none';
+
+    // Ambil detail track
+    const trackIds  = [...new Set(unique.map(r => r.track_id).filter(Boolean))];
+    const idFilter  = `id=in.(${trackIds.map(id => encodeURIComponent(id)).join(',')})&select=id,title,artist,thumbnail`;
+    const tracks    = await sb.get('tracks', idFilter);
+    const trackMap  = {};
+    tracks.forEach(t => { trackMap[t.id] = t; });
+
+    listEl.innerHTML = unique.map(r => {
+      const t    = trackMap[r.track_id] || {};
+      const name = r.user_key?.split('_').slice(0,-1).join(' ') || r.user_key || '?';
+      const ini  = name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+      const ago  = getTimeAgo(r.played_at);
+      const isMe = r.user_key === USER_KEY;
+      return `<div class="lf-item">
+        <div class="lf-av">${ini}</div>
+        <div class="lf-info">
+          <div class="lf-name">${escapeHtml(name)}${isMe ? ' <span style="color:var(--g);font-size:.72rem">(kamu)</span>' : ''}</div>
+          <div class="lf-track">${t.title ? escapeHtml(t.title) + (t.artist ? ' · ' + escapeHtml(t.artist) : '') : 'Memutar lagu'}</div>
+          <div class="lf-track" style="margin-top:2px;font-size:.7rem">${ago}</div>
+        </div>
+        ${t.thumbnail ? `<img class="lf-thumb" src="${t.thumbnail}" onerror="this.style.display='none'">` : ''}
+        <div class="lf-dot"></div>
+      </div>`;
+    }).join('');
+
+  } catch(e) { console.warn('[LiveFeed]', e.message); }
+}
+
 // ── Wrapped / Rekap Personal ──────────────────────────────────────────────────
 let _wrappedPeriod = 'month';
 
