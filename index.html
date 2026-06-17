@@ -2542,7 +2542,6 @@ async function loadTopChart(){
     renderChartList(rows, 'chartListFull');
   }catch(e){ toast('Gagal load chart: '+e.message); }
 }
-}
 
 function renderChartList(rows,elId){
   const el=document.getElementById(elId);
