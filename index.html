@@ -504,6 +504,14 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 .exp-filter-wrap::-webkit-scrollbar{display:none}
 .exp-chip{flex-shrink:0;padding:6px 14px;border-radius:20px;border:1px solid var(--bd);background:transparent;color:var(--t2);font-size:.78rem;cursor:pointer;transition:all .2s;font-family:inherit}
 .exp-chip.active{background:var(--g);border-color:var(--g);color:#fff;font-weight:600}
+/* Track list item — used in Explore & elsewhere */
+.track-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:10px;cursor:pointer;transition:background .15s}
+.track-item:hover,.track-item:active{background:var(--s2)}
+.track-thumb{width:42px;height:42px;border-radius:8px;object-fit:cover;flex-shrink:0;background:var(--s3)}
+.track-meta{flex:1;min-width:0}
+.track-title{font-size:.82rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.track-artist{font-size:.7rem;color:var(--t2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.track-duration{font-size:.7rem;color:var(--mt);flex-shrink:0;padding-left:4px}
 /* LIVE FEED PAGE */
 .lf-list{display:flex;flex-direction:column;gap:10px}
 .lf-item{display:flex;align-items:center;gap:12px;padding:12px;background:var(--s2);border:1px solid var(--bd);border-radius:14px}
@@ -633,7 +641,9 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 /* PLAYER BAR */
 .pbar{position:fixed;bottom:var(--nav-h);left:0;right:0;z-index:99;background:rgba(7,7,26,.97);backdrop-filter:blur(22px);border-top:1px solid var(--bd2);transform:translateY(100%);transition:transform .35s cubic-bezier(.16,1,.3,1);}
 .pbar.up{transform:translateY(0)}
-.pinner{max-width:1000px;margin:0 auto;padding:8px 16px;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px;}
+/* Saat navbar hidden, pbar geser ke bawah */
+.pbar.up.nav-collapsed{bottom:0}
+.pinner{max-width:1000px;margin:0 auto;padding:8px 16px;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px;box-sizing:border-box;overflow:hidden;}
 .pl-l{display:flex;align-items:center;gap:8px;min-width:0;cursor:pointer}
 .pl-img{width:42px;height:42px;border-radius:8px;overflow:hidden;flex-shrink:0;position:relative}
 .pl-img img{width:100%;height:100%;object-fit:cover}
@@ -646,7 +656,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 .pb-like:hover,.pb-like.on{color:var(--rd)}
 .pl-c{display:flex;flex-direction:column;align-items:center;gap:3px}
 .pl-ctrls{display:flex;align-items:center;gap:8px}
-.cb{background:none;border:none;color:var(--mt);font-size:.9rem;cursor:pointer;transition:all .18s;padding:4px;display:flex;align-items:center;justify-content:center}
+.cb{background:none;border:none;color:var(--mt);font-size:.9rem;cursor:pointer;transition:all .18s;padding:4px;display:flex;align-items:center;justify-content:center;min-width:36px;min-height:36px;touch-action:manipulation}
 .cb:hover{color:var(--tx);transform:scale(1.1)}
 .cb.play-btn{width:34px;height:34px;border-radius:50%;background:#fff;color:#000;font-size:.8rem}
 .cb.play-btn:hover{background:var(--dyn1);transform:scale(1.08)}.cb.on{color:var(--dyn1)}
@@ -758,15 +768,33 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
   .page{padding:12px}
   .hero-card{grid-template-columns:1fr}.h-art{width:100%;height:200px}
   .h-info{padding:14px}.h-title{font-size:1.05rem}
-  .pinner{grid-template-columns:1fr;padding:8px 14px 10px;gap:6px}
-  .pl-l{order:1}.pl-c{order:2;width:100%}.pl-r{display:none}
+  /* pbar mobile: stack info atas, kontrol bawah; volume pindah ke baris kontrol */
+  .pinner{grid-template-columns:1fr;padding:8px 14px 10px;gap:4px}
+  .pl-l{order:1}
+  .pl-c{order:2;width:100%}
+  /* Volume di mobile: tampilkan tapi di dalam .pl-c baris baru — lihat HTML */
+  .pl-r{order:3;display:flex;justify-content:center;gap:8px;width:100%}
+  .vbar{width:120px}
   .progrow{max-width:100%}
   .np-vinyl{width:min(220px,65vw);height:min(220px,65vw)}
+}
+/* DPI tinggi / layar very small — pastikan tombol tidak overflow */
+@media(max-width:380px){
+  .pl-ctrls{gap:4px}
+  .cb{padding:6px;font-size:.82rem}
+  .cb.play-btn{width:30px;height:30px;font-size:.72rem}
+  .pl-l{gap:6px}
+  .pl-img{width:36px;height:36px}
+  .pl-title{font-size:.72rem}
+  .pl-art{font-size:.6rem}
+  /* Queue reorder buttons */
+  .ti-btn-up,.ti-btn-down,.ti-del{width:30px;height:30px;font-size:.7rem}
 }
 @media(min-width:768px){
   .bottom-nav{max-width:600px;left:50%;transform:translateX(-50%);border-radius:16px 16px 0 0;border:1px solid var(--bd);border-bottom:none}
   .pbar{max-width:700px;left:50%;transform:translateX(-50%) translateY(100%)}
   .pbar.up{transform:translateX(-50%) translateY(0)}
+  .pbar.up.nav-collapsed{bottom:0;transform:translateX(-50%) translateY(0)}
 }
 @media(max-width:480px){
   .db-grid{grid-template-columns:repeat(2,1fr);gap:8px}
@@ -1050,7 +1078,10 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 
     <!-- EXPLORE PAGE -->
     <div class="page" id="page-explore">
-      <div class="sec-title"><i class="fas fa-compass" style="color:var(--b2)"></i> Explore</div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+        <button onclick="navigate('beranda')" style="width:32px;height:32px;border-radius:50%;border:1px solid var(--bd);background:var(--s2);color:var(--t1);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:.8rem;flex-shrink:0"><i class="fas fa-arrow-left"></i></button>
+        <div class="sec-title" style="margin-bottom:0"><i class="fas fa-compass" style="color:var(--b2)"></i> Explore</div>
+      </div>
       <p class="sec-sub">Temukan lagu berdasarkan artis atau album</p>
 
       <!-- Search bar -->
@@ -1150,7 +1181,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
     <div class="page" id="page-playlist">
       <div class="sec-row">
         <div class="sec-title" style="margin-bottom:0"><i class="fas fa-list-ul" style="color:var(--p2)"></i> Playlist</div>
-        <button onclick="PlaylistManager.showCreate()" style="display:flex;align-items:center;gap:5px;padding:7px 12px;border-radius:10px;background:var(--g);color:#000;border:none;font-size:.72rem;font-weight:700;cursor:pointer"><i class="fas fa-plus"></i> Buat</button>
+        <button onclick="PlaylistManager.showCreate()" style="display:flex;align-items:center;gap:5px;padding:10px 16px;border-radius:10px;background:var(--g);color:#000;border:none;font-size:.75rem;font-weight:700;cursor:pointer;min-height:40px;touch-action:manipulation"><i class="fas fa-plus"></i> Buat</button>
       </div>
       <p style="font-size:.7rem;color:var(--mt);margin:5px 0 14px">Playlist kamu & semua anggota Pagaska</p>
       <div class="pl-grid" id="plGrid"></div>
@@ -1462,6 +1493,7 @@ function navigate(page){
   const nav=document.getElementById(`nav-${page}`);if(nav)nav.classList.add('active');
   currentPage=page;
   if(page==='explore')loadExplore();
+  if(page==='playlist')PlaylistManager.loadAll();
   if(page==='livefeed'){loadLiveFeed();_liveFeedTimer=setInterval(loadLiveFeed,15000);}
   else{clearInterval(_liveFeedTimer);}
   if(page==='chart'){ _chartPeriod='all'; document.querySelectorAll('.cf-btn').forEach(b=>b.classList.toggle('active',b.dataset.period==='all')); loadTopChart(); }
@@ -1502,7 +1534,7 @@ async function safePlay(){
     const p=audio.play();
     if(p&&typeof p.then==='function')await p;
     if(cancelled)audio.pause();
-    else{isPlaying=true;if('mediaSession' in navigator){navigator.mediaSession.playbackState='playing';_updatePositionState();}updAll();}
+    else{isPlaying=true;if('mediaSession' in navigator){navigator.mediaSession.playbackState='playing';_updatePositionState();}updAll();requestWakeLock();}
   }catch(e){
     if(e.name!=='AbortError'&&e.name!=='NotAllowedError')toast('⚠️ Gagal memutar: '+e.message);
     isPlaying=false;updAll();
@@ -1513,6 +1545,7 @@ function safePause(){
   if(_playAbort){_playAbort();_playAbort=null;}
   audio.pause();
   isPlaying=false;
+  releaseWakeLock();
   // Fix Bug 7: langsung update mediaSession tanpa nunggu interval 400ms
   if('mediaSession' in navigator){
     navigator.mediaSession.playbackState='paused';
@@ -1894,6 +1927,7 @@ async function playTrackObj(t){
   showHero(t,t.source||'db');
   document.getElementById('pbar').classList.add('up');
   if (t.audio) checkAudioCached(t.audio);
+  preloadNextTrack();
   addToHistory(t);
   broadcastNowPlaying(t);
   updHeroLike();
@@ -2012,6 +2046,50 @@ function setVol(e){
 }
 
 audio.addEventListener('ended',()=>{isRepeat?safePlay():nextTrack();});
+
+// ── Fix 6: Jaga playback tetap jalan saat layar mati / tab background ──
+// 1. Wake Lock API — cegah layar mati membunuh audio
+let _wakeLock = null;
+async function requestWakeLock() {
+  if (!('wakeLock' in navigator)) return;
+  try {
+    if (_wakeLock && !_wakeLock.released) return; // sudah aktif
+    _wakeLock = await navigator.wakeLock.request('screen');
+    _wakeLock.addEventListener('release', () => { _wakeLock = null; });
+  } catch (e) { /* ignore — tidak semua browser support */ }
+}
+async function releaseWakeLock() {
+  if (_wakeLock && !_wakeLock.released) {
+    try { await _wakeLock.release(); } catch {}
+    _wakeLock = null;
+  }
+}
+
+// 2. Re-acquire wake lock setelah layar hidup kembali
+document.addEventListener('visibilitychange', async () => {
+  if (document.visibilityState === 'visible') {
+    // Cek apakah seharusnya masih playing (audio tidak paused secara manual)
+    if (isPlaying && audio.paused && currentTrack?.audio) {
+      // Audio terhenti karena layar mati — resume
+      try { await safePlay(); } catch {}
+    }
+    if (isPlaying) requestWakeLock();
+  }
+});
+
+// 3. Audio stall recovery — jika buffering macet > 3 detik saat seharusnya playing
+let _stallTimer = null;
+audio.addEventListener('waiting', () => {
+  if (!isPlaying) return;
+  clearTimeout(_stallTimer);
+  _stallTimer = setTimeout(async () => {
+    if (isPlaying && audio.paused && audio.readyState < 3 && currentTrack?.audio) {
+      console.warn('[audio] Stall detected — attempting resume');
+      try { await safePlay(); } catch {}
+    }
+  }, 3000);
+});
+audio.addEventListener('playing', () => { clearTimeout(_stallTimer); });
 audio.addEventListener('error', async ()=>{
   if(!audio.src || audio.src===location.href || audio.src==='')return;
 
@@ -2237,15 +2315,17 @@ async function addToHistory(t){
   
   // Simpan ke play_history — pakai UPDATE (patch) dulu, baru INSERT kalau belum ada
   // Ini bypass masalah unique constraint yang belum ada di Supabase
+  const _durationPlayed = Math.round(audio?.duration || 0);
   sb.patch('play_history',`user_key=eq.${encodeURIComponent(USER_KEY)}&track_id=eq.${encodeURIComponent(t.id)}`,{
-    played_at:new Date().toISOString()
+    played_at:new Date().toISOString(),
+    duration_played: _durationPlayed || null
   }).then(r=>{
     // Kalau patch tidak update apapun (array kosong), baru insert
     if(!r||r.length===0){
-      sb.post('play_history',{user_key:USER_KEY,track_id:t.id,played_at:new Date().toISOString()}).catch(()=>{});
+      sb.post('play_history',{user_key:USER_KEY,track_id:t.id,played_at:new Date().toISOString(),duration_played:_durationPlayed||null}).catch(()=>{});
     }
   }).catch(()=>{
-    sb.post('play_history',{user_key:USER_KEY,track_id:t.id,played_at:new Date().toISOString()}).catch(()=>{});
+    sb.post('play_history',{user_key:USER_KEY,track_id:t.id,played_at:new Date().toISOString(),duration_played:_durationPlayed||null}).catch(()=>{});
   });
 }
 
@@ -3582,6 +3662,36 @@ function checkAudioCached(audioUrl) {
   navigator.serviceWorker.controller.postMessage({ type: 'CHECK_AUDIO_CACHED', url: audioUrl });
 }
 
+// ── Fix 7: Preload + cache lagu berikutnya di queue otomatis ──
+let _preloadTimer = null;
+function preloadNextTrack() {
+  clearTimeout(_preloadTimer);
+  // Tunda 3 detik setelah lagu mulai — tunggu lagu aktif selesai buffer dulu
+  _preloadTimer = setTimeout(async () => {
+    if (!queue.length) return;
+    const nextIdx = isShuffle
+      ? Math.floor(Math.random() * queue.length)
+      : (qi < queue.length - 1 ? qi + 1 : 0);
+    const next = queue[nextIdx];
+    if (!next?.audio || cachedAudioUrls.has(next.audio)) return; // sudah di cache
+
+    try {
+      // Fetch audio URL ke SW cache via HEAD-less fetch (background)
+      const ctrl = navigator.serviceWorker.controller;
+      if (ctrl) {
+        // Buat fetch request — SW akan intercept dan cache otomatis
+        const req = new Request(next.audio, { method: 'GET', mode: 'cors', credentials: 'omit' });
+        fetch(req).then(() => {
+          // SW sudah cache — tandai lokal dan update badge
+          cachedAudioUrls.add(next.audio);
+          updateCachedBadges();
+          console.log('[Preload] Cached next:', next.title);
+        }).catch(() => {});
+      }
+    } catch (e) { /* silent */ }
+  }, 3000);
+}
+
 function updateCachedBadges() {
   document.querySelectorAll('[data-audio-url]').forEach(el => {
     const url = el.dataset.audioUrl;
@@ -3873,7 +3983,7 @@ async function loadWrapped() {
     // Query play_history milik user ini
     const filter = `user_key=eq.${encodeURIComponent(USER_KEY)}`
       + (sinceISO ? `&played_at=gte.${encodeURIComponent(sinceISO)}` : '')
-      + '&select=track_id,played_at&order=played_at.desc&limit=1000';
+      + '&select=track_id,played_at,duration_played&order=played_at.desc&limit=1000';
     const history = await sb.get('play_history', filter);
 
     if (!history.length) {
@@ -3902,20 +4012,25 @@ async function loadWrapped() {
     const totalPlays  = history.length;
     const uniqTracks  = Object.keys(countMap).length;
 
-    // Estimasi total menit: pakai duration dari track jika ada, fallback 3.5 menit
+    // Estimasi total menit: pakai duration_played aktual dari play_history jika ada,
+    // fallback ke duration lagu, fallback ke 3.5 menit
     let totalSecs = 0;
     history.forEach(h => {
-      const t = trackMap[h.track_id];
-      if (t?.duration) {
-        // duration bisa "3:45" atau angka detik
-        if (typeof t.duration === 'string' && t.duration.includes(':')) {
-          const [m, s] = t.duration.split(':').map(Number);
-          totalSecs += (m * 60 + (s || 0));
-        } else {
-          totalSecs += Number(t.duration) || 210;
-        }
+      if (h.duration_played && h.duration_played > 0) {
+        // duration_played tersimpan dalam detik (direkam saat lagu diputar)
+        totalSecs += Number(h.duration_played);
       } else {
-        totalSecs += 210; // fallback 3.5 menit
+        const t = trackMap[h.track_id];
+        if (t?.duration) {
+          if (typeof t.duration === 'string' && t.duration.includes(':')) {
+            const [m, s] = t.duration.split(':').map(Number);
+            totalSecs += (m * 60 + (s || 0));
+          } else {
+            totalSecs += Number(t.duration) || 210;
+          }
+        } else {
+          totalSecs += 210; // fallback 3.5 menit
+        }
       }
     });
     const totalMins = Math.round(totalSecs / 60);
@@ -3967,21 +4082,21 @@ async function loadWrapped() {
       : '<div class="wr-empty">Tidak ada data artis.</div>';
 
     // ── Waktu favorit (per 4 jam) ──
-    const slots = { 'Tengah Malam (00-04)': 0, 'Pagi (04-08)': 0, 'Pagi (08-12)': 0, 'Siang (12-16)': 0, 'Sore (16-20)': 0, 'Malam (20-24)': 0 };
+    const slots = { 'Tengah Malam': 0, 'Dini Hari': 0, 'Pagi': 0, 'Siang': 0, 'Sore': 0, 'Malam': 0 };
     history.forEach(h => {
       if (!h.played_at) return;
       const hr = new Date(h.played_at).getHours();
-      if (hr < 4)       slots['Tengah Malam (00-04)']++;
-      else if (hr < 8)  slots['Pagi (04-08)']++;
-      else if (hr < 12) slots['Pagi (08-12)']++;
-      else if (hr < 16) slots['Siang (12-16)']++;
-      else if (hr < 20) slots['Sore (16-20)']++;
-      else              slots['Malam (20-24)']++;
+      if (hr < 4)       slots['Tengah Malam']++;  // 00-04
+      else if (hr < 8)  slots['Dini Hari']++;     // 04-08
+      else if (hr < 12) slots['Pagi']++;          // 08-12
+      else if (hr < 16) slots['Siang']++;         // 12-16
+      else if (hr < 20) slots['Sore']++;          // 16-20
+      else              slots['Malam']++;         // 20-24
     });
     const maxSlot = Math.max(...Object.values(slots), 1);
     document.getElementById('wrTimeSlot').innerHTML = Object.entries(slots).map(([lbl, cnt]) =>
       `<div class="wr-ts-row">
-        <div class="wr-ts-lbl">${lbl.split(' ')[0]}</div>
+        <div class="wr-ts-lbl">${lbl}</div>
         <div class="wr-ts-bar-wrap"><div class="wr-ts-bar" style="width:${Math.round(cnt/maxSlot*100)}%"></div></div>
         <div class="wr-ts-cnt">${cnt}</div>
       </div>`
@@ -4030,6 +4145,9 @@ async function loadWrapped() {
   function hideNav() {
     nav.classList.add('nav-hidden');
     clearTimeout(hideTimer);
+    // Pbar ikut turun ke bottom:0 saat navbar menghilang
+    const pbar = document.getElementById('pbar');
+    if (pbar) pbar.classList.add('nav-collapsed');
     // Auto-muncul kembali setelah 4 detik berhenti scroll (safety net)
     hideTimer = setTimeout(showNav, 4000);
   }
@@ -4037,6 +4155,9 @@ async function loadWrapped() {
   function showNav() {
     nav.classList.remove('nav-hidden');
     clearTimeout(hideTimer);
+    // Pbar kembali ke posisi di atas navbar
+    const pbar = document.getElementById('pbar');
+    if (pbar) pbar.classList.remove('nav-collapsed');
   }
 
   window.addEventListener('scroll', onScroll, { passive: true });
