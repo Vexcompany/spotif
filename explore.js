@@ -8,7 +8,7 @@
 // Set window.BACKEND_URL before this script loads (e.g. in index.html):
 //   <script>window.BACKEND_URL = 'https://pagaska-music-backend.vercel.app';</script>
 // Or set it here directly:
-const BACKEND_URL = window.BACKEND_URL || 'https://pagaska-music-backend.vercel.app';
+const BACKEND_URL = window.BACKEND_URL || 'https://verolyz-kingdom3.vercel.app';
 
 // ════════════════════════════════════════════════════════════════
 //  STREAM HELPER — replaces old apple-download / catbox logic
