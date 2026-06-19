@@ -459,6 +459,52 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 .activity-item{display:flex;align-items:center;gap:10px;background:var(--s1);border:1px solid var(--bd);border-radius:12px;padding:10px 12px;animation:actIn .3s ease;}
 @keyframes actIn{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:translateX(0)}}
 .act-av{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--p),var(--dyn1));display:flex;align-items:center;justify-content:center;font-size:.68rem;font-weight:800;color:#fff;flex-shrink:0}
+
+/* ── Pin showcase ── */
+.pin-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0 16px}
+.pin-card{position:relative;border-radius:12px;overflow:hidden;background:var(--s2);border:1px solid var(--bd);cursor:pointer;aspect-ratio:1;transition:transform .15s,border-color .15s}
+.pin-card:hover,.pin-card:active{transform:scale(1.03);border-color:var(--dyn1)}
+.pin-card img{width:100%;height:100%;object-fit:cover;display:block}
+.pin-card .pin-overlay{position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.85) 0%,transparent 55%);padding:6px 7px;display:flex;flex-direction:column;justify-content:flex-end}
+.pin-card .pin-title{font-size:.63rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#fff}
+.pin-card .pin-artist{font-size:.55rem;color:rgba(255,255,255,.65);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pin-card .pin-slot-badge{position:absolute;top:5px;left:6px;font-size:.52rem;background:rgba(0,0,0,.65);color:var(--dyn1);padding:2px 5px;border-radius:20px;font-weight:700}
+.pin-card .pin-remove{position:absolute;top:4px;right:4px;width:20px;height:20px;border-radius:50%;background:rgba(0,0,0,.7);border:none;color:#fff;font-size:.55rem;cursor:pointer;display:none;align-items:center;justify-content:center}
+.pin-card:hover .pin-remove{display:flex}
+.pin-empty{aspect-ratio:1;border-radius:12px;border:1px dashed var(--bd);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;color:var(--mt);font-size:.63rem;cursor:pointer;transition:border-color .2s,color .2s;background:transparent}
+.pin-empty:hover,.pin-empty:active{border-color:var(--dyn1);color:var(--dyn1)}
+.pin-empty i{font-size:1rem}
+
+/* ── Pin picker modal ── */
+.pin-picker-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:10px;cursor:pointer;transition:background .15s;border:none;background:none;width:100%;text-align:left;color:var(--t1);font-family:inherit}
+.pin-picker-item:hover,.pin-picker-item:active{background:var(--s2)}
+.pin-picker-item img{width:40px;height:40px;border-radius:8px;object-fit:cover;flex-shrink:0}
+.pin-picker-meta{flex:1;min-width:0}
+.pin-picker-title{font-size:.8rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pin-picker-artist{font-size:.68rem;color:var(--t2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* ── Avatar upload area ── */
+.av-upload-wrap{position:relative;width:80px;height:80px;margin:0 auto 14px;cursor:pointer;flex-shrink:0}
+.av-upload-wrap:hover .av-upload-overlay,.av-upload-wrap:active .av-upload-overlay{opacity:1}
+.av-upload-overlay{position:absolute;inset:0;border-radius:50%;background:rgba(0,0,0,.52);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .2s;color:#fff;font-size:.62rem;flex-direction:column;gap:2px;pointer-events:none}
+.av-upload-overlay i{font-size:.85rem}
+.av-img{width:80px;height:80px;border-radius:50%;object-fit:cover;display:block;border:2px solid var(--bd2)}
+.av-init-lg{width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,var(--p),var(--dyn1));display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-size:1.8rem;font-weight:800;color:#fff}
+
+/* ── Public profile sheet ── */
+#pubProfileModal{position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,.58);backdrop-filter:blur(8px);display:none;align-items:flex-end;justify-content:center}
+#pubProfileModal.open{display:flex}
+.pub-sheet{background:var(--s1);border-radius:22px 22px 0 0;width:100%;max-width:600px;max-height:88vh;overflow-y:auto;padding:24px 18px 44px;animation:slideUp .32s cubic-bezier(.16,1,.3,1)}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.pub-header{display:flex;align-items:center;gap:14px;margin-bottom:16px}
+.pub-av-img{width:64px;height:64px;border-radius:50%;object-fit:cover;border:2px solid var(--bd2);flex-shrink:0}
+.pub-av-init{width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,var(--p),var(--dyn1));display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-size:1.4rem;font-weight:800;color:#fff;flex-shrink:0}
+.pub-name{font-family:'Syne',sans-serif;font-size:1.05rem;font-weight:800}
+.pub-sub{font-size:.72rem;color:var(--mt);margin-top:2px}
+.pub-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:18px}
+.pub-stat{background:var(--s2);border:1px solid var(--bd);border-radius:12px;padding:12px 8px;text-align:center}
+.pub-stat-val{font-family:'Syne',sans-serif;font-size:1.05rem;font-weight:800}
+.pub-stat-lbl{font-size:.58rem;color:var(--mt);margin-top:2px}
 .act-info{flex:1;min-width:0}
 .act-name{font-size:.75rem;font-weight:700;margin-bottom:1px}
 .act-track{font-size:.68rem;color:var(--mt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -953,6 +999,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
               <div class="ico-btn" id="hLike" onclick="toggleLikeCurrent()"><i class="far fa-heart"></i></div>
               <div class="ico-btn" onclick="shareCurrentTrack()" title="Bagikan ke anggota"><i class="fas fa-share"></i></div>
               <div class="ico-btn" onclick="if(currentTrack)PlaylistManager.showAddToPlaylist(currentTrack)" title="Tambah ke Playlist"><i class="fas fa-list-ul"></i></div>
+              <div class="ico-btn" onclick="if(currentTrack)PinAvatar.openPicker(currentTrack)" title="Pin ke Profil"><i class="fas fa-thumbtack"></i></div>
               <div class="ico-btn" onclick="openNP()" title="Now Playing"><i class="fas fa-music"></i></div>
             </div>
           </div>
@@ -1197,11 +1244,25 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
     <div class="page" id="page-profil">
       <div class="sec-title"><i class="fas fa-user-circle" style="color:var(--p2)"></i> Profil Saya</div>
       <div id="profilContent">
-        <div style="text-align:center;padding:30px 0">
-          <div style="width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,var(--p),var(--dyn1));margin:0 auto 12px;display:flex;align-items:center;justify-content:center;font-size:1.8rem;font-weight:800;color:#fff" id="profilAv">?</div>
+        <div style="text-align:center;padding:24px 0 16px">
+          <!-- Avatar upload -->
+          <div class="av-upload-wrap" onclick="PinAvatar.triggerUpload()" title="Ganti foto profil">
+            <div class="av-init-lg" id="profilAvInit">?</div>
+            <img id="profilAvImg" src="" alt="" style="display:none" class="av-img">
+            <div class="av-upload-overlay"><i class="fas fa-camera"></i><span>Ganti</span></div>
+          </div>
+          <input type="file" id="avatarFileInput" accept="image/jpeg,image/png,image/webp" style="display:none" onchange="PinAvatar.onFileChange(event)">
           <div style="font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:800;margin-bottom:4px" id="profilName">–</div>
           <div style="font-size:.75rem;color:var(--mt)" id="profilSub">–</div>
         </div>
+
+        <!-- Pin Showcase -->
+        <div class="sec-row" style="margin-bottom:8px">
+          <div style="font-size:.8rem;font-weight:700"><i class="fas fa-thumbtack" style="color:var(--dyn1)"></i> Pin Favorit</div>
+          <button onclick="PinAvatar.openPicker(null)" style="background:none;border:none;color:var(--mt);font-size:.72rem;cursor:pointer;padding:4px 8px;border-radius:8px;font-family:inherit">Kelola</button>
+        </div>
+        <div class="pin-grid" id="profilPinGrid"></div>
+
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px" id="profilStats"></div>
         <button onclick="navigate('wrapped')" style="width:100%;padding:12px;border-radius:12px;border:1px solid rgba(29,185,84,.3);background:rgba(29,185,84,.08);color:var(--g);font-size:.82rem;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:16px">
           <i class="fas fa-star"></i> Lihat Rekap Kamu
@@ -1282,7 +1343,10 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
     <div class="np-header">
       <button class="np-close" onclick="closeNP()"><i class="fas fa-chevron-down"></i></button>
       <span class="np-source" id="npSource">NOW PLAYING</span>
-      <button class="np-close" onclick="shareCurrentTrack()"><i class="fas fa-share"></i></button>
+      <div style="display:flex;gap:4px">
+        <button class="np-close" onclick="if(currentTrack)PinAvatar.openPicker(currentTrack)" title="Pin ke Profil"><i class="fas fa-thumbtack"></i></button>
+        <button class="np-close" onclick="shareCurrentTrack()"><i class="fas fa-share"></i></button>
+      </div>
     </div>
     <div class="np-vinyl-wrap">
       <div class="np-vinyl" id="npVinyl">
@@ -2655,7 +2719,7 @@ function renderActivity(){
     const name=r.user_key?.split('_').slice(0,-1).join(' ')||r.user_key||'?';
     const ini=name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
     const timeAgo=getTimeAgo(r.played_at||r.created_at);
-    return `<div class="activity-item"><div class="act-av">${ini}</div><div class="act-info"><div class="act-name">${name}</div><div class="act-track">${t?`🎵 ${t.title}`:'Memutar lagu'}</div></div><div class="act-time">${timeAgo}</div>${r.user_key===USER_KEY?'<div class="act-dot"></div>':''}</div>`;
+    return `<div class="activity-item"><div class="act-av" id="actav-${r.user_key}" style="overflow:hidden">${ini}</div><div class="act-info"><div class="act-name" style="cursor:pointer" onclick="PinAvatar.openPubProfile('${r.user_key.replace(/'/g,"\\'")}','${name.replace(/'/g,"\\'")}')">` + (r.user_key===USER_KEY?name+' <span style="color:var(--g);font-size:.68rem">(kamu)</span>':name) + `</div><div class="act-track">${t?`🎵 ${t.title}`:'Memutar lagu'}</div></div><div class="act-time">${timeAgo}</div>${r.user_key===USER_KEY?'<div class="act-dot"></div>':''}</div>`;
   }).join('');
 }
 
@@ -2759,7 +2823,7 @@ async function loadChatList(){
       const escapedKey=otherKey.replace(/'/g,"\\'");
       const escapedName=name.replace(/'/g,"\\'");
       const unreadBadge=unreadCnt>0?`<div class="chat-unread-cnt">${unreadCnt>99?'99+':unreadCnt}</div>`:'';
-      return `<div class="chat-item ${isUnread?'unread':''}" data-user-key="${otherKey}" onclick="openChatRoom('${escapedKey}','${escapedName}')"><div class="chat-av">${ini}<div class="chat-online"></div></div><div class="chat-info"><div class="chat-name">${name}</div><div class="chat-preview ${lastMsg.track_id?'track':''}">${escapeHtml(preview)}</div></div><div class="chat-meta"><div class="chat-time">${timeAgo}</div>${unreadBadge}</div></div>`;
+      return `<div class="chat-item ${isUnread?'unread':''}" data-user-key="${otherKey}" onclick="openChatRoom('${escapedKey}','${escapedName}')"><div class="chat-av" style="overflow:hidden">${ini}<div class="chat-online"></div></div><div class="chat-info"><div class="chat-name">${name} <span onclick="event.stopPropagation();PinAvatar.openPubProfile('${escapedKey}','${escapedName}')" style="color:var(--mt);font-size:.65rem;cursor:pointer" title="Lihat profil"><i class="fas fa-user-circle"></i></span></div><div class="chat-preview ${lastMsg.track_id?'track':''}">${escapeHtml(preview)}</div></div><div class="chat-meta"><div class="chat-time">${timeAgo}</div>${unreadBadge}</div></div>`;
     }).join('');
     updatePresenceUI();
   }catch(e){console.warn('[chat]',e.message);}
@@ -3058,10 +3122,15 @@ async function voteSkip(){
 async function loadProfil(){
   const u=session;
   const ini=(u.nama||'?').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
-  document.getElementById('profilAv').textContent=ini;
+  document.getElementById('profilAvInit').textContent=ini;
   document.getElementById('profilName').textContent=u.nama||'–';
   document.getElementById('profilSub').textContent=`${u.jabatan} · Generasi ${u.generasi}`;
-  
+
+  // Load avatar
+  PinAvatar.loadMyAvatar();
+  // Load pin grid
+  PinAvatar.renderMyPins();
+
   const totalMyPlays=Object.values(myPlayCounts).reduce((a,b)=>a+b,0);
   document.getElementById('profilStats').innerHTML=[
     {label:'Lagu Disukai',val:likedArr.length,ico:'fas fa-heart',color:'var(--rd)'},
@@ -3069,7 +3138,7 @@ async function loadProfil(){
     {label:'Riwayat',val:histArr.length,ico:'fas fa-history',color:'var(--b2)'},
     {label:'Di Queue',val:queue.length,ico:'fas fa-list',color:'var(--p2)'}
   ].map(s=>`<div style="background:var(--s2);border:1px solid var(--bd);border-radius:12px;padding:14px;text-align:center"><i class="${s.ico}" style="color:${s.color};font-size:1.2rem;margin-bottom:6px;display:block"></i><div style="font-family:'Syne',sans-serif;font-size:1.2rem;font-weight:800">${s.val}</div><div style="font-size:.65rem;color:var(--mt)">${s.label}</div></div>`).join('');
-  
+
   const el=document.getElementById('profilHistory');
   if(!histArr.length){el.innerHTML='<div class="empty-ti"><i class="fas fa-history"></i>Belum ada riwayat</div>';return;}
   el.innerHTML=histArr.slice(0,10).map((t,i)=>`<div class="ti" onclick='playTrackObj(${esc(t)})'><div class="ti-n">${i+1}</div><div class="ti-th"><img src="${t.thumbnail||PH}" onerror="this.src='${PH}'"></div><div class="ti-inf"><div class="ti-t">${t.title}</div><div class="ti-a">${t.artist}</div></div><div class="ti-dur">${t.playedAt||''}</div></div>`).join('');
@@ -3760,6 +3829,7 @@ if (document.readyState === 'loading') {
 <script src="music-room.js"></script>
 <script src="cinematic-lyrics.js"></script>
 <script src="playlist.js"></script>
+<script src="pin-avatar.js"></script>
 <script src="notif.js"></script>
 <script src="sync.js"></script>
 
@@ -3935,9 +4005,13 @@ async function loadLiveFeed() {
       const ago  = getTimeAgo(r.played_at);
       const isMe = r.user_key === USER_KEY;
       return `<div class="lf-item">
-        <div class="lf-av">${ini}</div>
+        <div class="lf-av" style="overflow:hidden;cursor:pointer;flex-shrink:0" onclick="PinAvatar.openPubProfile('${r.user_key.replace(/'/g,"\\'")}','${name.replace(/'/g,"\\'")}')">
+          <span class="lf-av-init-${r.user_key.replace(/[^a-z0-9]/gi,'_')}">${ini}</span>
+        </div>
         <div class="lf-info">
-          <div class="lf-name">${escapeHtml(name)}${isMe ? ' <span style="color:var(--g);font-size:.72rem">(kamu)</span>' : ''}</div>
+          <div class="lf-name" style="cursor:pointer" onclick="PinAvatar.openPubProfile('${r.user_key.replace(/'/g,"\\'")}','${name.replace(/'/g,"\\'")}')">
+            ${escapeHtml(name)}${isMe ? ' <span style="color:var(--g);font-size:.72rem">(kamu)</span>' : ''}
+          </div>
           <div class="lf-track">${t.title ? escapeHtml(t.title) + (t.artist ? ' · ' + escapeHtml(t.artist) : '') : 'Memutar lagu'}</div>
           <div class="lf-track" style="margin-top:2px;font-size:.7rem">${ago}</div>
         </div>
@@ -4168,5 +4242,35 @@ async function loadWrapped() {
   }, { passive: true });
 })();
 </script>
+
+<!-- PIN PICKER MODAL -->
+<div class="modal-overlay" id="pinPickerModal" onclick="if(event.target===this)PinAvatar.closePicker()">
+  <div class="modal-box" style="max-width:480px">
+    <div class="modal-header">
+      <div class="modal-title" id="pinPickerTitle">Pilih Lagu untuk Pin</div>
+      <button class="modal-close" onclick="PinAvatar.closePicker()"><i class="fas fa-times"></i></button>
+    </div>
+    <div style="padding:0 16px 8px">
+      <input type="text" id="pinPickerSearch" placeholder="Cari judul atau artis..." oninput="PinAvatar.filterPicker(this.value)"
+        style="width:100%;padding:9px 12px;border-radius:10px;border:1px solid var(--bd);background:var(--s2);color:var(--t1);font-size:.8rem;font-family:inherit;box-sizing:border-box;outline:none">
+    </div>
+    <div style="max-height:52vh;overflow-y:auto;padding:0 8px 12px" id="pinPickerList"></div>
+  </div>
+</div>
+
+<!-- PUBLIC PROFILE MODAL -->
+<div id="pubProfileModal" onclick="if(event.target===this)PinAvatar.closePubProfile()">
+  <div class="pub-sheet" id="pubProfileSheet">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <div style="font-size:.78rem;font-weight:700;color:var(--mt)">Profil Anggota</div>
+      <button onclick="PinAvatar.closePubProfile()" style="background:none;border:none;color:var(--mt);cursor:pointer;font-size:.95rem;padding:4px;touch-action:manipulation"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="pub-header" id="pubHeader"></div>
+    <div class="pub-stats" id="pubStats"></div>
+    <div style="font-size:.8rem;font-weight:700;margin-bottom:8px"><i class="fas fa-thumbtack" style="color:var(--dyn1)"></i> Pin Favorit</div>
+    <div class="pin-grid" id="pubPinGrid"></div>
+  </div>
+</div>
+
 </body>
 </html>
