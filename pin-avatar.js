@@ -418,8 +418,8 @@ const PinAvatar = (() => {
 
   async function _fetchPlayCount(userKey) {
     try {
-      const rows = await sb.get('user_play_counts', `user_key=eq.${encodeURIComponent(userKey)}&select=play_count`);
-      return (rows || []).reduce((a, r) => a + (r.play_count || 0), 0);
+      const rows = await sb.get('user_play_counts', `user_key=eq.${encodeURIComponent(userKey)}&select=count`);
+      return (rows || []).reduce((a, r) => a + (r.count || 0), 0);
     } catch { return 0; }
   }
 

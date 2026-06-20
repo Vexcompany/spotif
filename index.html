@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Pagaska Music</title>
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#07071a">
@@ -168,9 +168,13 @@
   --cy:#00b4d8;--cy2:#48cae4;
   --dyn1:#1DB954;--dyn2:#1ed760;--dyn-glow:rgba(29,185,84,.3);--dyn-bg:rgba(29,185,84,.1);
   --nav-h:60px;--topbar-h:56px;
+  --sab:env(safe-area-inset-bottom,0px);
+  --sat:env(safe-area-inset-top,0px);
+  --sal:env(safe-area-inset-left,0px);
+  --sar:env(safe-area-inset-right,0px);
 }
-html{scroll-behavior:smooth}
-body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-height:100vh;overflow-x:hidden}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-height:100vh;overflow-x:hidden;-webkit-tap-highlight-color:transparent}
 body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
   background-image:radial-gradient(ellipse 80% 50% at 20% 0%,rgba(124,92,191,.12) 0%,transparent 60%),radial-gradient(ellipse 60% 40% at 80% 100%,rgba(29,185,84,.08) 0%,transparent 60%),url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
   background-size:100% 100%,100% 100%,200px 200px;}
@@ -180,7 +184,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 .o3{width:300px;height:300px;background:rgba(61,142,248,.05);top:40%;left:50%;animation:fl 16s ease-in-out infinite 6s}
 @keyframes fl{0%,100%{transform:translate(0,0) scale(1)}33%{transform:translate(60px,-60px) scale(1.1)}66%{transform:translate(-50px,50px) scale(.9)}}
 .app{display:flex;flex-direction:column;min-height:100vh;position:relative;z-index:1}
-.main-content{flex:1;padding-bottom:calc(var(--nav-h) + 80px);padding-top:var(--topbar-h)}
+.main-content{flex:1;padding-bottom:calc(var(--nav-h) + var(--sab) + 80px);padding-top:calc(var(--topbar-h) + var(--sat))}
 
 /* TOPBAR */
 .topbar{position:fixed;top:0;left:0;right:0;z-index:100;height:var(--topbar-h);background:rgba(7,7,26,.92);backdrop-filter:blur(20px);border-bottom:1px solid var(--bd);display:flex;align-items:center;padding:0 12px;gap:8px;}
@@ -218,7 +222,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 .notif-dot.show{display:block}
 
 /* BOTTOM NAV */
-.bottom-nav{position:fixed;bottom:0;left:0;right:0;z-index:100;height:var(--nav-h);background:rgba(7,7,26,.97);backdrop-filter:blur(20px);border-top:1px solid var(--bd);display:flex;align-items:center;justify-content:space-around;padding:0 8px;transition:transform .35s cubic-bezier(.4,0,.2,1),opacity .35s ease;will-change:transform;}.bottom-nav.nav-hidden{transform:translateY(100%);opacity:0;pointer-events:none;}
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;z-index:100;height:calc(var(--nav-h) + var(--sab));background:rgba(7,7,26,.97);backdrop-filter:blur(20px);border-top:1px solid var(--bd);display:flex;align-items:flex-start;justify-content:space-around;padding:0 calc(8px + var(--sal)) var(--sab) calc(8px + var(--sar));transition:transform .35s cubic-bezier(.4,0,.2,1),opacity .35s ease;will-change:transform;}.bottom-nav.nav-hidden{transform:translateY(100%);opacity:0;pointer-events:none;}
 .nav-item{display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 12px;border-radius:12px;cursor:pointer;transition:all .2s;color:var(--mt);font-size:.58rem;font-weight:600;text-transform:uppercase;letter-spacing:.5px;flex:1;border:none;background:transparent;font-family:inherit;-webkit-tap-highlight-color:transparent;}
 .nav-item i{font-size:1.1rem;transition:all .2s}
 .nav-item.active{color:var(--dyn1)}
@@ -685,7 +689,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 .q-badge{background:var(--dyn1);color:#000;font-size:.55rem;font-weight:800;padding:1px 6px;border-radius:20px;margin-left:3px}
 
 /* PLAYER BAR */
-.pbar{position:fixed;bottom:var(--nav-h);left:0;right:0;z-index:99;background:rgba(7,7,26,.97);backdrop-filter:blur(22px);border-top:1px solid var(--bd2);transform:translateY(100%);transition:transform .35s cubic-bezier(.16,1,.3,1);}
+.pbar{position:fixed;bottom:calc(var(--nav-h) + var(--sab));left:0;right:0;z-index:99;background:rgba(7,7,26,.97);backdrop-filter:blur(22px);border-top:1px solid var(--bd2);transform:translateY(100%);transition:transform .35s cubic-bezier(.16,1,.3,1);}
 .pbar.up{transform:translateY(0)}
 /* Saat navbar hidden, pbar geser ke bawah */
 .pbar.up.nav-collapsed{bottom:0}
@@ -805,12 +809,12 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 .pd-div{height:1px;background:var(--bd);margin:4px 0}
 
 /* TOAST */
-.toast{position:fixed;bottom:calc(var(--nav-h) + 80px);left:50%;transform:translateX(-50%) translateY(12px);background:var(--s3);color:var(--tx);padding:8px 16px;border-radius:11px;font-size:.77rem;font-weight:500;border:1px solid var(--bd2);box-shadow:0 8px 28px rgba(0,0,0,.6);opacity:0;transition:all .26s;z-index:9999;white-space:nowrap;pointer-events:none}
+.toast{position:fixed;bottom:calc(var(--nav-h) + var(--sab) + 80px);left:50%;transform:translateX(-50%) translateY(12px);background:var(--s3);color:var(--tx);padding:8px 16px;border-radius:11px;font-size:.77rem;font-weight:500;border:1px solid var(--bd2);box-shadow:0 8px 28px rgba(0,0,0,.6);opacity:0;transition:all .26s;z-index:9999;white-space:nowrap;pointer-events:none}
 .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
 
 /* RESPONSIVE */
 @media(max-width:680px){
-  .main-content{padding:0 0 calc(var(--nav-h) + 80px)}
+  .main-content{padding:0 0 calc(var(--nav-h) + var(--sab) + 80px)}
   .page{padding:12px}
   .hero-card{grid-template-columns:1fr}.h-art{width:100%;height:200px}
   .h-info{padding:14px}.h-title{font-size:1.05rem}
@@ -1126,7 +1130,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
     <!-- EXPLORE PAGE -->
     <div class="page" id="page-explore">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
-        <button onclick="navigate('beranda')" style="width:32px;height:32px;border-radius:50%;border:1px solid var(--bd);background:var(--s2);color:var(--t1);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:.8rem;flex-shrink:0"><i class="fas fa-arrow-left"></i></button>
+        <button onclick="navigate('beranda')" style="width:44px;height:44px;border-radius:50%;border:1px solid var(--bd);background:var(--s2);color:var(--t1);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:.85rem;flex-shrink:0;touch-action:manipulation;-webkit-tap-highlight-color:transparent"><i class="fas fa-arrow-left"></i></button>
         <div class="sec-title" style="margin-bottom:0"><i class="fas fa-compass" style="color:var(--b2)"></i> Explore</div>
       </div>
       <p class="sec-sub">Temukan lagu berdasarkan artis atau album</p>
@@ -1147,7 +1151,10 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 
     <!-- LIVE FEED PAGE -->
     <div class="page" id="page-livefeed">
-      <div class="sec-title"><i class="fas fa-satellite-dish" style="color:var(--rd)"></i> Sedang Diputar</div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+        <button onclick="navigate('beranda')" style="width:44px;height:44px;border-radius:50%;border:1px solid var(--bd);background:var(--s2);color:var(--t1);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:.85rem;flex-shrink:0;touch-action:manipulation;-webkit-tap-highlight-color:transparent"><i class="fas fa-arrow-left"></i></button>
+        <div class="sec-title" style="margin-bottom:0"><i class="fas fa-satellite-dish" style="color:var(--rd)"></i> Sedang Diputar</div>
+      </div>
       <p class="sec-sub">Anggota yang aktif mendengarkan saat ini</p>
       <div id="liveFeedList" class="lf-list"></div>
       <div id="liveFeedEmpty" class="lf-empty" style="display:none">
@@ -3131,6 +3138,8 @@ async function loadProfil(){
   // Load pin grid
   PinAvatar.renderMyPins();
 
+  // Bug fix: reload play counts dari DB agar sync antar device
+  await loadMyPlayCounts();
   const totalMyPlays=Object.values(myPlayCounts).reduce((a,b)=>a+b,0);
   document.getElementById('profilStats').innerHTML=[
     {label:'Lagu Disukai',val:likedArr.length,ico:'fas fa-heart',color:'var(--rd)'},
@@ -4247,7 +4256,7 @@ async function loadWrapped() {
 <div class="modal-overlay" id="pinPickerModal" onclick="if(event.target===this)PinAvatar.closePicker()">
   <div class="modal-box" style="max-width:480px">
     <div class="modal-header">
-      <div class="modal-title" id="pinPickerTitle">Pilih Lagu untuk Pin</div>
+      <div class="modal-title" id="pinPickerTitle"></div>
       <button class="modal-close" onclick="PinAvatar.closePicker()"><i class="fas fa-times"></i></button>
     </div>
     <div style="padding:0 16px 8px">
