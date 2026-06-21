@@ -290,6 +290,34 @@ const MUSIC_SIG_TABLE  = 'music_signals';
 .mrp-invite-accept  { flex:1; padding:9px; border-radius:10px; border:none; background:linear-gradient(135deg,var(--dyn1),var(--p)); color:#fff; font-weight:700; font-size:.78rem; cursor:pointer; font-family:inherit; }
 .mrp-invite-decline { padding:9px 16px; border-radius:10px; border:1px solid var(--bd); background:transparent; color:var(--mt); font-size:.78rem; cursor:pointer; font-family:inherit; }
 
+/* ── INVITE CARD (chat bubble) ───────────────────────────── */
+.msg-bubble.mrp-invite-bubble { padding: 0 !important; background: transparent !important; border: none !important; }
+.mrp-invite-card {
+  display: flex; align-items: center; gap: 10px;
+  background: linear-gradient(135deg, rgba(29,185,84,.14), rgba(124,92,191,.14));
+  border: 1px solid rgba(29,185,84,.3);
+  border-radius: 14px; padding: 10px 12px; min-width: 220px;
+  cursor: pointer; transition: all .2s;
+}
+.mrp-invite-card:hover { transform: translateY(-1px); border-color: var(--dyn1); }
+.mrp-invite-card.ended {
+  border-color: var(--bd2); background: var(--s3);
+  cursor: default; opacity: .75;
+}
+.mrp-invite-card.ended:hover { transform: none; }
+.mrp-invite-card-ico {
+  width: 38px; height: 38px; border-radius: 11px; flex-shrink: 0;
+  background: rgba(0,0,0,.2); display: flex; align-items: center;
+  justify-content: center; font-size: 1.1rem;
+}
+.mrp-invite-card-info { min-width: 0; flex: 1; }
+.mrp-invite-card-title { font-size: .8rem; font-weight: 800; margin-bottom: 1px; }
+.mrp-invite-card-track {
+  font-size: .7rem; color: var(--mt); white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis; margin-bottom: 3px;
+}
+.mrp-invite-card-status { font-size: .62rem; color: var(--mt); display: flex; align-items: center; gap: 5px; }
+
 /* ── RESPONSIVE FIX: qp-grid ──────────────────────────────── */
 /* Override default 5-col to responsive */
 .qp-grid {
@@ -503,6 +531,7 @@ function closeMusicRoom() {
 
 async function endMusicRoom() {
   if (musicRoomState.sessionId) {
+    _markInviteResponded(musicRoomState.sessionId);
     await sb.patch(MUSIC_ROOM_TABLE,
       `session_id=eq.${encodeURIComponent(musicRoomState.sessionId)}`,
       { status: 'ended' }
@@ -1076,26 +1105,122 @@ function startProgressSync() {
   tick();
 }
 
-// ─────────────────── INVITE SYSTEM ────────────────────────────
+// ─────────────────── INVITE SYSTEM v2 ──────────────────────────
+const _INVITE_RESPONDED_KEY = 'mrp_responded_invites';
+
+function _getRespondedInvites() {
+  try { return JSON.parse(localStorage.getItem(_INVITE_RESPONDED_KEY) || '[]'); }
+  catch { return []; }
+}
+function _markInviteResponded(sessionId) {
+  if (!sessionId) return;
+  try {
+    const arr = _getRespondedInvites();
+    if (!arr.includes(sessionId)) {
+      arr.push(sessionId);
+      if (arr.length > 80) arr.shift();
+      localStorage.setItem(_INVITE_RESPONDED_KEY, JSON.stringify(arr));
+    }
+  } catch {}
+}
+
 const _origRenderMessages = window.renderMessages;
-window.renderMessages = function(msgs) {
+window.renderMessages = function (msgs) {
   if (_origRenderMessages) _origRenderMessages(msgs);
-  // Detect invite from partner
+  _decorateInviteBubbles(msgs);
+
   for (let i = msgs.length - 1; i >= 0; i--) {
     const m = msgs[i];
     if (m.from_key !== USER_KEY && m.content?.startsWith('🎵 _music_room_invite_|')) {
       const parts = m.content.split('|');
       if (parts.length >= 4) {
-        showInviteBanner(parts[1], parts[2], decodeURIComponent(parts[3]||''), m.from_key);
+        maybeShowInviteBanner(parts[1], parts[2], decodeURIComponent(parts[3] || ''), m.from_key);
       }
       break;
     }
   }
 };
 
+function _decorateInviteBubbles(msgs) {
+  const container = document.getElementById('chatMessages');
+  if (!container) return;
+  const bubbles = container.querySelectorAll('.msg-bubble');
+  bubbles.forEach(bub => {
+    if (bub.dataset.inviteDecorated) return;
+    const text = bub.textContent.trim();
+    if (!text.startsWith('🎵 _music_room_invite_|')) return;
+
+    const parts = text.split('|');
+    if (parts.length < 4) return;
+    const sessionId   = parts[1];
+    const mode        = parts[2];
+    const trackTitle  = decodeURIComponent(parts[3] || '');
+    const isKaraoke   = mode === 'karaoke';
+
+    bub.dataset.inviteDecorated = '1';
+    bub.classList.add('mrp-invite-bubble');
+    bub.innerHTML = `
+      <div class="mrp-invite-card" id="mrpCard_${sessionId}">
+        <div class="mrp-invite-card-ico">${isKaraoke ? '🎤' : '🎧'}</div>
+        <div class="mrp-invite-card-info">
+          <div class="mrp-invite-card-title">${isKaraoke ? 'Karaoke Mode' : 'Listening Together'}</div>
+          <div class="mrp-invite-card-track">${escapeHtml(trackTitle)}</div>
+          <div class="mrp-invite-card-status" id="mrpStatus_${sessionId}">
+            <i class="fas fa-circle-notch fa-spin" style="font-size:.55rem"></i> Memeriksa status...
+          </div>
+        </div>
+      </div>`;
+
+    const isMine = bub.closest('.msg-wrap')?.classList.contains('me');
+    _refreshInviteCardStatus(sessionId, mode, isMine);
+  });
+}
+
+async function _refreshInviteCardStatus(sessionId, mode, isMine) {
+  const card   = document.getElementById(`mrpCard_${sessionId}`);
+  const status = document.getElementById(`mrpStatus_${sessionId}`);
+  if (!card || !status) return;
+  try {
+    const rows = await sb.get(MUSIC_ROOM_TABLE, `session_id=eq.${encodeURIComponent(sessionId)}&select=status`);
+    const s = rows?.[0]?.status;
+    if (!s || s === 'ended') {
+      status.innerHTML = '<i class="fas fa-circle" style="font-size:.5rem;color:var(--mt)"></i> Room sudah berakhir';
+      card.classList.add('ended');
+      card.onclick = null;
+      return;
+    }
+    status.innerHTML = '<i class="fas fa-circle" style="font-size:.5rem;color:var(--dyn1)"></i> Live — ketuk untuk gabung';
+    card.onclick = () => {
+      if (musicRoomState.active) {
+        if (musicRoomState.sessionId === sessionId) { openMusicRoomPanel(); return; }
+        toast('Kamu sedang berada di room lain'); return;
+      }
+      if (isMine) { toast('Tunggu lawan bicaramu bergabung dulu ya'); return; }
+      _pendingInvite = { sessionId, mode, fromKey: currentChatWith };
+      acceptMusicRoom();
+    };
+  } catch {
+    status.textContent = 'Gagal memuat status';
+  }
+}
+
 let _pendingInvite = null;
+
+async function maybeShowInviteBanner(sessionId, mode, trackTitle, fromKey) {
+  if (musicRoomState.active) return;                       
+  if (_getRespondedInvites().includes(sessionId)) return;   
+
+  try {
+    const rows = await sb.get(MUSIC_ROOM_TABLE, `session_id=eq.${encodeURIComponent(sessionId)}&select=status`);
+    const status = rows?.[0]?.status;
+    if (!status || status === 'ended') return;
+  } catch { return; }
+
+  showInviteBanner(sessionId, mode, trackTitle, fromKey);
+}
+
 function showInviteBanner(sessionId, mode, trackTitle, fromKey) {
-  if (musicRoomState.active) return; // already in a room
+  if (musicRoomState.active) return;
   _pendingInvite = { sessionId, mode, fromKey };
   const icon = mode === 'karaoke' ? '🎤' : '🎧';
   document.getElementById('mrpInviteTitle').textContent =
@@ -1111,6 +1236,7 @@ async function acceptMusicRoom() {
   if (!_pendingInvite) return;
   document.getElementById('mrpInviteBanner').classList.remove('show');
   const { sessionId, mode, fromKey } = _pendingInvite;
+  _markInviteResponded(sessionId);
   _pendingInvite = null;
 
   try {
@@ -1161,6 +1287,7 @@ async function acceptMusicRoom() {
 }
 
 function declineMusicRoom() {
+  if (_pendingInvite?.sessionId) _markInviteResponded(_pendingInvite.sessionId);
   document.getElementById('mrpInviteBanner').classList.remove('show');
   _pendingInvite = null;
 }
