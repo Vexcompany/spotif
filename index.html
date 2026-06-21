@@ -1592,6 +1592,109 @@ let npOpen=false;
 const audio=document.getElementById('audioEl');
 
 // ══════════════════════════════════════════════════════════════
+//  AUTO-RESUME — Simpan & pulihkan posisi lagu saat refresh
+// ══════════════════════════════════════════════════════════════
+const LS_RESUME_KEY = 'pgsk_resume_v1';
+let _resumeSaveTimer = null;
+
+function saveResumeState(){
+  if(!currentTrack) return;
+  const audioSrc = currentTrack.audio || currentTrack.audioUrl;
+  if(!audioSrc) return;
+  const state = {
+    id: currentTrack.id,
+    audio: audioSrc,
+    title: currentTrack.title,
+    artist: currentTrack.artist,
+    album: currentTrack.album || '',
+    thumbnail: currentTrack.thumbnail,
+    duration: currentTrack.duration,
+    year: currentTrack.year,
+    source: currentTrack.source || 'db',
+    currentTime: audio.currentTime || 0,
+    isPlaying: isPlaying && !audio.paused,
+    savedAt: Date.now()
+  };
+  try{ localStorage.setItem(LS_RESUME_KEY, JSON.stringify(state)); }catch(e){}
+}
+
+function clearResumeState(){
+  try{ localStorage.removeItem(LS_RESUME_KEY); }catch(e){}
+}
+
+async function restoreResumeState(){
+  let saved;
+  try{ saved = JSON.parse(localStorage.getItem(LS_RESUME_KEY) || 'null'); }catch(e){ saved = null; }
+  if(!saved || !saved.audio) return false;
+
+  const t = {
+    id: saved.id,
+    title: saved.title || '–',
+    artist: saved.artist || '–',
+    album: saved.album || '',
+    duration: saved.duration || '0:00',
+    year: saved.year || '–',
+    thumbnail: saved.thumbnail || PH,
+    audio: saved.audio,
+    audioUrl: saved.audio,
+    source: saved.source || 'db'
+  };
+
+  currentTrack = t;
+  showHero(t, t.source);
+  document.getElementById('plImg').src = t.thumbnail || PH;
+  document.getElementById('plTitle').textContent = t.title;
+  document.getElementById('plArt').textContent = t.artist;
+  document.getElementById('pbar').classList.add('up');
+
+  try{
+    const auUrl = new URL(t.audio, location.href);
+    if (auUrl.origin !== location.origin) audio.removeAttribute('crossorigin');
+    else audio.setAttribute('crossorigin', 'anonymous');
+  }catch(e){}
+
+  audio.src = t.audio;
+  audio.volume = vol;
+  audio.muted = isMuted;
+
+  return new Promise((resolve) => {
+    const onMeta = async () => {
+      audio.removeEventListener('loadedmetadata', onMeta);
+      const safeTime = Math.min(saved.currentTime || 0, (audio.duration || saved.currentTime || 0));
+      try{ audio.currentTime = safeTime; }catch(e){}
+
+      document.getElementById('ptTot').textContent = fmt(audio.duration);
+      startProg();
+      updPBLike();
+      updHeroLike();
+      qi = queue.findIndex(x => x.id === t.id);
+
+      if (saved.isPlaying) {
+        await safePlay();
+      } else {
+        isPlaying = false;
+        updAll();
+      }
+      resolve(true);
+    };
+    audio.addEventListener('loadedmetadata', onMeta);
+    // Fallback kalau metadata gagal load dalam 6 detik
+    setTimeout(() => resolve(false), 6000);
+  });
+}
+
+// Simpan posisi secara berkala (tiap 3 detik) saat ada lagu aktif
+setInterval(() => { if(currentTrack) saveResumeState(); }, 3000);
+
+// Simpan langsung saat user mau tutup/refresh tab
+window.addEventListener('beforeunload', saveResumeState);
+window.addEventListener('pagehide', saveResumeState);
+
+// Simpan juga setiap kali play/pause berubah (biar status akurat)
+audio.addEventListener('play',  saveResumeState);
+audio.addEventListener('pause', saveResumeState);
+
+// ══════════════════════════════════════════════════════════════
 //  AUDIO PLAY
 // ══════════════════════════════════════════════════════════════
 let _playAbort=null;
