@@ -454,6 +454,72 @@ const PinAvatar = (() => {
 
 window.PinAvatar = PinAvatar;
 
+// ══════════════════════════════════════════════════════════════
+//  AVATAR FOTO DI CHAT — fix: header chat room & list chat
+//  sebelumnya selalu pakai inisial teks, sekarang ambil foto asli
+// ══════════════════════════════════════════════════════════════
+PinAvatar.applyAvatarTo = async function (el, userKey) {
+  if (!el || !userKey) return;
+  if (el.querySelector('img')) return; // sudah ada foto, skip
+  let url;
+  try { url = await PinAvatar._fetchAvatarPublic(userKey); } catch { url = null; }
+  if (!url) return;
+  // Preservasi elemen status online (dot hijau) kalau ada
+  const onlineDot = el.querySelector('.chat-online');
+  el.innerHTML = '';
+  const img = document.createElement('img');
+  img.src = url;
+  img.style.cssText = 'width:100%;height:100%;border-radius:50%;object-fit:cover;display:block';
+  img.onerror = function () { this.remove(); }; // fallback: biarkan kosong, inisial sudah hilang tapi tidak fatal
+  el.appendChild(img);
+  if (onlineDot) el.appendChild(onlineDot);
+};
+
+// Wrapper kecil ke _fetchAvatar internal (karena _fetchAvatar ada di closure)
+PinAvatar._fetchAvatarPublic = async function (userKey) {
+  try {
+    const rows = await sb.get('user_avatars', `user_key=eq.${encodeURIComponent(userKey)}&select=avatar_url`);
+    return rows?.[0]?.avatar_url || null;
+  } catch { return null; }
+};
+
+// ── Pasang avatar foto di header Chat Room ──────────────────────
+const _origOpenChatRoom = window.openChatRoom;
+if (typeof _origOpenChatRoom === 'function') {
+  window.openChatRoom = async function (otherKey, name) {
+    const ret = _origOpenChatRoom(otherKey, name);
+    if (ret && typeof ret.then === 'function') await ret;
+    const avEl = document.getElementById('chatRoomAv');
+    PinAvatar.applyAvatarTo(avEl, otherKey);
+  };
+}
+
+// ── Pasang avatar foto di setiap item Chat List ──────────────────
+const _origLoadChatList = window.loadChatList;
+if (typeof _origLoadChatList === 'function') {
+  window.loadChatList = async function () {
+    const ret = _origLoadChatList();
+    if (ret && typeof ret.then === 'function') await ret;
+    document.querySelectorAll('#chatList .chat-item[data-user-key]').forEach(item => {
+      const key  = item.dataset.userKey;
+      const avEl = item.querySelector('.chat-av');
+      PinAvatar.applyAvatarTo(avEl, key);
+    });
+  };
+}
+
+// ── Pasang avatar foto di Live Activity feed (beranda) ────────────
+const _origRenderActivity = window.renderActivity;
+if (typeof _origRenderActivity === 'function') {
+  window.renderActivity = function () {
+    _origRenderActivity();
+    document.querySelectorAll('#activityFeed [id^="actav-"]').forEach(el => {
+      const key = el.id.replace('actav-', '');
+      PinAvatar.applyAvatarTo(el, key);
+    });
+  };
+}
+
 // Helper: tutup profil publik lalu buka chat
 function closePubProfileAndChat(userKey, name) {
   PinAvatar.closePubProfile();
