@@ -172,6 +172,9 @@
   --sat:env(safe-area-inset-top,0px);
   --sal:env(safe-area-inset-left,0px);
   --sar:env(safe-area-inset-right,0px);
+  /* Alias warna teks — dipakai di berbagai komponen */
+  --t1:#eeeeff;
+  --t2:#8888bb;
 }
 html{scroll-behavior:smooth;-webkit-text-size-adjust:100%;text-size-adjust:100%}
 body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-height:100vh;overflow-x:hidden;-webkit-tap-highlight-color:transparent}
@@ -874,29 +877,6 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
   .pbar{max-width:700px;left:50%;transform:translateX(-50%) translateY(100%)}
   .pbar.up{transform:translateX(-50%) translateY(0)}
   .pbar.up.nav-collapsed{bottom:0;transform:translateX(-50%) translateY(0)}
-
-  /* Konten lebih lebar dan centered */
-  .main-content{max-width:860px;margin:0 auto;width:100%}
-  .page{padding:20px 24px}
-  .topbar{max-width:860px;left:50%;transform:translateX(-50%);border-radius:0 0 16px 16px;border:1px solid var(--bd);border-top:none;top:0}
-
-  /* Hero card: layout horizontal */
-  .hero-card{grid-template-columns:220px 1fr}
-  .h-art{width:220px;height:220px}
-
-  /* Grid lebih banyak kolom */
-  .db-grid{grid-template-columns:repeat(3,1fr)}
-  .qp-grid{grid-template-columns:repeat(3,1fr)}
-  .pl-grid{grid-template-columns:repeat(3,1fr)}
-
-  /* Tombol kembali sedikit lebih besar di desktop */
-  .page-back-btn{width:40px;height:40px;font-size:.85rem}
-
-  /* Nowplaying vinyl lebih besar */
-  .np-vinyl{width:min(300px,50vw);height:min(300px,50vw)}
-
-  /* Wrapped grid 4 kolom */
-  .wr-cards{grid-template-columns:repeat(4,1fr)}
 }
 
 /* ── iOS safe area & notch support ── */
