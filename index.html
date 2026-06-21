@@ -2012,6 +2012,7 @@ async function playTrackObj(t){
   if(!audioSrc){toast('⚠️ Audio tidak tersedia');return;}
 
   t.audio = audioSrc;
+  updateLastPlayDuration();
   safePause();
   audio.src='';
   await new Promise(r=>setTimeout(r,50));
@@ -2219,7 +2220,7 @@ function setVol(e){
   document.getElementById('vIco').className=vol>.5?'fas fa-volume-up':vol>0?'fas fa-volume-down':'fas fa-volume-mute';
 }
 
-audio.addEventListener('ended',()=>{isRepeat?safePlay():nextTrack();});
+audio.addEventListener('ended',()=>{updateLastPlayDuration();isRepeat?safePlay():nextTrack();});
 
 // ── Fix 6: Jaga playback tetap jalan saat layar mati / tab background ──
 // 1. Wake Lock API — cegah layar mati membunuh audio
@@ -2250,6 +2251,10 @@ document.addEventListener('visibilitychange', async () => {
     if (isPlaying) requestWakeLock();
   }
 });
+
+// Update duration saat user menutup tab / berpindah halaman
+window.addEventListener('beforeunload', () => { updateLastPlayDuration(); });
+window.addEventListener('pagehide', () => { updateLastPlayDuration(); });
 
 // 3. Audio stall recovery — jika buffering macet > 3 detik saat seharusnya playing
 let _stallTimer = null;
@@ -2479,6 +2484,10 @@ function renderQueue() {
   }).join('');
 }
 
+// Timestamp saat lagu mulai diputar — untuk hitung duration_played secara akurat
+let _playStartTime = null;
+let _lastPlayedTrackId = null;
+
 async function addToHistory(t){
   const e={...t,playedAt:new Date().toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'})};
   histArr=histArr.filter(x=>x.id!==t.id);
@@ -2486,21 +2495,36 @@ async function addToHistory(t){
   if(histArr.length>30)histArr=histArr.slice(0,30);
   LS.sh(histArr);
   renderHistory();
-  
-  // Simpan ke play_history — pakai UPDATE (patch) dulu, baru INSERT kalau belum ada
-  // Ini bypass masalah unique constraint yang belum ada di Supabase
-  const _durationPlayed = Math.round(audio?.duration || 0);
-  sb.patch('play_history',`user_key=eq.${encodeURIComponent(USER_KEY)}&track_id=eq.${encodeURIComponent(t.id)}`,{
-    played_at:new Date().toISOString(),
-    duration_played: _durationPlayed || null
-  }).then(r=>{
-    // Kalau patch tidak update apapun (array kosong), baru insert
-    if(!r||r.length===0){
-      sb.post('play_history',{user_key:USER_KEY,track_id:t.id,played_at:new Date().toISOString(),duration_played:_durationPlayed||null}).catch(()=>{});
-    }
-  }).catch(()=>{
-    sb.post('play_history',{user_key:USER_KEY,track_id:t.id,played_at:new Date().toISOString(),duration_played:_durationPlayed||null}).catch(()=>{});
-  });
+
+  // Catat waktu mulai — duration_played dihitung dari sini saat lagu ganti/selesai
+  _playStartTime = Date.now();
+  _lastPlayedTrackId = t.id;
+
+  // Selalu INSERT row baru agar setiap play tercatat (bukan patch/upsert yang menimpa)
+  if(USER_KEY && USER_KEY !== 'guest'){
+    sb.post('play_history', {
+      user_key: USER_KEY,
+      track_id: t.id,
+      played_at: new Date().toISOString(),
+      duration_played: null  // diupdate via updateLastPlayDuration() saat lagu selesai/ganti
+    }).catch(()=>{});
+  }
+}
+
+// Dipanggil saat lagu berganti, selesai, atau tab ditutup
+// Mengupdate duration_played pada row play_history terakhir yang diinsert
+async function updateLastPlayDuration(){
+  if(!USER_KEY || USER_KEY==='guest' || !_playStartTime || !_lastPlayedTrackId) return;
+  const secs = Math.round((Date.now() - _playStartTime) / 1000);
+  _playStartTime = null;
+  if(secs < 3) return; // abaikan skip terlalu cepat
+  const tid = _lastPlayedTrackId;
+  _lastPlayedTrackId = null;
+  // Update row terakhir milik user+track ini
+  sb.patch('play_history',
+    `user_key=eq.${encodeURIComponent(USER_KEY)}&track_id=eq.${encodeURIComponent(tid)}&order=played_at.desc&limit=1`,
+    { duration_played: secs }
+  ).catch(()=>{});
 }
 
 function renderHistory(){
@@ -4224,11 +4248,16 @@ async function loadWrapped() {
     const totalMins = Math.round(totalSecs / 60);
 
     // Streak: hitung hari berturut-turut dari hari ini
-    const playDays = new Set(history.map(h => h.played_at?.slice(0, 10)));
+    // Gunakan tanggal LOKAL (bukan UTC) agar tidak off-by-one di timezone WIB (UTC+7)
+    const localDate = dt => {
+      const d = new Date(dt);
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    };
+    const playDays = new Set(history.map(h => h.played_at ? localDate(h.played_at) : null));
     let streak = 0;
     const d = new Date();
     while (true) {
-      const key = d.toISOString().slice(0, 10);
+      const key = localDate(d);
       if (playDays.has(key)) { streak++; d.setDate(d.getDate() - 1); }
       else break;
     }
