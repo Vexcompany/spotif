@@ -1554,7 +1554,7 @@ const sb = {
 const session=JSON.parse(localStorage.getItem(SESS_KEY)||'null');
 const USER_KEY=session?`${session.nama}_${session.generasi}`:'guest';
 const IS_ADMIN=!!(session?.isAdmin || JSON.parse(localStorage.getItem('pgsk_admin_session')||'null')?.isAdmin);
-function doLogout(){localStorage.removeItem(SESS_KEY);localStorage.removeItem('pgsk_admin_session');window.location.href='login.html';}
+function doLogout(){localStorage.removeItem(SESS_KEY);localStorage.removeItem('pgsk_admin_session');clearResumeState();window.location.href='login.html';}
 
 let currentPage='beranda';
 function navigate(page){
