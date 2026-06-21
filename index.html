@@ -3527,17 +3527,19 @@ async function initApp(){
   loadTopChartHome();
   loadLiveActivity();
 
-  if(histArr.length){
-    const last=histArr[0];
-    currentTrack=last;
-    showHero(last,last.source||'db');
+  const resumed = await restoreResumeState();
+
+  if (!resumed && histArr.length) {
+    const last = histArr[0];
+    currentTrack = last;
+    showHero(last, last.source || 'db');
     setState('none');
-    document.getElementById('plImg').src=last.thumbnail||PH;
-    document.getElementById('plTitle').textContent=last.title;
-    document.getElementById('plArt').textContent=last.artist;
+    document.getElementById('plImg').src = last.thumbnail || PH;
+    document.getElementById('plTitle').textContent = last.title;
+    document.getElementById('plArt').textContent = last.artist;
     document.getElementById('pbar').classList.add('up');
     updPBLike();
-    isPlaying=false;
+    isPlaying = false;
     updAll();
   }
 }
