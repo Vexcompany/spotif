@@ -503,3 +503,36 @@ window.loadWrapped = async function() {
     if (typeof toast==='function') toast('Gagal load rekap: '+e.message);
   }
 };
+
+// ══════════════════════════════════════════════════════════════
+//  FIX navigate() — reset page-profil-publik saat pindah halaman
+//  Tanpa ini, currentPage stuck di 'profil-publik' dan nav bar
+//  tidak bisa berpindah halaman.
+// ══════════════════════════════════════════════════════════════
+(function patchNavigate() {
+  // Tunggu sampai navigate() sudah terdefinisi di index.html
+  const _patch = () => {
+    if (typeof navigate !== 'function') return;
+
+    const _origNavigate = navigate;
+    window.navigate = function(page) {
+      // Kalau sedang di halaman profil-publik, sembunyikan dulu
+      const ppPage = document.getElementById('page-profil-publik');
+      if (ppPage) ppPage.classList.remove('active');
+
+      // Reset currentPage supaya navigate() asli berjalan normal
+      if (typeof currentPage !== 'undefined') window.currentPage = '';
+
+      // Panggil navigate() asli
+      _origNavigate(page);
+    };
+  };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', _patch);
+  } else {
+    // navigate() mungkin belum ada saat script ini jalan,
+    // tunggu setelah semua script selesai load
+    setTimeout(_patch, 500);
+  }
+})();
