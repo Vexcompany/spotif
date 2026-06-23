@@ -1,8 +1,7 @@
 /**
- * profil-publik.js — v2
- * Fix: pakai tabel yang benar (pinned_tracks, user_avatars)
- * Fix: loadWrapped baca dari play_history langsung (bukan myPlayCounts)
- * Fix: total menit tampil di profil publik
+ * profil-publik.js — v3
+ * Fix: merge data dari user_play_counts (akumulasi) + play_history (per-session)
+ * Ambil count terbesar dari keduanya agar data lama tidak hilang
  */
 
 const PublikProfil = (() => {
@@ -10,7 +9,6 @@ const PublikProfil = (() => {
   let _prevPage   = 'beranda';
   let _injected   = false;
 
-  // ── Inject page ke DOM sekali saja ──────────────────────────
   function _inject() {
     if (_injected) return;
     _injected = true;
@@ -24,7 +22,6 @@ const PublikProfil = (() => {
         <div class="sec-title" style="margin-bottom:0;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" id="ppPageTitle">Profil</div>
       </div>
 
-      <!-- Hero -->
       <div style="background:var(--s1);border:1px solid var(--bd);border-radius:20px;overflow:hidden;margin-bottom:16px">
         <div id="ppBanner" style="height:80px;background:linear-gradient(135deg,var(--p),var(--dyn1))"></div>
         <div style="padding:0 16px 16px;margin-top:-32px">
@@ -53,7 +50,6 @@ const PublikProfil = (() => {
         </div>
       </div>
 
-      <!-- Pin -->
       <div style="margin-bottom:16px">
         <div style="font-size:.82rem;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:7px">
           <i class="fas fa-thumbtack" style="color:var(--dyn1)"></i> Pin Favorit
@@ -61,7 +57,6 @@ const PublikProfil = (() => {
         <div class="pin-grid" id="ppPinGrid"></div>
       </div>
 
-      <!-- Top Lagu -->
       <div style="margin-bottom:16px">
         <div style="font-size:.82rem;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:7px">
           <i class="fas fa-trophy" style="color:var(--yw)"></i> Lagu Favorit
@@ -69,7 +64,6 @@ const PublikProfil = (() => {
         <div id="ppTopTracks" class="tlist"></div>
       </div>
 
-      <!-- Top Artis -->
       <div style="margin-bottom:16px">
         <div style="font-size:.82rem;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:7px">
           <i class="fas fa-microphone" style="color:var(--p2)"></i> Artis Terbanyak
@@ -77,7 +71,6 @@ const PublikProfil = (() => {
         <div id="ppTopArtists" style="display:flex;flex-direction:column;gap:6px"></div>
       </div>
 
-      <!-- Riwayat -->
       <div>
         <div style="font-size:.82rem;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:7px">
           <i class="fas fa-history" style="color:var(--b2)"></i> Diputar Terakhir
@@ -95,7 +88,6 @@ const PublikProfil = (() => {
     });
   }
 
-  // ── Buka profil ──────────────────────────────────────────────
   async function open(userKey, displayName) {
     if (!userKey) return;
     _inject();
@@ -114,7 +106,6 @@ const PublikProfil = (() => {
     const isSelf = (typeof USER_KEY !== 'undefined') && userKey === USER_KEY;
     document.getElementById('ppChatBtn').style.display = isSelf ? 'none' : 'flex';
 
-    // Skeleton
     ['ppStatPlays','ppStatMins','ppStatTracks'].forEach(id => {
       document.getElementById(id).textContent = '...';
     });
@@ -126,23 +117,16 @@ const PublikProfil = (() => {
     await _loadProfile(userKey, isSelf);
   }
 
-  function openSelf() {
-    if (typeof USER_KEY === 'undefined') return;
-    const name = (typeof session !== 'undefined' && session?.nama) ? session.nama : USER_KEY.split('_').slice(0,-1).join(' ');
-    open(USER_KEY, name);
-  }
-
   function close() {
     if (typeof navigate === 'function') navigate(_prevPage);
     _currentKey = null;
   }
 
-  // ── Load data profil ─────────────────────────────────────────
   async function _loadProfile(userKey, isSelf) {
     const PH_ = typeof PH !== 'undefined' ? PH : 'https://placehold.co/200x200/0d0d24/1DB954?text=♪';
 
     try {
-      // 1. Info user
+      // ── Info user ──────────────────────────────────────────
       let userData = null;
       if (typeof window.PAGASKA_DB !== 'undefined' && window.PAGASKA_DB.getAllUsers) {
         userData = window.PAGASKA_DB.getAllUsers().find(u => `${u.nama}_${u.generasi}` === userKey);
@@ -152,7 +136,7 @@ const PublikProfil = (() => {
         ? `${userData.jabatan || 'Anggota'} · Generasi ${userData.generasi}`
         : userKey.split('_').pop();
 
-      // 2. Avatar — tabel user_avatars (sesuai pin-avatar.js)
+      // ── Avatar (tabel user_avatars) ────────────────────────
       const avWrap = document.getElementById('ppAvWrap');
       try {
         const avRows = await sb.get('user_avatars', `user_key=eq.${encodeURIComponent(userKey)}&select=avatar_url`);
@@ -164,58 +148,103 @@ const PublikProfil = (() => {
         }
       } catch { avWrap.textContent = ini; }
 
-      // 3. Play history — SETIAP ROW = 1 PLAY (tidak ada unique constraint per user+track)
-      const history = await sb.get('play_history',
-        `user_key=eq.${encodeURIComponent(userKey)}&select=track_id,played_at,duration_played&order=played_at.desc&limit=2000`
-      );
+      // ── Ambil KEDUA sumber data secara paralel ─────────────
+      // user_play_counts: akumulasi total per track (akurat, data lama ada di sini)
+      // play_history: per-session rows (baru terisi setelah SQL fix)
+      const [playCountRows, historyRows] = await Promise.all([
+        sb.get('user_play_counts',
+          `user_key=eq.${encodeURIComponent(userKey)}&select=track_id,count`
+        ).catch(() => []),
+        sb.get('play_history',
+          `user_key=eq.${encodeURIComponent(userKey)}&select=track_id,played_at,duration_played&order=played_at.desc&limit=2000`
+        ).catch(() => [])
+      ]);
 
-      const totalPlays = history.length;
-      const countMap   = {};
-      history.forEach(h => {
-        if (h.track_id) countMap[h.track_id] = (countMap[h.track_id] || 0) + 1;
+      // ── Merge countMap: ambil nilai TERBESAR dari keduanya ──
+      const countMap = {};
+
+      // Dari user_play_counts (data akumulasi — sumber utama untuk count)
+      playCountRows.forEach(r => {
+        if (r.track_id) countMap[r.track_id] = r.count || 0;
       });
-      const uniqTracks = Object.keys(countMap).length;
-      const sortedIds  = Object.keys(countMap).sort((a,b) => countMap[b] - countMap[a]);
-      const top10Ids   = sortedIds.slice(0, 10);
 
-      // 4. Fetch detail track untuk top 10
+      // Dari play_history — hitung per track, pakai kalau lebih besar
+      const histCountMap = {};
+      historyRows.forEach(h => {
+        if (h.track_id) histCountMap[h.track_id] = (histCountMap[h.track_id]||0) + 1;
+      });
+      Object.entries(histCountMap).forEach(([id, cnt]) => {
+        countMap[id] = Math.max(countMap[id] || 0, cnt);
+      });
+
+      const totalPlays = Object.values(countMap).reduce((a,b) => a+b, 0);
+      const uniqTracks = Object.keys(countMap).length;
+      const sortedIds  = Object.keys(countMap).sort((a,b) => countMap[b]-countMap[a]);
+      const top10Ids   = sortedIds.slice(0,10);
+
+      // ── Fetch detail track ─────────────────────────────────
       let trackMap = {};
       if (top10Ids.length) {
         const tracks = await sb.get('tracks',
-          `id=in.(${top10Ids.map(id => encodeURIComponent(id)).join(',')})&select=id,title,artist,thumbnail,duration,audio_url`
+          `id=in.(${top10Ids.map(id=>encodeURIComponent(id)).join(',')})&select=id,title,artist,thumbnail,duration,audio_url`
         );
         tracks.forEach(t => { trackMap[t.id] = t; });
       }
 
-      // 5. Hitung total menit
+      // ── Total menit ────────────────────────────────────────
+      // Hitung dari play_history yang ada duration_played
+      // Sisanya estimasi dari durasi lagu × count
       let totalSecs = 0;
-      history.forEach(h => {
+      const countedFromHistory = new Set();
+
+      historyRows.forEach(h => {
         if (h.duration_played && Number(h.duration_played) > 0) {
           totalSecs += Number(h.duration_played);
-        } else {
+          countedFromHistory.add(h.track_id);
+        }
+      });
+
+      // Untuk track yang tidak ada di history, estimasi dari count × durasi
+      Object.entries(countMap).forEach(([id, cnt]) => {
+        const histCnt = histCountMap[id] || 0;
+        const extraCnt = cnt - histCnt; // play count di luar history
+        if (extraCnt <= 0) return;
+        const t = trackMap[id];
+        let secPerPlay = 210;
+        if (t?.duration && String(t.duration).includes(':')) {
+          const [m,s] = t.duration.split(':').map(Number);
+          secPerPlay = m*60+(s||0);
+        }
+        totalSecs += extraCnt * secPerPlay;
+      });
+
+      // Tambah estimasi dari history rows yang tidak punya duration_played
+      historyRows.forEach(h => {
+        if (!h.duration_played || Number(h.duration_played) <= 0) {
           const t = trackMap[h.track_id];
-          if (t?.duration && typeof t.duration === 'string' && t.duration.includes(':')) {
+          if (t?.duration && String(t.duration).includes(':')) {
             const [m,s] = t.duration.split(':').map(Number);
-            totalSecs += m*60 + (s||0);
+            totalSecs += m*60+(s||0);
           } else {
             totalSecs += 210;
           }
         }
       });
+
       const totalMins = Math.round(totalSecs / 60);
 
       document.getElementById('ppStatPlays').textContent  = totalPlays.toLocaleString('id-ID');
       document.getElementById('ppStatMins').textContent   = totalMins.toLocaleString('id-ID');
       document.getElementById('ppStatTracks').textContent = uniqTracks;
 
-      // 6. Top lagu
+      // ── Top lagu ───────────────────────────────────────────
       const topEl = document.getElementById('ppTopTracks');
       topEl.innerHTML = top10Ids.length
         ? top10Ids.map((id, i) => {
             const t = trackMap[id]; if (!t) return '';
-            const track = typeof rowToTrack === 'function' ? rowToTrack(t,'db') : {...t, audio: t.audio_url};
+            const track = typeof rowToTrack === 'function' ? rowToTrack(t,'db') : {...t,audio:t.audio_url};
             return `<div class="ti" onclick='playTrackObj(${JSON.stringify(track).replace(/"/g,"&quot;")})'>
-              <div class="ti-n">${['🥇','🥈','🥉'][i] || i+1}</div>
+              <div class="ti-n">${['🥇','🥈','🥉'][i]||i+1}</div>
               <div class="ti-th"><img src="${t.thumbnail||PH_}" onerror="this.src='${PH_}'"></div>
               <div class="ti-inf">
                 <div class="ti-t">${_esc(t.title)}</div>
@@ -226,14 +255,14 @@ const PublikProfil = (() => {
           }).filter(Boolean).join('')
         : '<div class="empty-ti"><i class="fas fa-music"></i>Belum ada data</div>';
 
-      // 7. Top artis
+      // ── Top artis ──────────────────────────────────────────
       const artistMap = {};
       top10Ids.forEach(id => {
         const t = trackMap[id]; if (!t) return;
-        const a = t.artist || 'Unknown';
+        const a = t.artist||'Unknown';
         artistMap[a] = (artistMap[a]||0) + countMap[id];
       });
-      const topArtists = Object.entries(artistMap).sort((a,b) => b[1]-a[1]).slice(0,5);
+      const topArtists = Object.entries(artistMap).sort((a,b)=>b[1]-a[1]).slice(0,5);
       document.getElementById('ppTopArtists').innerHTML = topArtists.length
         ? topArtists.map(([name,cnt]) =>
             `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--s2);border:1px solid var(--bd);border-radius:10px">
@@ -243,14 +272,13 @@ const PublikProfil = (() => {
           ).join('')
         : '<div class="empty-ti"><i class="fas fa-microphone"></i>Belum ada data</div>';
 
-      // 8. Riwayat terakhir (10 unik)
+      // ── Riwayat terakhir ───────────────────────────────────
       const seenIds = new Set();
-      const recentUniq = history.filter(h => {
+      const recentUniq = historyRows.filter(h => {
         if (!h.track_id || seenIds.has(h.track_id)) return false;
         seenIds.add(h.track_id); return true;
       }).slice(0,10);
 
-      // Fetch track yang belum ada di trackMap
       const missingIds = recentUniq.map(h=>h.track_id).filter(id=>!trackMap[id]);
       if (missingIds.length) {
         const more = await sb.get('tracks',
@@ -262,7 +290,7 @@ const PublikProfil = (() => {
       document.getElementById('ppRecentList').innerHTML = recentUniq.length
         ? recentUniq.map((h,i) => {
             const t = trackMap[h.track_id]; if (!t) return '';
-            const track = typeof rowToTrack === 'function' ? rowToTrack(t,'db') : {...t, audio: t.audio_url};
+            const track = typeof rowToTrack === 'function' ? rowToTrack(t,'db') : {...t,audio:t.audio_url};
             const ago = typeof getTimeAgo === 'function' ? getTimeAgo(h.played_at) : '';
             return `<div class="ti" onclick='playTrackObj(${JSON.stringify(track).replace(/"/g,"&quot;")})'>
               <div class="ti-n">${i+1}</div>
@@ -276,7 +304,7 @@ const PublikProfil = (() => {
           }).filter(Boolean).join('')
         : '<div class="empty-ti"><i class="fas fa-history"></i>Belum ada riwayat</div>';
 
-      // 9. Pin — tabel pinned_tracks, kolom position (sesuai pin-avatar.js)
+      // ── Pin (tabel pinned_tracks, kolom position) ──────────
       const pinGrid = document.getElementById('ppPinGrid');
       try {
         const pinRows = await sb.get('pinned_tracks',
@@ -285,7 +313,6 @@ const PublikProfil = (() => {
         if (!pinRows?.length) {
           pinGrid.innerHTML = '<div style="color:var(--mt);font-size:.75rem;grid-column:1/-1;text-align:center;padding:12px">Belum ada pin</div>';
         } else {
-          // Fetch track pin yang belum ada
           const pinIds = pinRows.map(p=>p.track_id).filter(id=>!trackMap[id]);
           if (pinIds.length) {
             const pts = await sb.get('tracks',
@@ -297,7 +324,7 @@ const PublikProfil = (() => {
             const pin = pinRows.find(p => p.position === slot);
             const t   = pin ? trackMap[pin.track_id] : null;
             if (!t) return `<div class="pin-empty" style="pointer-events:none"><i class="fas fa-music" style="opacity:.3"></i></div>`;
-            const track = typeof rowToTrack === 'function' ? rowToTrack(t,'db') : {...t, audio: t.audio_url};
+            const track = typeof rowToTrack === 'function' ? rowToTrack(t,'db') : {...t,audio:t.audio_url};
             return `<div class="pin-card" onclick='playTrackObj(${JSON.stringify(track).replace(/"/g,"&quot;")})'>
               <img src="${t.thumbnail||PH_}" onerror="this.src='${PH_}'">
               <div class="pin-overlay">
@@ -308,7 +335,7 @@ const PublikProfil = (() => {
             </div>`;
           }).join('');
         }
-      } catch(e) {
+      } catch {
         pinGrid.innerHTML = '<div style="color:var(--mt);font-size:.75rem;grid-column:1/-1;text-align:center;padding:12px">Pin tidak tersedia</div>';
       }
 
@@ -323,10 +350,10 @@ const PublikProfil = (() => {
     return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
 
-  return { open, openSelf, close };
+  return { open, close };
 })();
 
-// ── Override PinAvatar.openPubProfile → halaman full ────────────
+// ── Override PinAvatar.openPubProfile → halaman full-page ────────
 setTimeout(() => {
   if (typeof PinAvatar !== 'undefined') {
     PinAvatar.openPubProfile = (userKey, displayName) => PublikProfil.open(userKey, displayName);
@@ -334,8 +361,7 @@ setTimeout(() => {
 }, 300);
 
 // ══════════════════════════════════════════════════════════════
-//  FIX loadWrapped — baca dari play_history langsung
-//  Root cause: kode lama pakai myPlayCounts yg reset tiap refresh
+//  FIX loadWrapped — merge user_play_counts + play_history
 // ══════════════════════════════════════════════════════════════
 window.loadWrapped = async function() {
   const _wrPeriod = typeof _wrappedPeriod !== 'undefined' ? _wrappedPeriod : 'month';
@@ -353,17 +379,33 @@ window.loadWrapped = async function() {
 
   try {
     const now = new Date(), since = new Date(now);
-    if (_wrPeriod === 'month') since.setMonth(now.getMonth() - 1);
-    if (_wrPeriod === 'year')  since.setFullYear(now.getFullYear() - 1);
+    if (_wrPeriod === 'month') since.setMonth(now.getMonth()-1);
+    if (_wrPeriod === 'year')  since.setFullYear(now.getFullYear()-1);
     const sinceISO = _wrPeriod === 'all' ? null : since.toISOString();
 
-    const filter = `user_key=eq.${encodeURIComponent(_USER_KEY)}`
-      + (sinceISO ? `&played_at=gte.${encodeURIComponent(sinceISO)}` : '')
-      + '&select=track_id,played_at,duration_played&order=played_at.desc&limit=2000';
+    // Ambil keduanya paralel
+    const [playCountRows, historyRows] = await Promise.all([
+      // user_play_counts tidak ada filter waktu — ini data kumulatif
+      // Hanya pakai untuk 'all', untuk period filter pakai history saja
+      (_wrPeriod === 'all'
+        ? sb.get('user_play_counts', `user_key=eq.${encodeURIComponent(_USER_KEY)}&select=track_id,count`)
+        : Promise.resolve([])
+      ).catch(() => []),
+      sb.get('play_history',
+        `user_key=eq.${encodeURIComponent(_USER_KEY)}`
+        + (sinceISO ? `&played_at=gte.${encodeURIComponent(sinceISO)}` : '')
+        + '&select=track_id,played_at,duration_played&order=played_at.desc&limit=2000'
+      ).catch(() => [])
+    ]);
 
-    const history = await sb.get('play_history', filter);
+    // Merge countMap
+    const countMap = {};
+    playCountRows.forEach(r => { if (r.track_id) countMap[r.track_id] = r.count||0; });
+    const histCountMap = {};
+    historyRows.forEach(h => { if (h.track_id) histCountMap[h.track_id] = (histCountMap[h.track_id]||0)+1; });
+    Object.entries(histCountMap).forEach(([id,cnt]) => { countMap[id] = Math.max(countMap[id]||0, cnt); });
 
-    if (!history.length) {
+    if (!Object.keys(countMap).length) {
       ['wrTopTracks','wrTopArtists','wrTimeSlot'].forEach(id => {
         const el = document.getElementById(id); if (el) el.innerHTML = '<div class="wr-empty">Belum ada data.</div>';
       });
@@ -373,15 +415,11 @@ window.loadWrapped = async function() {
       return;
     }
 
-    // Hitung per track — SETIAP ROW = 1 PLAY
-    const countMap = {};
-    history.forEach(h => { if (h.track_id) countMap[h.track_id] = (countMap[h.track_id]||0) + 1; });
-    const sortedIds  = Object.keys(countMap).sort((a,b) => countMap[b]-countMap[a]);
-    const totalPlays = history.length;
-    const uniqTracks = sortedIds.length;
+    const totalPlays = Object.values(countMap).reduce((a,b)=>a+b,0);
+    const uniqTracks = Object.keys(countMap).length;
+    const sortedIds  = Object.keys(countMap).sort((a,b)=>countMap[b]-countMap[a]);
     const top20Ids   = sortedIds.slice(0,20);
 
-    // Fetch detail track
     let trackMap = {};
     if (top20Ids.length) {
       const tracks = await sb.get('tracks',
@@ -390,10 +428,10 @@ window.loadWrapped = async function() {
       tracks.forEach(t => { trackMap[t.id] = t; });
     }
 
-    // Total menit
+    // Total menit — history rows yang punya duration_played
     let totalSecs = 0;
-    history.forEach(h => {
-      if (h.duration_played && Number(h.duration_played) > 0) {
+    historyRows.forEach(h => {
+      if (h.duration_played && Number(h.duration_played)>0) {
         totalSecs += Number(h.duration_played);
       } else {
         const t = trackMap[h.track_id];
@@ -403,75 +441,61 @@ window.loadWrapped = async function() {
         } else { totalSecs += 210; }
       }
     });
-    const totalMins = Math.round(totalSecs / 60);
+    // Tambah estimasi untuk play dari user_play_counts yang tidak ada di history
+    Object.entries(countMap).forEach(([id,cnt]) => {
+      const histCnt = histCountMap[id]||0;
+      const extra = cnt - histCnt;
+      if (extra <= 0) return;
+      const t = trackMap[id];
+      let spx = 210;
+      if (t?.duration && String(t.duration).includes(':')) { const [m,s]=t.duration.split(':').map(Number); spx=m*60+(s||0); }
+      totalSecs += extra * spx;
+    });
+    const totalMins = Math.round(totalSecs/60);
 
-    // Streak
+    // Streak dari play_history
     const localDate = dt => { const d=new Date(dt); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
-    const playDays = new Set(history.map(h => h.played_at ? localDate(h.played_at) : null));
-    let streak = 0;
-    const _d = new Date();
+    const playDays = new Set(historyRows.map(h => h.played_at ? localDate(h.played_at) : null));
+    let streak=0; const _d=new Date();
     while (playDays.has(localDate(_d))) { streak++; _d.setDate(_d.getDate()-1); }
 
     const _s = id => document.getElementById(id);
     if (_s('wrTotalPlays')) _s('wrTotalPlays').textContent = totalPlays.toLocaleString('id-ID');
     if (_s('wrTotalMins'))  _s('wrTotalMins').textContent  = totalMins.toLocaleString('id-ID');
     if (_s('wrUniqTracks')) _s('wrUniqTracks').textContent = uniqTracks;
-    if (_s('wrStreak'))     _s('wrStreak').textContent     = streak + 'h';
+    if (_s('wrStreak'))     _s('wrStreak').textContent     = streak+'h';
 
-    // Top tracks
-    const _PH2 = typeof PH !== 'undefined' ? PH : '';
     if (_s('wrTopTracks')) {
       _s('wrTopTracks').innerHTML = top20Ids.slice(0,10).map((id,i) => {
-        const t = trackMap[id]; if (!t?.title) return '';
-        const track = typeof rowToTrack==='function' ? rowToTrack(t,'db') : {...t,audio:t.audio_url};
+        const t=trackMap[id]; if(!t?.title) return '';
+        const track=typeof rowToTrack==='function'?rowToTrack(t,'db'):{...t,audio:t.audio_url};
         return `<div class="wr-track-item" onclick='typeof playTrackObj==="function"&&playTrackObj(${JSON.stringify(track).replace(/"/g,"&quot;")})'>
           <div class="wr-track-rank">${['🥇','🥈','🥉'][i]||i+1}</div>
-          <img class="wr-track-thumb" src="${t.thumbnail||_PH2}" onerror="this.src='${_PH2}'">
+          <img class="wr-track-thumb" src="${t.thumbnail||_PH}" onerror="this.src='${_PH}'">
           <div class="wr-track-info">
             <div class="wr-track-title">${t.title||'Unknown'}</div>
             <div class="wr-track-artist">${t.artist||'–'}</div>
           </div>
           <div class="wr-track-cnt">${countMap[id]}×</div>
         </div>`;
-      }).filter(Boolean).join('') || '<div class="wr-empty">Tidak ada data.</div>';
+      }).filter(Boolean).join('')||'<div class="wr-empty">Tidak ada data.</div>';
     }
 
-    // Top artis
-    const artistMap = {};
-    top20Ids.forEach(id => {
-      const t = trackMap[id]; if (!t) return;
-      const a = t.artist||'Unknown';
-      artistMap[a] = (artistMap[a]||0) + countMap[id];
-    });
-    const topArtists = Object.entries(artistMap).sort((a,b)=>b[1]-a[1]).slice(0,7);
+    const artistMap={};
+    top20Ids.forEach(id=>{ const t=trackMap[id]; if(!t) return; artistMap[t.artist||'Unknown']=(artistMap[t.artist||'Unknown']||0)+countMap[id]; });
+    const topArtists=Object.entries(artistMap).sort((a,b)=>b[1]-a[1]).slice(0,7);
     if (_s('wrTopArtists')) {
-      _s('wrTopArtists').innerHTML = topArtists.length
-        ? topArtists.map(([name,cnt]) =>
-            `<div class="wr-artist-item"><div class="wr-artist-name">${name}</div><div class="wr-artist-cnt">${cnt} putar</div></div>`
-          ).join('')
-        : '<div class="wr-empty">Tidak ada data artis.</div>';
+      _s('wrTopArtists').innerHTML=topArtists.length
+        ?topArtists.map(([name,cnt])=>`<div class="wr-artist-item"><div class="wr-artist-name">${name}</div><div class="wr-artist-cnt">${cnt} putar</div></div>`).join('')
+        :'<div class="wr-empty">Tidak ada data artis.</div>';
     }
 
-    // Waktu favorit
-    const slots = {'Tengah Malam':0,'Dini Hari':0,'Pagi':0,'Siang':0,'Sore':0,'Malam':0};
-    history.forEach(h => {
-      if (!h.played_at) return;
-      const hr = new Date(h.played_at).getHours();
-      if (hr<4) slots['Tengah Malam']++;
-      else if (hr<8)  slots['Dini Hari']++;
-      else if (hr<12) slots['Pagi']++;
-      else if (hr<16) slots['Siang']++;
-      else if (hr<20) slots['Sore']++;
-      else            slots['Malam']++;
-    });
-    const maxSlot = Math.max(...Object.values(slots),1);
+    const slots={'Tengah Malam':0,'Dini Hari':0,'Pagi':0,'Siang':0,'Sore':0,'Malam':0};
+    historyRows.forEach(h=>{ if(!h.played_at) return; const hr=new Date(h.played_at).getHours(); if(hr<4) slots['Tengah Malam']++; else if(hr<8) slots['Dini Hari']++; else if(hr<12) slots['Pagi']++; else if(hr<16) slots['Siang']++; else if(hr<20) slots['Sore']++; else slots['Malam']++; });
+    const maxSlot=Math.max(...Object.values(slots),1);
     if (_s('wrTimeSlot')) {
-      _s('wrTimeSlot').innerHTML = Object.entries(slots).map(([lbl,cnt]) =>
-        `<div class="wr-ts-row">
-          <div class="wr-ts-lbl">${lbl}</div>
-          <div class="wr-ts-bar-wrap"><div class="wr-ts-bar" style="width:${Math.round(cnt/maxSlot*100)}%"></div></div>
-          <div class="wr-ts-cnt">${cnt}</div>
-        </div>`
+      _s('wrTimeSlot').innerHTML=Object.entries(slots).map(([lbl,cnt])=>
+        `<div class="wr-ts-row"><div class="wr-ts-lbl">${lbl}</div><div class="wr-ts-bar-wrap"><div class="wr-ts-bar" style="width:${Math.round(cnt/maxSlot*100)}%"></div></div><div class="wr-ts-cnt">${cnt}</div></div>`
       ).join('');
     }
 
