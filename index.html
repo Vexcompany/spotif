@@ -1350,7 +1350,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
     <button class="nav-item" id="nav-party" onclick="navigate('party')">
       <div class="nav-icon-wrap"><i class="fas fa-users"></i><div class="nav-badge" id="partyBadge">LIVE</div></div><span>Party</span>
     </button>
-    <button class="nav-item" id="nav-profil" onclick="PublikProfil.openSelf()">
+    <button class="nav-item" id="nav-profil" onclick="navigate('profil')">
       <div class="nav-icon-wrap"><i class="fas fa-user"></i></div><span>Profil</span>
     </button>
   </nav>
@@ -1499,7 +1499,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 <div class="pdrop" id="pdrop">
   <div class="pd-info"><div class="pd-name" id="pdName">–</div><div class="pd-sub" id="pdSub">–</div></div>
   <div class="pd-div"></div>
-  <div class="pd-item" onclick="PublikProfil.openSelf();togglePD()"><i class="fas fa-user" style="color:var(--p2)"></i> Profil Saya</div>
+  <div class="pd-item" onclick="navigate('profil');togglePD()"><i class="fas fa-user" style="color:var(--p2)"></i> Profil Saya</div>
   <div class="pd-item" onclick="navigate('party');togglePD()"><i class="fas fa-users" style="color:var(--pk)"></i> Party Mode</div>
   <div class="pd-item" onclick="navigate('explore');togglePD()"><i class="fas fa-compass" style="color:var(--b2)"></i> Explore</div>
   <div class="pd-item" onclick="navigate('livefeed');togglePD()"><i class="fas fa-satellite-dish" style="color:var(--rd)"></i> Sedang Diputar</div>
