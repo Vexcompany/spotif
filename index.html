@@ -1609,14 +1609,10 @@ const _avatarCache = {};  // userKey → photo_url | null
 async function getUserAvatarUrl(userKey) {
   if (userKey in _avatarCache) return _avatarCache[userKey];
   try {
-    // user_key format: "NamaLengkap_generasi"
-    const parts = userKey.split('_');
-    const gen   = parts[parts.length - 1];
-    const nama  = parts.slice(0, -1).join('_');
-    const rows  = await sb.get('anggota',
-      `nama=eq.${encodeURIComponent(nama)}&generasi=eq.${encodeURIComponent(gen)}&select=photo_url&limit=1`
+    const rows = await sb.get('user_avatars',
+      `user_key=eq.${encodeURIComponent(userKey)}&select=avatar_url&limit=1`
     );
-    const url = rows?.[0]?.photo_url || null;
+    const url = rows?.[0]?.avatar_url || null;
     _avatarCache[userKey] = url;
     return url;
   } catch {
