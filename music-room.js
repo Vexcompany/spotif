@@ -11,6 +11,7 @@ let musicRoomState = {
   partnerKey: null,
   partnerName: null,
   isHost: false,
+  partnerJoined: false, // true setelah partner_joined signal atau guest join
   karaokeMyTurn: false,
   localStream: null,
   remoteStream: null,
@@ -545,7 +546,7 @@ async function endMusicRoom() {
   const prevState = { ...musicRoomState };
   musicRoomState = {
     active: false, mode: null, sessionId: null, partnerKey: null, partnerName: null,
-    isHost: false, karaokeMyTurn: false,
+    isHost: false, partnerJoined: false, karaokeMyTurn: false,
     localStream: null, remoteStream: null, pc: null, micActive: false,
     listenInterval: null, sigInterval: null,
     karaokeCtx: null, karaokeSource: null, vocalGain: null, karaokeActive: false,
@@ -562,8 +563,11 @@ function renderMusicRoomBody() {
   const body = document.getElementById('mrpBody');
   const s = musicRoomState;
   const track = currentTrack;
-  const meIni = (USER_KEY || 'A').slice(0, 2).toUpperCase();
-  const theyIni = (s.partnerName || 'B').slice(0, 2).toUpperCase();
+
+  // Inisial sebagai fallback
+  const myName = (session?.nama || USER_KEY || 'Saya');
+  const meIni  = myName.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) || '?';
+  const theyIni = (s.partnerName || '–').split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) || '?';
 
   const trackCard = track ? `
     <div class="mrp-track-card">
@@ -580,10 +584,13 @@ function renderMusicRoomBody() {
       </div>
     </div>` : '<div style="text-align:center;color:var(--mt);padding:16px;font-size:.8rem">Tidak ada lagu diputar</div>';
 
+  // Waiting: hanya tampil jika host DAN partner belum join
+  const showWaiting = s.isHost && !s.partnerJoined;
+
   const usersRow = `
     <div class="mrp-users">
       <div class="mrp-user">
-        <div class="mrp-user-av me" id="mrpMeAv">
+        <div class="mrp-user-av me" id="mrpMeAv" data-av-key="${USER_KEY}" data-av-ini="${meIni}" style="overflow:hidden">
           ${meIni}
           <div class="mrp-user-mic" id="mrpMeMic"><i class="fas fa-microphone-slash"></i></div>
         </div>
@@ -592,9 +599,9 @@ function renderMusicRoomBody() {
       </div>
       <div class="mrp-link"><i class="fas fa-music"></i></div>
       <div class="mrp-user">
-        <div class="mrp-user-av" id="mrpTheyAv">${theyIni}</div>
+        <div class="mrp-user-av" id="mrpTheyAv" data-av-key="${s.partnerKey || ''}" data-av-ini="${theyIni}" style="overflow:hidden">${theyIni}</div>
         <div class="mrp-user-nm">${s.partnerName || '–'}</div>
-        <div class="mrp-user-role" id="mrpTheyRole">Menunggu...</div>
+        <div class="mrp-user-role" id="mrpTheyRole">${s.partnerJoined ? (s.isHost ? 'Guest' : 'Host') : 'Menunggu...'}</div>
       </div>
     </div>`;
 
@@ -632,8 +639,8 @@ function renderMusicRoomBody() {
       </div>`;
   } else {
     extra = `
-      <div id="mrpWaitingSection" class="${s.isHost ? 'mrp-waiting' : ''}">
-        ${s.isHost ? `
+      <div id="mrpWaitingSection" class="${showWaiting ? 'mrp-waiting' : ''}">
+        ${showWaiting ? `
           <div class="mrp-waiting-spinner"></div>
           <div class="mrp-waiting-text">Menunggu ${s.partnerName} bergabung...</div>
         ` : ''}
@@ -649,6 +656,37 @@ function renderMusicRoomBody() {
   }
 
   body.innerHTML = trackCard + usersRow + extra;
+
+  // Load foto profil kedua user secara async setelah render
+  if (typeof getUserAvatarUrl === 'function') {
+    getUserAvatarUrl(USER_KEY).then(url => {
+      const el = document.getElementById('mrpMeAv');
+      if (!el) return;
+      if (url) {
+        const mic = el.querySelector('.mrp-user-mic');
+        el.innerHTML = '';
+        const img = document.createElement('img');
+        img.src = url; img.alt = meIni;
+        img.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:50%;display:block';
+        img.onerror = () => { el.innerHTML = ''; el.textContent = meIni; if (mic) el.appendChild(mic); };
+        el.appendChild(img);
+        if (mic) el.appendChild(mic);
+      }
+    });
+    if (s.partnerKey) {
+      getUserAvatarUrl(s.partnerKey).then(url => {
+        const el = document.getElementById('mrpTheyAv');
+        if (el && url) {
+          el.innerHTML = '';
+          const img = document.createElement('img');
+          img.src = url; img.alt = theyIni;
+          img.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:50%;display:block';
+          img.onerror = () => { el.innerHTML = ''; el.textContent = theyIni; };
+          el.appendChild(img);
+        }
+      });
+    }
+  }
 }
 
 // ─────────────────── SYNC LOOP — FIXED ────────────────────────
@@ -757,6 +795,7 @@ async function handleSignal(sig) {
   switch (sig.type) {
     case 'partner_joined':
       musicRoomState.partnerName = data.name || musicRoomState.partnerName;
+      musicRoomState.partnerJoined = true; // tandai partner sudah join, jangan tampilkan waiting lagi
       const roleEl = document.getElementById('mrpTheyRole');
       if (roleEl) roleEl.textContent = 'Guest';
       const waitEl = document.getElementById('mrpWaitingSection');
@@ -1250,6 +1289,7 @@ async function acceptMusicRoom() {
       partnerKey: fromKey,
       partnerName: document.getElementById('chatRoomName')?.textContent || fromKey,
       isHost: false,
+      partnerJoined: true, // guest join = host pasti sudah ada
       karaokeMyTurn: mode === 'karaoke' ? false : false,
     };
 
