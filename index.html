@@ -1598,6 +1598,82 @@ const sb = {
 };
 
 // ══════════════════════════════════════════════════════════════
+//  AVATAR CACHE — ambil photo_url dari tabel anggota, cache di memori
+// ══════════════════════════════════════════════════════════════
+const _avatarCache = {};  // userKey → photo_url | null
+
+/**
+ * Ambil photo_url user dari Supabase (dengan cache).
+ * Selalu resolve (tidak pernah reject); null jika tidak ada foto.
+ */
+async function getUserAvatarUrl(userKey) {
+  if (userKey in _avatarCache) return _avatarCache[userKey];
+  try {
+    // user_key format: "NamaLengkap_generasi"
+    const parts = userKey.split('_');
+    const gen   = parts[parts.length - 1];
+    const nama  = parts.slice(0, -1).join('_');
+    const rows  = await sb.get('anggota',
+      `nama=eq.${encodeURIComponent(nama)}&generasi=eq.${encodeURIComponent(gen)}&select=photo_url&limit=1`
+    );
+    const url = rows?.[0]?.photo_url || null;
+    _avatarCache[userKey] = url;
+    return url;
+  } catch {
+    _avatarCache[userKey] = null;
+    return null;
+  }
+}
+
+/**
+ * Terapkan avatar (foto atau inisial) ke elemen container.
+ * el      — elemen DOM yang akan berisi foto/inisial
+ * url     — photo_url dari Supabase (bisa null)
+ * ini     — teks inisial fallback (maks 2 karakter)
+ * size    — ukuran img (default 100%)
+ */
+function applyAvatarToEl(el, url, ini, size='100%') {
+  if (!el) return;
+  if (url) {
+    el.innerHTML = '';
+    const img = document.createElement('img');
+    img.src    = url;
+    img.alt    = ini;
+    img.style.cssText = `width:${size};height:${size};object-fit:cover;border-radius:50%;display:block`;
+    img.onerror = () => { el.innerHTML = ''; el.textContent = ini; };
+    el.appendChild(img);
+  } else {
+    el.innerHTML = '';
+    el.textContent = ini;
+  }
+}
+
+/**
+ * Render string HTML avatar (untuk template literal).
+ * Karena async tidak bisa di dalam map(), gunakan ini untuk pre-fetch batch
+ * lalu inject foto setelah render via applyAvatarAfterRender().
+ */
+function avatarHtmlPlaceholder(userKey, ini, cls, extraStyle='') {
+  const safeKey = userKey.replace(/[^a-z0-9]/gi, '_');
+  return `<div class="${cls}" data-av-key="${userKey}" data-av-ini="${ini}" style="${extraStyle}overflow:hidden">${ini}</div>`;
+}
+
+/**
+ * Setelah merender elemen-elemen dengan data-av-key, panggil ini
+ * untuk mengisi foto secara async.
+ */
+async function applyAvatarAfterRender(containerEl) {
+  if (!containerEl) return;
+  const els = containerEl.querySelectorAll('[data-av-key]');
+  await Promise.all([...els].map(async el => {
+    const key = el.dataset.avKey;
+    const ini = el.dataset.avIni || '?';
+    const url = await getUserAvatarUrl(key);
+    applyAvatarToEl(el, url, ini);
+  }));
+}
+
+// ══════════════════════════════════════════════════════════════
 //  SESSION & NAVIGATION
 // ══════════════════════════════════════════════════════════════
 const session=JSON.parse(localStorage.getItem(SESS_KEY)||'null');
@@ -2902,8 +2978,9 @@ function renderActivity(){
     const name=r.user_key?.split('_').slice(0,-1).join(' ')||r.user_key||'?';
     const ini=name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
     const timeAgo=getTimeAgo(r.played_at||r.created_at);
-    return `<div class="activity-item"><div class="act-av" id="actav-${r.user_key}" style="overflow:hidden">${ini}</div><div class="act-info"><div class="act-name" style="cursor:pointer" onclick="PinAvatar.openPubProfile('${r.user_key.replace(/'/g,"\\'")}','${name.replace(/'/g,"\\'")}')">` + (r.user_key===USER_KEY?name+' <span style="color:var(--g);font-size:.68rem">(kamu)</span>':name) + `</div><div class="act-track">${t?`🎵 ${t.title}`:'Memutar lagu'}</div></div><div class="act-time">${timeAgo}</div>${r.user_key===USER_KEY?'<div class="act-dot"></div>':''}</div>`;
+    return `<div class="activity-item">${avatarHtmlPlaceholder(r.user_key,ini,'act-av')}<div class="act-info"><div class="act-name" style="cursor:pointer" onclick="PinAvatar.openPubProfile('${r.user_key.replace(/'/g,"\\'")}','${name.replace(/'/g,"\\'")}')">` + (r.user_key===USER_KEY?name+' <span style="color:var(--g);font-size:.68rem">(kamu)</span>':name) + `</div><div class="act-track">${t?`🎵 ${t.title}`:'Memutar lagu'}</div></div><div class="act-time">${timeAgo}</div>${r.user_key===USER_KEY?'<div class="act-dot"></div>':''}</div>`;
   }).join('');
+  applyAvatarAfterRender(el);
 }
 
 function resizeThumb(url, size=300){
@@ -3006,9 +3083,10 @@ async function loadChatList(){
       const escapedKey=otherKey.replace(/'/g,"\\'");
       const escapedName=name.replace(/'/g,"\\'");
       const unreadBadge=unreadCnt>0?`<div class="chat-unread-cnt">${unreadCnt>99?'99+':unreadCnt}</div>`:'';
-      return `<div class="chat-item ${isUnread?'unread':''}" data-user-key="${otherKey}" onclick="openChatRoom('${escapedKey}','${escapedName}')"><div class="chat-av" style="overflow:hidden">${ini}<div class="chat-online"></div></div><div class="chat-info"><div class="chat-name">${name} <span onclick="event.stopPropagation();PinAvatar.openPubProfile('${escapedKey}','${escapedName}')" style="color:var(--mt);font-size:.65rem;cursor:pointer" title="Lihat profil"><i class="fas fa-user-circle"></i></span></div><div class="chat-preview ${lastMsg.track_id?'track':''}">${escapeHtml(preview)}</div></div><div class="chat-meta"><div class="chat-time">${timeAgo}</div>${unreadBadge}</div></div>`;
+      return `<div class="chat-item ${isUnread?'unread':''}" data-user-key="${otherKey}" onclick="openChatRoom('${escapedKey}','${escapedName}')"><div class="chat-av" data-av-key="${otherKey}" data-av-ini="${ini}" style="overflow:hidden">${ini}<div class="chat-online"></div></div><div class="chat-info"><div class="chat-name">${name} <span onclick="event.stopPropagation();PinAvatar.openPubProfile('${escapedKey}','${escapedName}')" style="color:var(--mt);font-size:.65rem;cursor:pointer" title="Lihat profil"><i class="fas fa-user-circle"></i></span></div><div class="chat-preview ${lastMsg.track_id?'track':''}">${escapeHtml(preview)}</div></div><div class="chat-meta"><div class="chat-time">${timeAgo}</div>${unreadBadge}</div></div>`;
     }).join('');
     updatePresenceUI();
+    applyAvatarAfterRender(el);
   }catch(e){console.warn('[chat]',e.message);}
 }
 
@@ -3024,7 +3102,21 @@ async function openChatRoom(otherKey,name){
   if(!chatRoomEl||!nameEl||!avEl||!messagesEl)return;
   chatRoomEl.classList.add('open');
   nameEl.textContent   = name||otherKey;
-  avEl.textContent     = (name||otherKey).split(' ').map(w=>w[0]||'').join('').toUpperCase().slice(0,2)||'?';
+  const _chatIni = (name||otherKey).split(' ').map(w=>w[0]||'').join('').toUpperCase().slice(0,2)||'?';
+  avEl.textContent     = _chatIni;
+  getUserAvatarUrl(otherKey).then(url => {
+    if (url) {
+      // Preserve .chat-online dot if present
+      const onlineDot = avEl.querySelector('.chat-online');
+      avEl.innerHTML = '';
+      const img = document.createElement('img');
+      img.src = url; img.alt = _chatIni;
+      img.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:50%;display:block';
+      img.onerror = () => { avEl.innerHTML = ''; avEl.textContent = _chatIni; if(onlineDot) avEl.appendChild(onlineDot); };
+      avEl.appendChild(img);
+      if (onlineDot) avEl.appendChild(onlineDot);
+    }
+  });
   if(statusEl) statusEl.textContent='Memuat...';
   messagesEl.innerHTML ='<div class="empty-ti"><i class="fas fa-circle-notch spin"></i>Memuat...</div>';
   updatePresenceUI();
@@ -3132,8 +3224,9 @@ function _renderShareList(q){
     const safeId='sm-'+key.replace(/[^a-zA-Z0-9]/g,'_');
     const ini=u.nama.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
     const sel=selectedShareMembers.includes(key)?'selected':'';
-    return `<div class="share-member-item ${sel}" id="${safeId}" onclick="toggleShareMember('${key.replace(/'/g,"\\'")}','${u.nama.replace(/'/g,"\\'")}')"><div class="share-member-av">${ini}</div><div class="share-member-name">${u.nama}</div><div class="share-member-gen">Gen ${u.generasi}</div><i class="fas fa-check share-check"></i></div>`;
+    return `<div class="share-member-item ${sel}" id="${safeId}" onclick="toggleShareMember('${key.replace(/'/g,"\\'")}','${u.nama.replace(/'/g,"\\'")}')"><div class="share-member-av" data-av-key="${key}" data-av-ini="${ini}">${ini}</div><div class="share-member-name">${u.nama}</div><div class="share-member-gen">Gen ${u.generasi}</div><i class="fas fa-check share-check"></i></div>`;
   }).join(''):'<div style="text-align:center;color:var(--mt);padding:20px">Tidak ada anggota ditemukan</div>';
+  applyAvatarAfterRender(list);
 }
 
 function toggleShareMember(key,name){
@@ -3309,8 +3402,9 @@ async function loadProfil(){
   document.getElementById('profilName').textContent=u.nama||'–';
   document.getElementById('profilSub').textContent=`${u.jabatan} · Generasi ${u.generasi}`;
 
-  // Load avatar
+  // Load avatar profil + topbar
   PinAvatar.loadMyAvatar();
+  getUserAvatarUrl(USER_KEY).then(url => applyAvatarToEl(document.getElementById('uAv'), url, ini));
   // Load pin grid
   PinAvatar.renderMyPins();
 
@@ -3572,6 +3666,8 @@ async function initApp(){
 
   document.getElementById('uAv').textContent=ini;
   document.getElementById('uNm').textContent=(u.nama||'').split(' ')[0];
+  // Load foto profil user sendiri ke topbar
+  getUserAvatarUrl(USER_KEY).then(url => applyAvatarToEl(document.getElementById('uAv'), url, ini));
   document.getElementById('pdName').textContent=u.nama||'–';
   document.getElementById('pdSub').textContent=`${u.jabatan} · Generasi ${u.generasi}`;
 
@@ -3818,8 +3914,9 @@ function updatePresenceUI() {
     avEl.innerHTML = onlineKeys.map(key => {
       const name = key.split('_').slice(0, -1).join(' ') || key;
       const ini = name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
-      return `<div class="party-av" title="${name}">${ini}</div>`;
+      return `<div class="party-av" data-av-key="${key}" data-av-ini="${ini}" title="${name}">${ini}</div>`;
     }).join('');
+    applyAvatarAfterRender(avEl);
   }
 }
 
@@ -4223,8 +4320,8 @@ async function loadLiveFeed() {
       const ago  = getTimeAgo(r.played_at);
       const isMe = r.user_key === USER_KEY;
       return `<div class="lf-item">
-        <div class="lf-av" style="overflow:hidden;cursor:pointer;flex-shrink:0" onclick="PinAvatar.openPubProfile('${r.user_key.replace(/'/g,"\\'")}','${name.replace(/'/g,"\\'")}')">
-          <span class="lf-av-init-${r.user_key.replace(/[^a-z0-9]/gi,'_')}">${ini}</span>
+        <div class="lf-av" data-av-key="${r.user_key}" data-av-ini="${ini}" style="overflow:hidden;cursor:pointer;flex-shrink:0" onclick="PinAvatar.openPubProfile('${r.user_key.replace(/'/g,"\\'")}','${name.replace(/'/g,"\\'")}')">
+          ${ini}
         </div>
         <div class="lf-info">
           <div class="lf-name" style="cursor:pointer" onclick="PinAvatar.openPubProfile('${r.user_key.replace(/'/g,"\\'")}','${name.replace(/'/g,"\\'")}')">
@@ -4238,6 +4335,7 @@ async function loadLiveFeed() {
       </div>`;
     }).join('');
 
+    applyAvatarAfterRender(listEl);
   } catch(e) { console.warn('[LiveFeed]', e.message); }
 }
 
