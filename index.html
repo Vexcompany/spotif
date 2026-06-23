@@ -2764,7 +2764,7 @@ async function loadQuickPlay(){
     document.getElementById('quickPlaySec').style.display='block';
     _skeletonQP(el, 8);
 
-    const rows=await sb.get('tracks','order=last_played.desc.nullslast&limit=50');
+    const rows=await sb.get('tracks','order=last_played.desc.nullslast&limit=100');
     document.getElementById('quickPlaySec').style.display=rows.length?'block':'none';
     document.getElementById('qpCnt').textContent=rows.length;
     if(!rows.length){el.innerHTML='<p style="color:var(--mt);font-size:.8rem;grid-column:1/-1;text-align:center;padding:16px">Belum ada lagu tersimpan.</p>';return;}
@@ -2905,7 +2905,7 @@ async function loadTopChart(){
     let rows;
     if (_chartPeriod === 'all') {
       // Query langsung dari tabel tracks (play_count kumulatif)
-      rows = await sb.get('tracks','order=play_count.desc&limit=50&play_count=gt.0');
+      rows = await sb.get('tracks','order=play_count.desc&limit=100&play_count=gt.0');
     } else {
       // Query dari play_history dengan filter waktu, lalu group by track_id
       const now   = new Date();
