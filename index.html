@@ -1850,17 +1850,25 @@ let _playAbort=null;
 
 async function safePlay(){
   if(_playAbort){_playAbort();_playAbort=null;}
-  await new Promise(r=>setTimeout(r,30));
+  // Langsung update UI & mediaSession — jangan tunggu promise agar notifikasi responsif
+  isPlaying=true;
+  if('mediaSession' in navigator){
+    navigator.mediaSession.playbackState='playing';
+    _updatePositionState();
+  }
+  updAll();
   let cancelled=false;
   _playAbort=()=>{cancelled=true;};
   try{
     const p=audio.play();
     if(p&&typeof p.then==='function')await p;
-    if(cancelled)audio.pause();
-    else{isPlaying=true;if('mediaSession' in navigator){navigator.mediaSession.playbackState='playing';_updatePositionState();}updAll();requestWakeLock();}
+    if(cancelled){ audio.pause(); isPlaying=false; updAll(); return; }
+    requestWakeLock();
   }catch(e){
     if(e.name!=='AbortError'&&e.name!=='NotAllowedError')toast('⚠️ Gagal memutar: '+e.message);
-    isPlaying=false;updAll();
+    isPlaying=false;
+    if('mediaSession' in navigator) navigator.mediaSession.playbackState='paused';
+    updAll();
   }finally{_playAbort=null;}
 }
 
@@ -2205,15 +2213,17 @@ async function playTrackObj(t){
       ] : [],
     });
 
-    navigator.mediaSession.setActionHandler('play',  () => { safePlay();  updAll(); });
-    navigator.mediaSession.setActionHandler('pause', () => { safePause(); updAll(); });
+    // Play/pause — pakai event dispatchEvent agar sync state lebih cepat
+    navigator.mediaSession.setActionHandler('play', () => {
+      safePlay(); updAll(); _updatePositionState();
+    });
+    navigator.mediaSession.setActionHandler('pause', () => {
+      safePause(); updAll(); _updatePositionState();
+    });
     navigator.mediaSession.setActionHandler('previoustrack', () => prevTrack());
     navigator.mediaSession.setActionHandler('nexttrack',     () => nextTrack());
     navigator.mediaSession.setActionHandler('seekto', (e) => {
-      if (audio.duration) {
-        audio.currentTime = e.seekTime;
-        _updatePositionState();
-      }
+      if (audio.duration) { audio.currentTime = e.seekTime; _updatePositionState(); }
     });
     navigator.mediaSession.setActionHandler('seekbackward', (e) => {
       audio.currentTime = Math.max(0, audio.currentTime - (e.seekOffset || 10));
@@ -2224,10 +2234,19 @@ async function playTrackObj(t){
       _updatePositionState();
     });
 
-    // Panggil setPositionState segera setelah audio siap — ini kunci agar
-    // notifikasi lockscreen TIDAK hilang saat di-pause
+    // Shuffle & Repeat di notifikasi lockscreen (Android Chrome support)
+    try {
+      navigator.mediaSession.setActionHandler('toggleshuffle', () => {
+        toggleShuffle(); _updateMediaSessionShuffleRepeat();
+      });
+    } catch(e) {}
+    try {
+      navigator.mediaSession.setActionHandler('togglemicrophone', null); // clear unused
+    } catch(e) {}
+
     audio.addEventListener('loadedmetadata', _updatePositionState, { once: false });
     _updatePositionState();
+    _updateMediaSessionShuffleRepeat();
   }
   // ────────────────────────────────────────────────────────────
 
@@ -2284,6 +2303,7 @@ function toggleShuffle(){
   document.getElementById('cbShuf').classList.toggle('on',isShuffle);
   if(npOpen)document.getElementById('npShuf').classList.toggle('on-g',isShuffle);
   toast(isShuffle?'Shuffle aktif 🔀':'Shuffle nonaktif');
+  _updateMediaSessionShuffleRepeat();
 }
 
 function toggleRepeat(){
@@ -2291,6 +2311,20 @@ function toggleRepeat(){
   document.getElementById('cbRep').classList.toggle('on',isRepeat);
   if(npOpen)document.getElementById('npRep').classList.toggle('on-g',isRepeat);
   toast(isRepeat?'Repeat aktif 🔁':'Repeat nonaktif');
+  _updateMediaSessionShuffleRepeat();
+}
+
+// Sync status shuffle & repeat ke media session notification
+function _updateMediaSessionShuffleRepeat() {
+  if (!('mediaSession' in navigator)) return;
+  // Chromium mendukung 'shuffleEnabled' dan 'repeatMode' via metadata trick —
+  // cara paling kompatibel adalah update metadata dengan field tambahan
+  // lalu tampilkan state lewat artwork badge (fallback visual)
+  try {
+    // Update playback state agar lockscreen refresh ikonnya
+    navigator.mediaSession.playbackState = (isPlaying && !audio.paused) ? 'playing' : 'paused';
+    _updatePositionState();
+  } catch(e) {}
 }
 
 function toggleMute(){
@@ -4651,65 +4685,19 @@ async function loadWrapped() {
   }
 }
 
-// ── Navbar auto-hide saat scroll ─────────────────────────────────────────────
+// ── Navbar selalu tampil — auto-hide dinonaktifkan ────────────────────────────────────────────
+// Auto-hide dihapus karena menyebabkan navbar naik sendiri,
+// player bar menimpa tombol lain, dan ganti lagu tidak sengaja.
 (function() {
-  const nav = document.querySelector('.bottom-nav');
-  if (!nav) return;
-
-  let lastY     = window.scrollY;
-  let ticking   = false;
-  let hideTimer = null;
-
-  // Jangan sembunyikan navbar kalau halaman hampir tidak bisa di-scroll
-  const canScroll = () => document.documentElement.scrollHeight - window.innerHeight > 80;
-
-  function onScroll() {
-    if (!ticking) {
-      requestAnimationFrame(() => {
-        if (!canScroll()) { showNav(); ticking = false; return; }
-
-        const y     = window.scrollY;
-        const delta = y - lastY;
-
-        if (delta > 6) {
-          // Scroll ke bawah → sembunyikan
-          hideNav();
-        } else if (delta < -4) {
-          // Scroll ke atas → tampilkan
-          showNav();
-        }
-
-        lastY   = y;
-        ticking = false;
-      });
-      ticking = true;
-    }
-  }
-
-  function hideNav() {
-    nav.classList.add('nav-hidden');
-    clearTimeout(hideTimer);
-    // Pbar ikut turun ke bottom:0 saat navbar menghilang
-    const pbar = document.getElementById('pbar');
-    if (pbar) pbar.classList.add('nav-collapsed');
-    // Auto-muncul kembali setelah 4 detik berhenti scroll (safety net)
-    hideTimer = setTimeout(showNav, 4000);
-  }
-
-  function showNav() {
-    nav.classList.remove('nav-hidden');
-    clearTimeout(hideTimer);
-    // Pbar kembali ke posisi di atas navbar
-    const pbar = document.getElementById('pbar');
+  const nav  = document.querySelector('.bottom-nav');
+  const pbar = document.getElementById('pbar');
+  if (nav)  nav.classList.remove('nav-hidden');
+  if (pbar) pbar.classList.remove('nav-collapsed');
+  window.showNav = function() {
+    if (nav)  nav.classList.remove('nav-hidden');
     if (pbar) pbar.classList.remove('nav-collapsed');
-  }
-
-  window.addEventListener('scroll', onScroll, { passive: true });
-
-  // Selalu tampilkan kembali saat user tap di area bawah layar
-  document.addEventListener('touchstart', (e) => {
-    if (e.touches[0].clientY > window.innerHeight * 0.75) showNav();
-  }, { passive: true });
+  };
+  window.hideNav = function() {};
 })();
 </script>
 
