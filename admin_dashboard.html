@@ -171,6 +171,10 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
         <i class="fas fa-users"></i> Party Queue
         <span class="sb-badge" id="partyBadge">–</span>
       </button>
+      <button class="sb-item" id="nav-vtuber" onclick="showPanel('vtuber')">
+        <i class="fas fa-star"></i> VTuber Cover
+        <span class="sb-badge" id="vtuberBadge">–</span>
+      </button>
       <div class="sb-section">Info</div>
       <button class="sb-item" id="nav-stats" onclick="showPanel('stats')">
         <i class="fas fa-chart-bar"></i> Statistik
@@ -247,6 +251,77 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
         </div>
       </div>
 
+      <!-- PANEL: VTUBER COVER -->
+      <div class="panel" id="panel-vtuber">
+        <div class="panel-head">
+          <div class="panel-title"><i class="fas fa-star" style="color:var(--yw)"></i> VTuber Cover Archive</div>
+          <div class="panel-actions">
+            <button class="tb-btn" onclick="openVtuberUpload()" style="background:linear-gradient(135deg,var(--p),var(--p2));border-color:var(--p);color:#fff"><i class="fas fa-plus"></i> Upload Lagu</button>
+          </div>
+        </div>
+        <!-- Upload Form -->
+        <div id="vtuberUploadForm" style="display:none;background:var(--s1);border:1px solid var(--bd);border-radius:14px;padding:20px;margin-bottom:16px">
+          <div style="font-size:.82rem;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:6px;justify-content:space-between">
+            <span><i class="fas fa-upload" style="color:var(--p2)"></i> Upload Lagu Cover VTuber</span>
+            <button onclick="closeVtuberUpload()" style="background:transparent;border:none;color:var(--mt);cursor:pointer;font-size:.9rem"><i class="fas fa-times"></i></button>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+            <div>
+              <label style="font-size:.65rem;font-weight:700;color:var(--mt);text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:4px">Judul Lagu Asli *</label>
+              <input id="vtTitle" type="text" placeholder="cth: Blessing" style="width:100%;padding:10px 12px;border-radius:9px;border:1px solid var(--bd);background:rgba(255,255,255,.05);color:var(--tx);font-size:.82rem;font-family:inherit;outline:none">
+            </div>
+            <div>
+              <label style="font-size:.65rem;font-weight:700;color:var(--mt);text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:4px">Artis / Pencipta Asli *</label>
+              <input id="vtOrigArtist" type="text" placeholder="cth: Hikaru Utada" style="width:100%;padding:10px 12px;border-radius:9px;border:1px solid var(--bd);background:rgba(255,255,255,.05);color:var(--tx);font-size:.82rem;font-family:inherit;outline:none">
+            </div>
+            <div>
+              <label style="font-size:.65rem;font-weight:700;color:var(--mt);text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:4px">Nama VTuber (yang cover) *</label>
+              <input id="vtVtuberName" type="text" placeholder="cth: Hoshimachi Suisei" style="width:100%;padding:10px 12px;border-radius:9px;border:1px solid var(--bd);background:rgba(255,255,255,.05);color:var(--tx);font-size:.82rem;font-family:inherit;outline:none">
+            </div>
+            <div>
+              <label style="font-size:.65rem;font-weight:700;color:var(--mt);text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:4px">Nama Agensi *</label>
+              <input id="vtAgency" type="text" placeholder="cth: hololive production" style="width:100%;padding:10px 12px;border-radius:9px;border:1px solid var(--bd);background:rgba(255,255,255,.05);color:var(--tx);font-size:.82rem;font-family:inherit;outline:none">
+            </div>
+            <div style="grid-column:1/-1">
+              <label style="font-size:.65rem;font-weight:700;color:var(--mt);text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:4px">URL Audio *</label>
+              <input id="vtAudioUrl" type="url" placeholder="https://... (link langsung ke file audio / R2)" style="width:100%;padding:10px 12px;border-radius:9px;border:1px solid var(--bd);background:rgba(255,255,255,.05);color:var(--tx);font-size:.82rem;font-family:inherit;outline:none">
+            </div>
+            <div>
+              <label style="font-size:.65rem;font-weight:700;color:var(--mt);text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:4px">URL Thumbnail</label>
+              <input id="vtThumb" type="url" placeholder="https://... (opsional)" style="width:100%;padding:10px 12px;border-radius:9px;border:1px solid var(--bd);background:rgba(255,255,255,.05);color:var(--tx);font-size:.82rem;font-family:inherit;outline:none">
+            </div>
+            <div>
+              <label style="font-size:.65rem;font-weight:700;color:var(--mt);text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:4px">Tahun Cover</label>
+              <input id="vtYear" type="number" placeholder="cth: 2023" min="2000" max="2099" style="width:100%;padding:10px 12px;border-radius:9px;border:1px solid var(--bd);background:rgba(255,255,255,.05);color:var(--tx);font-size:.82rem;font-family:inherit;outline:none">
+            </div>
+            <div style="grid-column:1/-1">
+              <label style="font-size:.65rem;font-weight:700;color:var(--mt);text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:4px">Deskripsi / Catatan (opsional)</label>
+              <textarea id="vtDesc" placeholder="Catatan tentang cover ini..." rows="2" style="width:100%;padding:10px 12px;border-radius:9px;border:1px solid var(--bd);background:rgba(255,255,255,.05);color:var(--tx);font-size:.82rem;font-family:inherit;outline:none;resize:vertical"></textarea>
+            </div>
+          </div>
+          <!-- Copyright preview -->
+          <div id="vtCopyrightPreview" style="margin-top:12px;padding:10px 14px;background:rgba(155,127,232,.07);border:1px solid rgba(155,127,232,.2);border-radius:10px;font-size:.72rem;color:var(--mt);line-height:1.6;display:none">
+            <i class="fas fa-shield-alt" style="color:var(--p2);margin-right:6px"></i>
+            <span id="vtCopyrightText"></span>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:14px">
+            <button onclick="closeVtuberUpload()" class="btn-cancel" style="flex:0 0 auto;padding:10px 18px">Batal</button>
+            <button onclick="submitVtuberUpload()" style="flex:1;padding:11px;border-radius:10px;border:none;background:linear-gradient(135deg,var(--p),var(--p2));color:#fff;font-size:.82rem;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px" id="vtSubmitBtn">
+              <i class="fas fa-upload"></i> Simpan ke Arsip
+            </button>
+          </div>
+          <div id="vtUploadResult" style="font-size:.75rem;text-align:center;margin-top:8px;min-height:16px"></div>
+        </div>
+        <!-- List -->
+        <div class="search-bar">
+          <i class="fas fa-search"></i>
+          <input type="text" id="vtuberSearch" placeholder="Cari judul, VTuber, atau agensi..." oninput="filterVtuber()">
+        </div>
+        <div class="tbl-wrap" id="vtuberList">
+          <div class="empty"><i class="fas fa-circle-notch spin"></i>Memuat...</div>
+        </div>
+      </div>
+
       <!-- PANEL: STATS -->
       <div class="panel" id="panel-notif">
         <div class="panel-head">
@@ -311,9 +386,9 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 <nav class="mobile-nav">
   <button class="mn-item active" id="mn-tracks" onclick="showPanel('tracks')"><i class="fas fa-music"></i>Lagu</button>
   <button class="mn-item" id="mn-party" onclick="showPanel('party')"><i class="fas fa-users"></i>Party</button>
+  <button class="mn-item" id="mn-vtuber" onclick="showPanel('vtuber')"><i class="fas fa-star"></i>VTuber</button>
   <button class="mn-item" id="mn-stats" onclick="showPanel('stats')"><i class="fas fa-chart-bar"></i>Stats</button>
   <button class="mn-item" id="mn-notif" onclick="showPanel('notif')"><i class="fas fa-bell"></i>Notif</button>
-  <button class="mn-item" onclick="window.location.href='index.html'"><i class="fas fa-home"></i>Player</button>
 </nav>
 
 <!-- CONFIRM MODAL -->
@@ -566,17 +641,18 @@ function previewTrack(encodedUrl){
 }
 
 // ── PANELS ────────────────────────────────────────────────────
-const panels = ['tracks','party','stats','notif'];
+const panels = ['tracks','party','vtuber','stats','notif'];
 function showPanel(name){
   panels.forEach(p=>{
     document.getElementById(`panel-${p}`).classList.toggle('active', p===name);
     document.getElementById(`nav-${p}`)?.classList.toggle('active', p===name);
     document.getElementById(`mn-${p}`)?.classList.toggle('active', p===name);
   });
-  const titles = { tracks:'Kelola Lagu', party:'Party Queue', stats:'Statistik' };
+  const titles = { tracks:'Kelola Lagu', party:'Party Queue', stats:'Statistik', vtuber:'VTuber Cover Archive', notif:'Kirim Notifikasi' };
   document.getElementById('panelTitle').textContent = titles[name] || name;
   if (name === 'notif') loadNotifHistory();
   if(name==='stats') loadStats();
+  if(name==='vtuber') loadVtuberCovers();
 }
 
 function refreshAll(){
@@ -694,6 +770,176 @@ async function loadNotifHistory() {
   }
 }
 
+
+// ── VTUBER COVER ──────────────────────────────────────────────
+let allVtuberCovers = [];
+
+function openVtuberUpload(){
+  document.getElementById('vtuberUploadForm').style.display = 'block';
+  document.getElementById('vtCopyrightPreview').style.display = 'none';
+  // Live preview copyright
+  ['vtVtuberName','vtAgency'].forEach(id => {
+    document.getElementById(id).addEventListener('input', updateCopyrightPreview);
+  });
+}
+function closeVtuberUpload(){
+  document.getElementById('vtuberUploadForm').style.display = 'none';
+  ['vtTitle','vtOrigArtist','vtVtuberName','vtAgency','vtAudioUrl','vtThumb','vtYear','vtDesc'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  document.getElementById('vtUploadResult').textContent = '';
+  document.getElementById('vtCopyrightPreview').style.display = 'none';
+}
+function updateCopyrightPreview(){
+  const vtuber = document.getElementById('vtVtuberName').value.trim();
+  const agency = document.getElementById('vtAgency').value.trim();
+  const preview = document.getElementById('vtCopyrightPreview');
+  const text    = document.getElementById('vtCopyrightText');
+  if(vtuber || agency){
+    const agencyStr = agency || 'agensi terkait';
+    const vtuberStr = vtuber || 'VTuber ini';
+    text.textContent = `Seluruh hak cipta lagu dan karakter ini adalah milik © ${agencyStr}. Halaman ini dibuat murni sebagai arsip non-komersial untuk mengenang karya ${vtuberStr}.`;
+    preview.style.display = 'block';
+  } else {
+    preview.style.display = 'none';
+  }
+}
+
+async function submitVtuberUpload(){
+  const title      = document.getElementById('vtTitle').value.trim();
+  const origArtist = document.getElementById('vtOrigArtist').value.trim();
+  const vtuberName = document.getElementById('vtVtuberName').value.trim();
+  const agency     = document.getElementById('vtAgency').value.trim();
+  const audioUrl   = document.getElementById('vtAudioUrl').value.trim();
+  const thumb      = document.getElementById('vtThumb').value.trim();
+  const year       = document.getElementById('vtYear').value.trim();
+  const desc       = document.getElementById('vtDesc').value.trim();
+  const result     = document.getElementById('vtUploadResult');
+  const btn        = document.getElementById('vtSubmitBtn');
+
+  if(!title || !origArtist || !vtuberName || !agency || !audioUrl){
+    result.style.color = 'var(--rd)';
+    result.textContent = '⚠️ Judul, artis asli, nama VTuber, agensi, dan URL audio wajib diisi.';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-circle-notch spin"></i> Menyimpan...';
+  result.textContent = '';
+
+  try {
+    const copyrightText = `Seluruh hak cipta lagu dan karakter ini adalah milik © ${agency}. Halaman ini dibuat murni sebagai arsip non-komersial untuk mengenang karya ${vtuberName}.`;
+    const row = {
+      title,
+      original_artist: origArtist,
+      vtuber_name:     vtuberName,
+      agency,
+      audio_url:       audioUrl,
+      thumbnail:       thumb || null,
+      cover_year:      year  ? parseInt(year) : null,
+      description:     desc  || null,
+      copyright_text:  copyrightText,
+      uploaded_by:     adminSess?.nama || 'Admin',
+      created_at:      new Date().toISOString(),
+    };
+    const res = await fetch(`${SB_URL}/rest/v1/vtuber_covers`, {
+      method:  'POST',
+      headers: { ...HDR, 'Prefer': 'return=minimal' },
+      body:    JSON.stringify(row),
+    });
+    if(!res.ok){ const e = await res.text(); throw new Error(e); }
+    result.style.color = 'var(--g)';
+    result.textContent = `✅ "${title}" (cover oleh ${vtuberName}) berhasil disimpan!`;
+    toast('⭐ VTuber cover ditambahkan!');
+    setTimeout(()=>{ closeVtuberUpload(); loadVtuberCovers(); }, 1200);
+  } catch(e) {
+    result.style.color = 'var(--rd)';
+    result.textContent = '❌ Error: ' + e.message;
+  }
+  btn.disabled = false;
+  btn.innerHTML = '<i class="fas fa-upload"></i> Simpan ke Arsip';
+}
+
+async function loadVtuberCovers(){
+  document.getElementById('vtuberList').innerHTML = '<div class="empty"><i class="fas fa-circle-notch spin"></i>Memuat...</div>';
+  try {
+    const res = await fetch(`${SB_URL}/rest/v1/vtuber_covers?order=created_at.desc&limit=100`, { headers: HDR });
+    allVtuberCovers = await res.json();
+    renderVtuberCovers(allVtuberCovers);
+    document.getElementById('vtuberBadge').textContent = Array.isArray(allVtuberCovers) ? allVtuberCovers.length : '–';
+  } catch(e) {
+    document.getElementById('vtuberList').innerHTML = `<div class="empty"><i class="fas fa-exclamation-triangle"></i>${e.message}</div>`;
+  }
+}
+
+function renderVtuberCovers(covers){
+  const el = document.getElementById('vtuberList');
+  if(!Array.isArray(covers) || !covers.length){
+    el.innerHTML = '<div class="empty"><i class="fas fa-star"></i>Belum ada lagu VTuber cover. Klik "Upload Lagu" untuk menambahkan.</div>';
+    return;
+  }
+  const PH = 'https://placehold.co/40x40/0d0d24/9b7fe8?text=♪';
+  el.innerHTML = `
+    <div class="tbl-item tbl-head" style="display:grid;grid-template-columns:40px 1fr 140px auto;gap:10px;align-items:center">
+      <div></div><div>Lagu Cover</div><div>VTuber / Agensi</div><div>Aksi</div>
+    </div>
+  ` + covers.map(c => `
+    <div class="tbl-item" style="display:grid;grid-template-columns:40px 1fr 140px auto;gap:10px;align-items:center">
+      <div class="tbl-thumb"><img src="${c.thumbnail||PH}" onerror="this.src='${PH}'" loading="lazy"></div>
+      <div class="tbl-info">
+        <div class="tbl-title">${c.title||'–'}</div>
+        <div class="tbl-meta">
+          <span>orig. ${c.original_artist||'–'}</span>
+          ${c.cover_year ? `<span>· ${c.cover_year}</span>` : ''}
+        </div>
+        <div class="tbl-meta" style="margin-top:3px;font-size:.62rem;color:var(--mt);font-style:italic;white-space:normal;line-height:1.4">
+          <i class="fas fa-shield-alt" style="color:var(--p2);margin-right:4px;font-style:normal;flex-shrink:0"></i>${c.copyright_text||''}
+        </div>
+      </div>
+      <div>
+        <div style="font-size:.78rem;font-weight:600;color:var(--p2)">${c.vtuber_name||'–'}</div>
+        <div style="font-size:.65rem;color:var(--mt)">${c.agency||'–'}</div>
+      </div>
+      <div class="tbl-actions">
+        ${c.audio_url ? `<button class="act-btn play" onclick="previewTrack('${encodeURIComponent(c.audio_url)}')" title="Preview"><i class="fas fa-play"></i></button>` : ''}
+        <button class="act-btn del" onclick="confirmDeleteVtuber('${c.id}','${(c.title||'').replace(/'/g,"\\'")} – ${(c.vtuber_name||'').replace(/'/g,"\\'")}')"><i class="fas fa-trash-alt"></i></button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function filterVtuber(){
+  const q = document.getElementById('vtuberSearch').value.toLowerCase();
+  if(!q){ renderVtuberCovers(allVtuberCovers); return; }
+  renderVtuberCovers(allVtuberCovers.filter(c =>
+    (c.title||'').toLowerCase().includes(q) ||
+    (c.vtuber_name||'').toLowerCase().includes(q) ||
+    (c.agency||'').toLowerCase().includes(q) ||
+    (c.original_artist||'').toLowerCase().includes(q)
+  ));
+}
+
+function confirmDeleteVtuber(id, label){
+  pendingDelete = { type:'vtuber', id };
+  document.getElementById('modalMsg').innerHTML = 'Hapus cover ini dari arsip?';
+  document.getElementById('modalTrack').textContent = label;
+  document.getElementById('modalConfirmBtn').onclick = doDeleteVtuber;
+  document.getElementById('confirmModal').classList.add('open');
+}
+async function doDeleteVtuber(){
+  if(!pendingDelete) return;
+  const btn = document.getElementById('modalConfirmBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-circle-notch spin"></i>';
+  try {
+    await sb_del('vtuber_covers', `id=eq.${encodeURIComponent(pendingDelete.id)}`);
+    toast('🗑️ Cover dihapus dari arsip!');
+    closeModal();
+    loadVtuberCovers();
+  } catch(e){ toast('❌ Gagal: '+e.message); }
+  btn.disabled = false;
+  btn.innerHTML = '<i class="fas fa-trash-alt"></i> Hapus';
+}
 </script>
 </body>
 </html>
