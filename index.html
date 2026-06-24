@@ -1076,6 +1076,9 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
         <button onclick="navigate('livefeed')" style="padding:14px;border-radius:12px;border:1px solid var(--bd);background:var(--s2);color:var(--t1);font-size:.82rem;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .2s">
           <i class="fas fa-satellite-dish"></i> Live
         </button>
+        <button onclick="navigate('vtuber')" style="padding:14px;border-radius:12px;border:1px solid rgba(155,127,232,.25);background:rgba(155,127,232,.07);color:var(--p2);font-size:.82rem;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .2s;grid-column:1/-1">
+          <i class="fas fa-star"></i> VTuber Cover Archive
+        </button>
       </div>
 
       <!-- Live Activity -->
@@ -1294,6 +1297,30 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
         <div style="font-size:.7rem;color:var(--mt);text-align:center">Jadilah yang pertama buat playlist<br>dan bagikan ke semua anggota!</div>
         <button onclick="PlaylistManager.showCreate()" style="margin-top:6px;padding:9px 20px;border-radius:10px;background:var(--g);color:#000;border:none;font-size:.75rem;font-weight:700;cursor:pointer"><i class="fas fa-plus"></i> Buat Playlist</button>
       </div>
+    </div>
+
+    <!-- VTUBER COVER ARCHIVE PAGE -->
+    <div class="page" id="page-vtuber">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+        <button class="page-back-btn" onclick="navigate('beranda')" aria-label="Kembali"><i class="fas fa-arrow-left"></i></button>
+        <div class="sec-title" style="margin:0"><i class="fas fa-star" style="color:var(--yw)"></i> VTuber Cover Archive</div>
+      </div>
+      <p class="sec-sub" style="margin-bottom:16px;margin-left:54px">Koleksi lagu yang pernah di-cover oleh VTuber.</p>
+
+      <!-- Filter / Search -->
+      <div style="display:flex;gap:8px;margin-bottom:12px">
+        <div style="flex:1;display:flex;align-items:center;gap:8px;background:var(--s2);border:1px solid var(--bd);border-radius:12px;padding:8px 12px">
+          <i class="fas fa-search" style="color:var(--mt);font-size:.8rem"></i>
+          <input type="text" id="vtSearchFront" placeholder="Cari judul, VTuber, agensi..." oninput="filterVtuberFront()"
+            style="flex:1;background:transparent;border:none;outline:none;color:var(--tx);font-size:.82rem;font-family:inherit">
+        </div>
+      </div>
+
+      <!-- Agency filter chips -->
+      <div id="vtAgencyChips" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px"></div>
+
+      <!-- List -->
+      <div id="vtFrontList" style="display:flex;flex-direction:column;gap:10px"></div>
     </div>
 
     <!-- PROFIL PAGE -->
@@ -1694,6 +1721,7 @@ function navigate(page){
   if(page==='profil')loadProfil();
   if(page==='beranda'){loadTopChartHome();loadLiveActivity();loadQuickPlay();}
   if(page==='wrapped'){ _wrappedPeriod='month'; document.querySelectorAll('[data-wp]').forEach(b=>b.classList.toggle('active',b.dataset.wp==='month')); loadWrapped(); }
+  if(page==='vtuber') loadVtuberFront();
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -4104,6 +4132,120 @@ if (document.readyState === 'loading') {
 } else {
   registerSW();
 }
+
+// ── VTUBER COVER ARCHIVE ─────────────────────────────────────
+let _vtAllCovers = [];
+let _vtAgencyFilter = null;
+
+async function loadVtuberFront() {
+  const listEl = document.getElementById('vtFrontList');
+  if (!listEl) return;
+  listEl.innerHTML = '<div style="text-align:center;padding:32px;color:var(--mt)"><i class="fas fa-circle-notch fa-spin"></i></div>';
+  try {
+    const res = await fetch(`${SB_URL}/rest/v1/vtuber_covers?order=created_at.desc&limit=200`, {
+      headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` }
+    });
+    _vtAllCovers = await res.json();
+    if (!Array.isArray(_vtAllCovers)) _vtAllCovers = [];
+    _buildAgencyChips();
+    _renderVtuberFront(_vtAllCovers);
+  } catch (e) {
+    listEl.innerHTML = `<div style="text-align:center;padding:32px;color:var(--mt)"><i class="fas fa-exclamation-triangle"></i><br>${e.message}</div>`;
+  }
+}
+
+function _buildAgencyChips() {
+  const el = document.getElementById('vtAgencyChips');
+  if (!el) return;
+  const agencies = [...new Set(_vtAllCovers.map(c => c.agency).filter(Boolean))];
+  el.innerHTML = `<button class="vt-chip ${!_vtAgencyFilter ? 'active' : ''}" onclick="_vtSetAgency(null)">Semua</button>`
+    + agencies.map(a => `<button class="vt-chip ${_vtAgencyFilter===a ? 'active' : ''}" onclick="_vtSetAgency('${a.replace(/'/g,"\\'")}')">${a}</button>`).join('');
+}
+
+function _vtSetAgency(agency) {
+  _vtAgencyFilter = agency;
+  _buildAgencyChips();
+  _applyVtFilter();
+}
+
+function filterVtuberFront() {
+  _applyVtFilter();
+}
+
+function _applyVtFilter() {
+  const q = (document.getElementById('vtSearchFront')?.value || '').toLowerCase();
+  let list = _vtAllCovers;
+  if (_vtAgencyFilter) list = list.filter(c => c.agency === _vtAgencyFilter);
+  if (q) list = list.filter(c =>
+    (c.title||'').toLowerCase().includes(q) ||
+    (c.vtuber_name||'').toLowerCase().includes(q) ||
+    (c.agency||'').toLowerCase().includes(q) ||
+    (c.original_artist||'').toLowerCase().includes(q)
+  );
+  _renderVtuberFront(list);
+}
+
+function _renderVtuberFront(covers) {
+  const el = document.getElementById('vtFrontList');
+  if (!el) return;
+  if (!covers.length) {
+    el.innerHTML = '<div style="text-align:center;padding:32px;color:var(--mt)"><i class="fas fa-star"></i><br>Tidak ada hasil ditemukan.</div>';
+    return;
+  }
+  const PH = 'https://placehold.co/56x56/0d0d24/9b7fe8?text=♪';
+  el.innerHTML = covers.map(c => `
+    <div onclick="_vtPlay(${JSON.stringify(JSON.stringify(c)).slice(1,-1)})"
+      style="display:flex;gap:12px;align-items:flex-start;background:var(--s1);border:1px solid var(--bd);border-radius:14px;padding:12px 14px;cursor:pointer;transition:all .2s;-webkit-tap-highlight-color:transparent"
+      onmouseenter="this.style.borderColor='rgba(155,127,232,.35)'" onmouseleave="this.style.borderColor='var(--bd)'">
+      <div style="width:56px;height:56px;border-radius:10px;overflow:hidden;flex-shrink:0;background:var(--s3);position:relative">
+        <img src="${c.thumbnail||PH}" onerror="this.src='${PH}'" loading="lazy" style="width:100%;height:100%;object-fit:cover">
+        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.35);opacity:0;transition:.2s" class="vt-play-overlay">
+          <i class="fas fa-play" style="color:#fff;font-size:.85rem"></i>
+        </div>
+      </div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:.88rem;font-weight:700;color:var(--t1);margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.title||'–'}</div>
+        <div style="font-size:.72rem;color:var(--mt);margin-bottom:6px">orig. ${c.original_artist||'–'}${c.cover_year ? ` · ${c.cover_year}` : ''}</div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <span style="display:inline-flex;align-items:center;gap:4px;background:rgba(155,127,232,.12);border:1px solid rgba(155,127,232,.2);border-radius:20px;padding:2px 10px;font-size:.65rem;font-weight:700;color:var(--p2)">
+            <i class="fas fa-star" style="font-size:.55rem"></i> ${c.vtuber_name||'–'}
+          </span>
+          <span style="font-size:.62rem;color:var(--mt)">${c.agency||''}</span>
+        </div>
+        <!-- Copyright notice -->
+        <div style="margin-top:8px;padding:7px 10px;background:rgba(155,127,232,.05);border-left:2px solid rgba(155,127,232,.3);border-radius:0 6px 6px 0">
+          <div style="font-size:.6rem;color:var(--mt);line-height:1.5">${c.copyright_text||`Seluruh hak cipta lagu dan karakter ini adalah milik © ${c.agency||'agensi terkait'}. Halaman ini dibuat murni sebagai arsip non-komersial untuk mengenang karya ${c.vtuber_name||'VTuber ini'}.`}</div>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function _vtPlay(jsonStr) {
+  try {
+    const c = JSON.parse(jsonStr);
+    playTrackObj({
+      id:        c.id || `vt-${Date.now()}`,
+      title:     c.title,
+      artist:    c.vtuber_name ? `${c.vtuber_name} (cover)` : c.original_artist,
+      audio_url: c.audio_url,
+      thumbnail: c.thumbnail || null,
+      album:     c.agency || 'VTuber Cover',
+    });
+  } catch(e) { console.warn('_vtPlay error', e); }
+}
+
+// CSS for agency chips injected once
+(function(){
+  const s = document.createElement('style');
+  s.textContent = `
+    .vt-chip{padding:5px 14px;border-radius:20px;border:1px solid var(--bd);background:var(--s2);color:var(--mt);font-size:.7rem;font-weight:600;cursor:pointer;font-family:inherit;transition:all .2s;white-space:nowrap}
+    .vt-chip.active{border-color:rgba(155,127,232,.4);background:rgba(155,127,232,.12);color:var(--p2)}
+    #vtFrontList .vt-play-overlay{opacity:0}
+    #vtFrontList > div:hover .vt-play-overlay{opacity:1}
+  `;
+  document.head.appendChild(s);
+})();
 </script>
 <script src="taksaka-group.js"></script>
 <script src="music-room.js"></script>
