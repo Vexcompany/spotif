@@ -4185,6 +4185,9 @@ function _applyVtFilter() {
   _renderVtuberFront(list);
 }
 
+// Map to store cover objects by index — avoids inline JSON escaping issues
+const _vtCoverMap = new Map();
+
 function _renderVtuberFront(covers) {
   const el = document.getElementById('vtFrontList');
   if (!el) return;
@@ -4192,9 +4195,12 @@ function _renderVtuberFront(covers) {
     el.innerHTML = '<div style="text-align:center;padding:32px;color:var(--mt)"><i class="fas fa-star"></i><br>Tidak ada hasil ditemukan.</div>';
     return;
   }
+  _vtCoverMap.clear();
   const PH = 'https://placehold.co/56x56/0d0d24/9b7fe8?text=♪';
-  el.innerHTML = covers.map(c => `
-    <div onclick="_vtPlay(${JSON.stringify(JSON.stringify(c)).slice(1,-1)})"
+  el.innerHTML = covers.map((c, i) => {
+    _vtCoverMap.set(i, c);
+    return `
+    <div onclick="_vtPlay(${i})"
       style="display:flex;gap:12px;align-items:flex-start;background:var(--s1);border:1px solid var(--bd);border-radius:14px;padding:12px 14px;cursor:pointer;transition:all .2s;-webkit-tap-highlight-color:transparent"
       onmouseenter="this.style.borderColor='rgba(155,127,232,.35)'" onmouseleave="this.style.borderColor='var(--bd)'">
       <div style="width:56px;height:56px;border-radius:10px;overflow:hidden;flex-shrink:0;background:var(--s3);position:relative">
@@ -4212,27 +4218,25 @@ function _renderVtuberFront(covers) {
           </span>
           <span style="font-size:.62rem;color:var(--mt)">${c.agency||''}</span>
         </div>
-        <!-- Copyright notice -->
         <div style="margin-top:8px;padding:7px 10px;background:rgba(155,127,232,.05);border-left:2px solid rgba(155,127,232,.3);border-radius:0 6px 6px 0">
           <div style="font-size:.6rem;color:var(--mt);line-height:1.5">${c.copyright_text||`Seluruh hak cipta lagu dan karakter ini adalah milik © ${c.agency||'agensi terkait'}. Halaman ini dibuat murni sebagai arsip non-komersial untuk mengenang karya ${c.vtuber_name||'VTuber ini'}.`}</div>
         </div>
       </div>
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
 }
 
-function _vtPlay(jsonStr) {
-  try {
-    const c = JSON.parse(jsonStr);
-    playTrackObj({
-      id:        c.id || `vt-${Date.now()}`,
-      title:     c.title,
-      artist:    c.vtuber_name ? `${c.vtuber_name} (cover)` : c.original_artist,
-      audio_url: c.audio_url,
-      thumbnail: c.thumbnail || null,
-      album:     c.agency || 'VTuber Cover',
-    });
-  } catch(e) { console.warn('_vtPlay error', e); }
+function _vtPlay(idx) {
+  const c = _vtCoverMap.get(idx);
+  if (!c) return;
+  playTrackObj({
+    id:        c.id || `vt-${Date.now()}`,
+    title:     c.title,
+    artist:    c.vtuber_name ? `${c.vtuber_name} (cover)` : c.original_artist,
+    audio_url: c.audio_url,
+    thumbnail: c.thumbnail || null,
+    album:     c.agency || 'VTuber Cover',
+  });
 }
 
 // CSS for agency chips injected once
