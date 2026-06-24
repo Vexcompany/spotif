@@ -2650,7 +2650,8 @@ async function addToHistory(t){
   _lastPlayedTrackId = t.id;
 
   // Selalu INSERT row baru agar setiap play tercatat (bukan patch/upsert yang menimpa)
-  if(USER_KEY && USER_KEY !== 'guest'){
+  // Skip untuk VTuber cover — track_id-nya tidak ada di tabel tracks (FK violation)
+  if(USER_KEY && USER_KEY !== 'guest' && t.source !== 'vtuber'){
     // Gunakan fetch langsung dengan header ignore-duplicates agar tidak 409
     fetch(sb._b + 'play_history', {
       method: 'POST',
@@ -4241,6 +4242,7 @@ function _vtPlay(idx) {
     audio_url: c.audio_url,
     thumbnail: c.thumbnail || null,
     album:     c.agency || 'VTuber Cover',
+    source:    'vtuber',  // flag agar tidak dicatat ke play_history (FK hanya ke tabel tracks)
   });
 }
 
