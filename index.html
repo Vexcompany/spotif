@@ -2651,11 +2651,16 @@ async function addToHistory(t){
 
   // Selalu INSERT row baru agar setiap play tercatat (bukan patch/upsert yang menimpa)
   if(USER_KEY && USER_KEY !== 'guest'){
-    sb.post('play_history', {
-      user_key: USER_KEY,
-      track_id: t.id,
-      played_at: new Date().toISOString(),
-      duration_played: null  // diupdate via updateLastPlayDuration() saat lagu selesai/ganti
+    // Gunakan fetch langsung dengan header ignore-duplicates agar tidak 409
+    fetch(sb._b + 'play_history', {
+      method: 'POST',
+      headers: { ...sb._h, 'Prefer': 'return=minimal,resolution=ignore-duplicates' },
+      body: JSON.stringify({
+        user_key: USER_KEY,
+        track_id: String(t.id),
+        played_at: new Date().toISOString(),
+        duration_played: null
+      })
     }).catch(()=>{});
   }
 }
