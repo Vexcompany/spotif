@@ -208,6 +208,40 @@ body:not(.clm-active) .np-screen { opacity:1; transition:opacity .6s ease; point
   #clm-prog     { left:6%; right:6%; bottom:76px; }
   #clm-btn      { bottom:148px; right:12px; width:46px; height:46px; font-size:1rem; }
 }
+
+/* Desktop — sesuaikan dengan split NowPlaying layout */
+@media (min-width:768px) {
+  #clm-btn { bottom:32px; right:32px; width:48px; height:48px; font-size:.95rem; }
+
+  #clm-lrc-wrap {
+    left:42vw; right:0;
+    bottom:50%; transform:translateY(50%);
+    padding:0 6vw; gap:14px; align-items:flex-start;
+  }
+  .clm-prev {
+    font-size:clamp(.9rem,1.6vw,1.1rem);
+    text-align:left;
+  }
+  .clm-main {
+    font-size:clamp(1.4rem,3vw,2.2rem);
+    text-align:left; line-height:1.3;
+  }
+  .clm-main.chorus { font-size:clamp(1.6rem,3.4vw,2.5rem); }
+  .clm-next {
+    font-size:clamp(.8rem,1.4vw,1rem);
+    text-align:left;
+  }
+  #clm-prog { left:42vw; right:4vw; bottom:40px; }
+  #clm-pill {
+    left:auto; right:auto;
+    top:24px; left:42vw;
+    transform:none;
+  }
+  #clm-no-lrc { left:42vw; transform:none; }
+  #clm-glow {
+    left:42vw; width:50vw; bottom:80px;
+  }
+}
 `;
 
 // ── INJECT CSS & HTML ────────────────────────────────────────
