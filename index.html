@@ -371,6 +371,22 @@ body::after{content:'';position:fixed;inset:0;z-index:1;pointer-events:none;back
 .vt-chip{display:inline-flex;align-items:center;gap:4px;background:rgba(155,127,232,.12);border:1px solid rgba(155,127,232,.2);border-radius:var(--cr-pill);padding:2px 10px;font-size:.65rem;font-weight:700;color:var(--p2)}
 .vt-agency{font-size:.62rem;color:var(--t2)}
 .vt-copy{margin-top:8px;padding:7px 10px;background:rgba(155,127,232,.05);border-left:2px solid rgba(155,127,232,.3);border-radius:0 6px 6px 0;font-size:.62rem;color:var(--t2);line-height:1.5}
+.vt-yt-btn{display:inline-flex;align-items:center;gap:6px;margin-top:8px;padding:5px 12px;border-radius:var(--cr-pill);border:none;background:rgba(255,0,0,.12);border:1px solid rgba(255,0,0,.25);color:#ff4444;font-size:.68rem;font-weight:700;cursor:pointer;font-family:inherit;transition:all .18s}
+.vt-yt-btn:hover{background:rgba(255,0,0,.2)}
+.vt-yt-btn.active{background:rgba(255,0,0,.18);color:#ff6666}
+.vt-embed-wrap{position:relative;width:100%;padding-top:56.25%;border-radius:var(--cr-sm);overflow:hidden;background:#000;margin-top:10px;display:none}
+.vt-embed-wrap.open{display:block}
+.vt-embed-wrap iframe{position:absolute;inset:0;width:100%;height:100%;border:none}
+.vt-links{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+.vt-link-chip{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:var(--cr-pill);font-size:.62rem;font-weight:700;text-decoration:none;transition:opacity .18s;cursor:pointer}
+.vt-link-chip:hover{opacity:.75}
+.vlc-yt{background:rgba(255,0,0,.1);color:#ff4444;border:1px solid rgba(255,0,0,.2)}
+.vlc-tw{background:rgba(29,161,242,.1);color:#1da1f2;border:1px solid rgba(29,161,242,.2)}
+.vlc-ig{background:rgba(225,48,108,.1);color:#e1306c;border:1px solid rgba(225,48,108,.2)}
+.vlc-tt{background:rgba(255,255,255,.06);color:var(--tx);border:1px solid var(--bd2)}
+.vlc-saw{background:rgba(255,167,38,.1);color:var(--yw);border:1px solid rgba(255,167,38,.2)}
+.vlc-trk{background:rgba(255,77,109,.1);color:var(--rd);border:1px solid rgba(255,77,109,.2)}
+.vlc-soc{background:rgba(106,171,255,.1);color:var(--b2);border:1px solid rgba(106,171,255,.2)}
 
 /* CHAT */
 .chat-list{display:flex;flex-direction:column;gap:4px}
@@ -1479,8 +1495,111 @@ function _buildAgencyChips(){const el=document.getElementById('vtAgencyChips');i
 function _vtSetAgency(a){_vtAgencyFilter=a;_buildAgencyChips();_applyVtFilter();}
 function filterVtuberFront(){_applyVtFilter();}
 function _applyVtFilter(){const q=(document.getElementById('vtSearchFront')?.value||'').toLowerCase();let list=_vtAllCovers;if(_vtAgencyFilter)list=list.filter(c=>c.agency===_vtAgencyFilter);if(q)list=list.filter(c=>(c.title||'').toLowerCase().includes(q)||(c.vtuber_name||'').toLowerCase().includes(q)||(c.agency||'').toLowerCase().includes(q)||(c.original_artist||'').toLowerCase().includes(q));_renderVtuberFront(list);}
-function _renderVtuberFront(covers){const el=document.getElementById('vtFrontList');if(!el)return;if(!covers.length){el.innerHTML='<div style="text-align:center;padding:32px;color:var(--t2)"><i class="fas fa-star"></i><br>Tidak ada hasil.</div>';return;}_vtCoverMap.clear();el.innerHTML=covers.map((c,i)=>{_vtCoverMap.set(i,c);return`<div class="vt-item" onclick="_vtPlay(${i})"><div class="vt-thumb"><img src="${c.thumbnail||'https://placehold.co/62x62/0d0d24/9b7fe8?text=♪'}" loading="lazy"><div class="vt-play-ico"><i class="fas fa-play" style="color:#fff;font-size:.85rem"></i></div></div><div class="vt-info"><div class="vt-title">${c.title||'–'}</div><div class="vt-orig">orig. ${c.original_artist||'–'}${c.cover_year?' · '+c.cover_year:''}</div><div class="vt-badges"><span class="vt-chip"><i class="fas fa-star" style="font-size:.55rem"></i> ${c.vtuber_name||'–'}</span><span class="vt-agency">${c.agency||''}</span></div><div class="vt-copy">${c.copyright_text||`© ${c.agency||'agensi terkait'}. Arsip non-komersial.`}</div></div></div>`;}).join('');}
-function _vtPlay(idx){const c=_vtCoverMap.get(idx);if(!c)return;playTrackObj({id:c.id||`vt-${Date.now()}`,title:c.title,artist:c.vtuber_name?`${c.vtuber_name} (cover)`:c.original_artist,audio:c.audio_url,audio_url:c.audio_url,thumbnail:c.thumbnail||null,album:c.agency||'VTuber Cover',duration:c.duration||'0:00',source:'vtuber'});}
+function _extractYtId(url){if(!url)return null;const patterns=[/[?&]v=([A-Za-z0-9_-]{11})/,/youtu\.be\/([A-Za-z0-9_-]{11})/,/\/embed\/([A-Za-z0-9_-]{11})/,/\/shorts\/([A-Za-z0-9_-]{11})/,/\/live\/([A-Za-z0-9_-]{11})/];for(const p of patterns){const m=url.match(p);if(m)return m[1];}return null;}
+function _renderVtuberFront(covers){
+  const el=document.getElementById('vtFrontList');
+  if(!el)return;
+  if(!covers.length){el.innerHTML='<div style="text-align:center;padding:32px;color:var(--t2)"><i class="fas fa-star"></i><br>Tidak ada hasil.</div>';return;}
+  _vtCoverMap.clear();
+  el.innerHTML='';
+  covers.forEach((c,i)=>{
+    _vtCoverMap.set(i,c);
+    const ytId=c.youtube_id||_extractYtId(c.youtube_url);
+    const PH_VT='https://placehold.co/62x62/0d0d24/9b7fe8?text=♪';
+    const thumb=c.thumbnail||(ytId?`https://img.youtube.com/vi/${ytId}/mqdefault.jpg`:PH_VT);
+
+    const card=document.createElement('div');
+    card.className='vt-item';
+    card.style.flexDirection='column';
+
+    // Baris atas: thumb + info
+    const top=document.createElement('div');
+    top.style.cssText='display:flex;gap:12px;align-items:flex-start;width:100%';
+
+    // Thumbnail
+    const th=document.createElement('div'); th.className='vt-thumb';
+    const img=document.createElement('img'); img.src=thumb; img.loading='lazy'; img.onerror=function(){this.src=PH_VT;}; th.appendChild(img);
+    const ico=document.createElement('div'); ico.className='vt-play-ico';
+    ico.innerHTML=ytId?'<i class="fab fa-youtube" style="color:#ff4444;font-size:1.1rem"></i>':'<i class="fas fa-music" style="color:var(--t2);font-size:.85rem"></i>';
+    th.appendChild(ico); top.appendChild(th);
+
+    // Info
+    const info=document.createElement('div'); info.className='vt-info';
+    const ti=document.createElement('div'); ti.className='vt-title'; ti.textContent=c.title||'–';
+    const orig=document.createElement('div'); orig.className='vt-orig'; orig.textContent=`orig. ${c.original_artist||'–'}${c.cover_year?' · '+c.cover_year:''}`;
+    const badges=document.createElement('div'); badges.className='vt-badges';
+    const chip=document.createElement('span'); chip.className='vt-chip'; chip.innerHTML=`<i class="fas fa-star" style="font-size:.55rem"></i> ${escapeHtml(c.vtuber_name||'–')}`;
+    const agency=document.createElement('span'); agency.className='vt-agency'; agency.textContent=c.agency||'';
+    badges.appendChild(chip); badges.appendChild(agency);
+    info.appendChild(ti); info.appendChild(orig); info.appendChild(badges);
+
+    // Tombol YouTube
+    if(ytId){
+      const ytBtn=document.createElement('button');
+      ytBtn.className='vt-yt-btn';
+      ytBtn.innerHTML='<i class="fab fa-youtube"></i> Putar Video';
+      ytBtn.addEventListener('click',e=>{ e.stopPropagation(); _vtToggleEmbed(i,ytBtn,ytId); });
+      info.appendChild(ytBtn);
+    }
+
+    // Sosmed & donasi chips
+    const links=[];
+    if(c.sosmed_youtube)   links.push({url:c.sosmed_youtube,   cls:'vlc-yt',  icon:'fab fa-youtube',   label:'YouTube'});
+    if(c.sosmed_twitter)   links.push({url:c.sosmed_twitter,   cls:'vlc-tw',  icon:'fab fa-twitter',   label:'Twitter'});
+    if(c.sosmed_instagram) links.push({url:c.sosmed_instagram, cls:'vlc-ig',  icon:'fab fa-instagram', label:'Instagram'});
+    if(c.sosmed_tiktok)    links.push({url:c.sosmed_tiktok,    cls:'vlc-tt',  icon:'fab fa-tiktok',    label:'TikTok'});
+    if(c.donasi_saweria)   links.push({url:c.donasi_saweria,   cls:'vlc-saw', icon:'fas fa-mug-hot',   label:'Saweria'});
+    if(c.donasi_trakteer)  links.push({url:c.donasi_trakteer,  cls:'vlc-trk', icon:'fas fa-heart',     label:'Trakteer'});
+    if(c.donasi_sociabuzz) links.push({url:c.donasi_sociabuzz, cls:'vlc-soc', icon:'fas fa-users',     label:'Sociabuzz'});
+    if(links.length){
+      const linkRow=document.createElement('div'); linkRow.className='vt-links';
+      links.forEach(l=>{
+        const a=document.createElement('a'); a.href=l.url; a.target='_blank'; a.rel='noopener noreferrer';
+        a.className='vt-link-chip '+l.cls;
+        a.innerHTML=`<i class="${l.icon}"></i> ${l.label}`;
+        a.addEventListener('click',e=>e.stopPropagation());
+        linkRow.appendChild(a);
+      });
+      info.appendChild(linkRow);
+    }
+
+    top.appendChild(info);
+    card.appendChild(top);
+
+    // Copyright
+    const cp=document.createElement('div'); cp.className='vt-copy';
+    cp.textContent=c.copyright_text||`© ${c.agency||'agensi terkait'}. Arsip non-komersial.`;
+    card.appendChild(cp);
+
+    // YouTube embed wrapper (lazy — iframe dibuat saat klik)
+    if(ytId){
+      const embedWrap=document.createElement('div');
+      embedWrap.className='vt-embed-wrap';
+      embedWrap.id=`vt-embed-${i}`;
+      embedWrap.dataset.ytid=ytId;
+      card.appendChild(embedWrap);
+    }
+
+    el.appendChild(card);
+  });
+}
+function _vtToggleEmbed(idx,btn,ytId){
+  const wrap=document.getElementById(`vt-embed-${idx}`);
+  if(!wrap)return;
+  const isOpen=wrap.classList.toggle('open');
+  btn.classList.toggle('active',isOpen);
+  btn.innerHTML=isOpen?'<i class="fab fa-youtube"></i> Tutup Video':'<i class="fab fa-youtube"></i> Putar Video';
+  if(isOpen&&!wrap.querySelector('iframe')){
+    const iframe=document.createElement('iframe');
+    iframe.src=`https://www.youtube.com/embed/${ytId}?rel=0&autoplay=1`;
+    iframe.setAttribute('allowfullscreen','');
+    iframe.setAttribute('allow','autoplay; encrypted-media');
+    wrap.appendChild(iframe);
+  } else if(!isOpen){
+    // Hentikan video saat ditutup
+    wrap.innerHTML='';
+  }
+}
 // ── Realtime & Presence ──
 let supabaseClient=null,realtimeChannel=null,presenceChannel=null,chatPollingInt=null,_realtimeRetry=0;const MAX_RT_RETRY=3;
 let onlinePresence={};
