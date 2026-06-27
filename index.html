@@ -514,6 +514,25 @@ body::after{content:'';position:fixed;inset:0;z-index:1;pointer-events:none;back
 .lrc-line.active{color:#fff;font-weight:700;font-size:clamp(.88rem,2.8vw,.98rem)}
 .np-lrc-empty{color:rgba(255,255,255,.3);font-size:.8rem;text-align:center;padding:20px 0;display:block}
 
+@media(min-width:768px){
+  .np-inner{flex-direction:row;align-items:stretch;overflow:hidden}
+  .np-left{display:flex;flex-direction:column;width:min(380px,42vw);flex-shrink:0;overflow-y:auto;scrollbar-width:none;padding-bottom:clamp(16px,3vw,28px)}
+  .np-left::-webkit-scrollbar{display:none}
+  .np-lrc-section{flex:1;padding:clamp(20px,3vw,32px) clamp(20px,3vw,32px) clamp(20px,3vw,32px) clamp(16px,2vw,24px);min-height:0;display:flex;flex-direction:column;border-left:1px solid rgba(255,255,255,.07)}
+  .np-lrc-label{margin-bottom:20px;font-size:.65rem}
+  .np-lrc-box{flex:1;background:transparent;border:none;padding:0;overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.15) transparent}
+  .np-lrc-box::-webkit-scrollbar{width:3px}
+  .np-lrc-box::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15);border-radius:2px}
+  .lrc-line{font-size:clamp(1.1rem,2.2vw,1.5rem);line-height:1.55;padding:4px 0;color:rgba(255,255,255,.22);font-weight:700;letter-spacing:-.01em}
+  .lrc-line.active{color:#fff;font-size:clamp(1.3rem,2.6vw,1.85rem);text-shadow:0 0 40px rgba(255,255,255,.35)}
+  .lrc-line.prev-1{color:rgba(255,255,255,.45)}
+  .lrc-line.next-1{color:rgba(255,255,255,.3)}
+  .np-lrc-empty{font-size:1rem;padding:40px 0}
+  .np-vinyl-wrap{padding:clamp(16px,3vw,28px) clamp(24px,5vw,40px) clamp(8px,2vw,16px)}
+  .np-vinyl{width:min(220px,30vw);height:min(220px,30vw)}
+  .np-hdr{padding:calc(var(--sat) + 12px) 20px 4px}
+}
+
 /* CHAT ROOM */
 .chat-room{position:fixed;inset:0;z-index:500;background:var(--bg);display:flex;flex-direction:column;transform:translateX(100%);transition:transform .3s cubic-bezier(.16,1,.3,1)}
 .chat-room.open{transform:translateX(0)}
@@ -1071,40 +1090,42 @@ body::after{content:'';position:fixed;inset:0;z-index:1;pointer-events:none;back
 <div class="np-screen" id="npScreen">
   <div class="np-bg" id="npBg"></div>
   <div class="np-inner">
-    <div class="np-hdr">
-      <button class="np-close" onclick="closeNP()"><i class="fas fa-chevron-down"></i></button>
-      <span class="np-source" id="npSource">NOW PLAYING</span>
-      <div class="np-top-acts">
-        <button class="np-close" onclick="if(currentTrack)PinAvatar.openPicker(currentTrack)"><i class="fas fa-thumbtack"></i></button>
-        <button class="np-close" onclick="shareCurrentTrack()"><i class="fas fa-share"></i></button>
+    <div class="np-left">
+      <div class="np-hdr">
+        <button class="np-close" onclick="closeNP()"><i class="fas fa-chevron-down"></i></button>
+        <span class="np-source" id="npSource">NOW PLAYING</span>
+        <div class="np-top-acts">
+          <button class="np-close" onclick="if(currentTrack)PinAvatar.openPicker(currentTrack)"><i class="fas fa-thumbtack"></i></button>
+          <button class="np-close" onclick="shareCurrentTrack()"><i class="fas fa-share"></i></button>
+        </div>
       </div>
-    </div>
-    <div class="np-vinyl-wrap">
-      <div class="np-vinyl" id="npVinyl">
-        <img id="npImg" src="" alt="" onerror="this.src='https://placehold.co/260x260/0d0d24/1DB954?text=♪'">
-        <div class="np-lf" id="npLikeFlash"><i class="fas fa-heart" style="color:var(--rd)"></i></div>
+      <div class="np-vinyl-wrap">
+        <div class="np-vinyl" id="npVinyl">
+          <img id="npImg" src="" alt="" onerror="this.src='https://placehold.co/260x260/0d0d24/1DB954?text=♪'">
+          <div class="np-lf" id="npLikeFlash"><i class="fas fa-heart" style="color:var(--rd)"></i></div>
+        </div>
       </div>
-    </div>
-    <div class="np-info">
-      <div class="np-title"  id="npTitle">–</div>
-      <div class="np-artist" id="npArtist">–</div>
-      <div class="np-album"  id="npAlbum">–</div>
-    </div>
-    <div class="np-acts">
-      <button class="np-act" id="npShuf"    onclick="toggleShuffle()"><i class="fas fa-random"></i></button>
-      <button class="np-act" id="npRep"     onclick="toggleRepeat()"><i class="fas fa-redo"></i></button>
-      <button class="np-act" id="npLikeBtn" onclick="toggleLikeCurrent()"><i class="far fa-heart" id="npLikeIco"></i></button>
-      <button class="np-act" onclick="addToPartyQueueFromNP()"><i class="fas fa-users"></i></button>
-      <button class="np-act" onclick="if(currentTrack)PlaylistManager.showAddToPlaylist(currentTrack)"><i class="fas fa-list-ul"></i></button>
-    </div>
-    <div class="np-prog">
-      <div class="np-prbar" id="npPrbar" onclick="npSeek(event)"><div class="np-prfill" id="npPrfill"></div></div>
-      <div class="np-times"><span id="npCur">0:00</span><span id="npTot">0:00</span></div>
-    </div>
-    <div class="np-ctrls">
-      <button class="np-ctrl" onclick="prevTrack()"><i class="fas fa-step-backward"></i></button>
-      <button class="np-play" id="npPlay" onclick="togglePlay()"><i class="fas fa-play" id="npPlayIco"></i></button>
-      <button class="np-ctrl" onclick="nextTrack()"><i class="fas fa-step-forward"></i></button>
+      <div class="np-info">
+        <div class="np-title"  id="npTitle">–</div>
+        <div class="np-artist" id="npArtist">–</div>
+        <div class="np-album"  id="npAlbum">–</div>
+      </div>
+      <div class="np-acts">
+        <button class="np-act" id="npShuf"    onclick="toggleShuffle()"><i class="fas fa-random"></i></button>
+        <button class="np-act" id="npRep"     onclick="toggleRepeat()"><i class="fas fa-redo"></i></button>
+        <button class="np-act" id="npLikeBtn" onclick="toggleLikeCurrent()"><i class="far fa-heart" id="npLikeIco"></i></button>
+        <button class="np-act" onclick="addToPartyQueueFromNP()"><i class="fas fa-users"></i></button>
+        <button class="np-act" onclick="if(currentTrack)PlaylistManager.showAddToPlaylist(currentTrack)"><i class="fas fa-list-ul"></i></button>
+      </div>
+      <div class="np-prog">
+        <div class="np-prbar" id="npPrbar" onclick="npSeek(event)"><div class="np-prfill" id="npPrfill"></div></div>
+        <div class="np-times"><span id="npCur">0:00</span><span id="npTot">0:00</span></div>
+      </div>
+      <div class="np-ctrls">
+        <button class="np-ctrl" onclick="prevTrack()"><i class="fas fa-step-backward"></i></button>
+        <button class="np-play" id="npPlay" onclick="togglePlay()"><i class="fas fa-play" id="npPlayIco"></i></button>
+        <button class="np-ctrl" onclick="nextTrack()"><i class="fas fa-step-forward"></i></button>
+      </div>
     </div>
     <div class="np-lrc-section">
       <div class="np-lrc-label"><i class="fas fa-align-left"></i> Lirik</div>
@@ -1456,7 +1477,7 @@ let _lrcLastIdx=-1,_userScrolling=false,_scrollPauseT=null,_lyricsAbort=null;
 async function fetchLyrics(title,artist){if(_lyricsAbort){_lyricsAbort.abort();}_lyricsAbort=new AbortController();try{const r=await fetch(`https://lrclib.net/api/search?q=${encodeURIComponent(title+' '+artist)}&limit=1`,{signal:_lyricsAbort.signal});const data=await r.json();if(data?.length&&data[0].syncedLyrics)return{type:'synced',data:parseLRC(data[0].syncedLyrics)};if(data?.length&&data[0].plainLyrics)return{type:'plain',data:data[0].plainLyrics};}catch(e){if(e.name==='AbortError')return null;}return null;}
 function parseLRC(lrcText){const lines=[];const re=/\[(\d+):(\d+\.\d+)\](.*)/g;let m;while((m=re.exec(lrcText))!==null){const text=m[3].trim();if(text)lines.push({time:parseInt(m[1])*60+parseFloat(m[2]),text});}return lines.sort((a,b)=>a.time-b.time);}
 function renderLyrics(data){const box=document.getElementById('npLyricsBox');if(!data){box.innerHTML='<span class="np-lrc-empty">Lirik tidak tersedia 🎵</span>';return;}if(data.type==='synced'){lrcLines=data.data;box.innerHTML=lrcLines.map((l,i)=>`<span class="lrc-line" data-i="${i}" onclick="audio.currentTime=${l.time}">${escapeHtml(l.text)}</span>`).join('');startLRC();}else{box.innerHTML='';const span=document.createElement('span');span.className='np-lrc-empty';span.textContent=data.data;box.appendChild(span);}}
-function startLRC(){stopLRC();_lrcLastIdx=-1;_userScrolling=false;const box=document.getElementById('npLyricsBox');if(!box)return;box.addEventListener('touchstart',_onLrcTS,{passive:true});box.addEventListener('touchend',_onLrcTE,{passive:true});box.addEventListener('wheel',_onLrcW,{passive:true});lrcInt=setInterval(()=>{if(!lrcLines.length||!audio.duration)return;const cur=audio.currentTime;let idx=0;for(let i=0;i<lrcLines.length;i++){if(cur>=lrcLines[i].time)idx=i;}if(idx===_lrcLastIdx)return;_lrcLastIdx=idx;const lines=box.querySelectorAll('.lrc-line');lines.forEach((el,i)=>el.classList.toggle('active',i===idx));if(_userScrolling)return;const al=lines[idx];if(!al)return;const br=box.getBoundingClientRect(),lr=al.getBoundingClientRect(),lc=lr.top-br.top+box.scrollTop+lr.height/2;box.scrollTo({top:Math.max(0,lc-box.clientHeight/2),behavior:'smooth'});},300);}
+function startLRC(){stopLRC();_lrcLastIdx=-1;_userScrolling=false;const box=document.getElementById('npLyricsBox');if(!box)return;box.addEventListener('touchstart',_onLrcTS,{passive:true});box.addEventListener('touchend',_onLrcTE,{passive:true});box.addEventListener('wheel',_onLrcW,{passive:true});lrcInt=setInterval(()=>{if(!lrcLines.length||!audio.duration)return;const cur=audio.currentTime;let idx=0;for(let i=0;i<lrcLines.length;i++){if(cur>=lrcLines[i].time)idx=i;}if(idx===_lrcLastIdx)return;_lrcLastIdx=idx;const lines=box.querySelectorAll('.lrc-line');lines.forEach((el,i)=>{el.classList.toggle('active',i===idx);el.classList.toggle('prev-1',i===idx-1);el.classList.toggle('next-1',i===idx+1);});if(_userScrolling)return;const al=lines[idx];if(!al)return;const br=box.getBoundingClientRect(),lr=al.getBoundingClientRect(),lc=lr.top-br.top+box.scrollTop+lr.height/2;box.scrollTo({top:Math.max(0,lc-box.clientHeight/2),behavior:'smooth'});},300);}
 function stopLRC(){if(lrcInt){clearInterval(lrcInt);lrcInt=null;}_lrcLastIdx=-1;_userScrolling=false;const box=document.getElementById('npLyricsBox');if(box){box.removeEventListener('touchstart',_onLrcTS);box.removeEventListener('touchend',_onLrcTE);box.removeEventListener('wheel',_onLrcW);}}
 function _onLrcTS(){_userScrolling=true;clearTimeout(_scrollPauseT);}
 function _onLrcTE(){clearTimeout(_scrollPauseT);_scrollPauseT=setTimeout(()=>{_userScrolling=false;},2500);}
