@@ -45,7 +45,6 @@ let _appActive = true;
 
 // ── INSTALL ───────────────────────────────────────────────────
 self.addEventListener('install', event => {
-  console.log('[SW] Installing...', SW_VERSION);
   event.waitUntil(
     caches.open(SHELL_CACHE)
       .then(cache => Promise.allSettled(
@@ -59,16 +58,11 @@ self.addEventListener('install', event => {
 
 // ── ACTIVATE — hapus cache versi lama ────────────────────────
 self.addEventListener('activate', event => {
-  console.log('[SW] Activating...', SW_VERSION);
   event.waitUntil(
-    // Hapus semua cache lama (termasuk index.html yang mungkin ter-cache)
     caches.keys().then(keys => Promise.all(
       keys
         .filter(key => key.startsWith('pagaska-') && !key.startsWith(SW_VERSION))
-        .map(key => {
-          console.log('[SW] Deleting old cache:', key);
-          return caches.delete(key);
-        })
+        .map(key => caches.delete(key))
     )).then(() => self.clients.claim())
   );
 });
@@ -80,8 +74,6 @@ self.addEventListener('message', event => {
   // App kasih tahu SW saat akan di-close → stop update shell cache
   if (type === 'APP_CLOSING') {
     _appActive = false;
-    console.log('[SW] App closing — shell cache update disabled');
-    // Re-enable setelah 10 detik (jaga-jaga kalau user batal close)
     setTimeout(() => { _appActive = true; }, 10000);
   }
 
@@ -184,7 +176,6 @@ async function audioCacheStrategy(request) {
   const cache  = await caches.open(AUDIO_CACHE);
   const cached = await cache.match(request.url);
   if (cached) {
-    console.log('[SW] Audio cache hit:', request.url.substring(0, 60));
     return cached;
   }
 
@@ -208,9 +199,8 @@ async function audioCacheStrategy(request) {
     await cache.put(request.url, response.clone());
     notifyClients({ type: 'AUDIO_CACHED', url: request.url });
     trimAudioCache(cache);
-  } else {
-    console.log('[SW] Skip cache partial audio:', response.status);
   }
+  // status non-200 (206 partial, dll) — skip cache, tidak perlu log
 } catch (e) {
   console.warn('[SW] Cache put gagal:', e.message);
 }
@@ -264,7 +254,6 @@ async function trimAudioCache(cache) {
       if (keys.length > MAX_FILES) {
         const toDelete = keys.slice(0, keys.length - MAX_FILES);
         await Promise.all(toDelete.map(k => cache.delete(k)));
-        console.log('[SW] trimAudioCache: deleted', toDelete.length, 'old entries');
       }
     } catch (e) { console.warn('[SW] trimAudioCache error:', e.message); }
     _trimRunning = false;
@@ -293,7 +282,7 @@ async function getCacheStats() {
       audioSize += blob.size;
     }
     return {
-      audio:  { count: audioKeys.length, sizeMB: (audioSize/1024/1024).toFixed(1), maxMB: MAX_AUDIO_MB, urls: audioKeys.map(r => r.url) },
+      audio:  { count: audioKeys.length, sizeMB: (audioSize/1024/1024).toFixed(1), maxMB: MAX_AUDIO_MB },
       shell:  { count: shellKeys.length },
       images: { count: imageKeys.length },
     };
