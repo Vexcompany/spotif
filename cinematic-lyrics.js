@@ -194,6 +194,8 @@ const CSS = `
   text-shadow:0 0 32px rgba(167,139,250,.9), 0 0 60px rgba(139,92,246,.45), 0 2px 16px rgba(0,0,0,.9);
   letter-spacing:-.01em;
   position:relative; z-index:2;
+  will-change:transform,opacity;
+  backface-visibility:hidden;
 }
 .clm-main.show {
   opacity:1; transform:translateY(0) scale(1);
@@ -212,15 +214,15 @@ const CSS = `
   filter:blur(.2px);
   text-shadow:0 0 24px rgba(139,92,246,.4), 0 0 60px rgba(59,130,246,.2);
 }
-.clm-main.hype { animation:clm-hype .08s ease-in-out infinite alternate; }
+.clm-main.hype { animation:clm-hype .35s ease-in-out infinite alternate; }
 @keyframes clm-hype {
-  from { transform:translateY(0) scale(1) rotate(-.25deg); }
-  to   { transform:translateY(-2px) scale(1.02) rotate(.25deg); }
+  from { transform:translateY(0) scale(1); }
+  to   { transform:translateY(-1px) scale(1.006); }
 }
-.clm-main.beat-hit { animation:clm-beat .18s ease-out !important; }
+.clm-main.beat-hit { animation:clm-beat .28s ease-out !important; }
 @keyframes clm-beat {
-  0%   { transform:scale(1.08) translateY(-2px); }
-  60%  { transform:scale(.99); }
+  0%   { transform:scale(1.03); }
+  60%  { transform:scale(.998); }
   100% { transform:scale(1); }
 }
 
@@ -614,7 +616,7 @@ function beatLoop() {
   }
 
   const now = performance.now();
-  if (energy > 0.58 && now - clmLastBeat > 280) {
+  if (energy > 0.72 && now - clmLastBeat > 500) {
     clmLastBeat = now;
     const main = document.getElementById('clm-main');
     if (main && main.classList.contains('show')) {
@@ -706,7 +708,7 @@ function startSync() {
 
     showNoLrc(false);
     showLines(prev ? prev.text : '', line.text, next ? next.text : '', line.mood);
-  }, 200);
+  }, 350);
 }
 
 function showLines(prev, main, next, mood) {
