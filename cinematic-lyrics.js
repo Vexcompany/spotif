@@ -624,6 +624,7 @@ function beatLoop() {
       spawnParticles();
     }
   }
+}
 
 // ── PARTICLES ────────────────────────────────────────────────
 function spawnParticles() {
