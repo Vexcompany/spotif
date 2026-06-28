@@ -174,6 +174,7 @@ body::after{content:'';position:fixed;inset:0;z-index:1;pointer-events:none;back
 .qp-card:hover .qp-thumb img{transform:scale(1.07)}
 .qp-play-btn{position:absolute;bottom:7px;right:7px;width:34px;height:34px;border-radius:50%;background:var(--dyn);border:none;display:flex;align-items:center;justify-content:center;opacity:0;transform:translateY(6px);transition:all .22s;cursor:pointer;color:#000;font-size:.78rem}
 .qp-card:hover .qp-play-btn{opacity:1;transform:translateY(0)}
+.qp-card.playing .qp-play-btn{opacity:1;transform:translateY(0);box-shadow:0 0 12px var(--dyn-glow)}
 .qp-now{position:absolute;top:7px;left:7px;background:rgba(29,185,84,.9);border-radius:6px;padding:2px 7px;font-size:.52rem;font-weight:700;color:#000;display:none}
 .qp-card.playing .qp-now{display:block}
 .qp-title{font-size:clamp(.7rem,1.8vw,.78rem);font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:3px}
@@ -1296,6 +1297,10 @@ body::after{content:'';position:fixed;inset:0;z-index:1;pointer-events:none;back
 <script src="_lib/db.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script>
+// ── Console filter: suppress SW internal logs yang expose R2/CDN URLs ──
+(function(){const _log=console.log,_warn=console.warn;const _SWSUPP=/^\[SW\]\s+(Audio cache hit|Prefetch|Cache (put|match)|Serving from cache)/i;console.log=function(){if(arguments.length&&typeof arguments[0]==="string"&&_SWSUPP.test(arguments[0]))return;_log.apply(console,arguments);};console.warn=function(){if(arguments.length&&typeof arguments[0]==="string"&&_SWSUPP.test(arguments[0]))return;_warn.apply(console,arguments);};})();
+</script>
+<script>
 const BACKEND_URL='https://verolyz-kingdom3.vercel.app';
 const APPLE_SEARCH_API=`${BACKEND_URL}/api/apple-search?q=`;
 window.BACKEND_URL=BACKEND_URL;
@@ -1377,7 +1382,8 @@ function nextTrack(){if(!queue.length)return;qi=isShuffle?Math.floor(Math.random
 function toggleShuffle(){isShuffle=!isShuffle;document.getElementById('cbShuf').classList.toggle('on',isShuffle);if(npOpen)document.getElementById('npShuf').classList.toggle('on-g',isShuffle);toast(isShuffle?'Shuffle aktif 🔀':'Shuffle nonaktif');}
 function toggleRepeat(){isRepeat=!isRepeat;document.getElementById('cbRep').classList.toggle('on',isRepeat);if(npOpen)document.getElementById('npRep').classList.toggle('on-g',isRepeat);toast(isRepeat?'Repeat aktif 🔁':'Repeat nonaktif');}
 function toggleMute(){isMuted=!isMuted;audio.muted=isMuted;document.getElementById('vIco').className=isMuted?'fas fa-volume-mute':vol>.5?'fas fa-volume-up':'fas fa-volume-down';}
-function updAll(){const p=isPlaying;const cbIco=document.getElementById('cbIco');if(cbIco)cbIco.className=p?'fas fa-pause':'fas fa-play';const plEq=document.getElementById('plEq');if(plEq)plEq.classList.toggle('show',p);updHeroPlayBtn();if(npOpen){const npVinyl=document.getElementById('npVinyl');if(npVinyl)npVinyl.classList.toggle('playing',p);const npPlayIco=document.getElementById('npPlayIco');if(npPlayIco)npPlayIco.className=p?'fas fa-pause':'fas fa-play';}if('mediaSession'in navigator){navigator.mediaSession.playbackState=p?'playing':'paused';_updPos();}}
+function updateQPCards(){const p=isPlaying;const cid=currentTrack?.id;document.querySelectorAll('.qp-card').forEach(card=>{const isNow=cid&&card.id==='qpc-'+CSS.escape(cid);card.classList.toggle('playing',!!isNow);const btn=card.querySelector('.qp-play-btn i');if(btn)btn.className=(isNow&&p)?'fas fa-pause':'fas fa-play';});}
+function updAll(){const p=isPlaying;const cbIco=document.getElementById('cbIco');if(cbIco)cbIco.className=p?'fas fa-pause':'fas fa-play';const plEq=document.getElementById('plEq');if(plEq)plEq.classList.toggle('show',p);updHeroPlayBtn();updateQPCards();if(npOpen){const npVinyl=document.getElementById('npVinyl');if(npVinyl)npVinyl.classList.toggle('playing',p);const npPlayIco=document.getElementById('npPlayIco');if(npPlayIco)npPlayIco.className=p?'fas fa-pause':'fas fa-play';}if('mediaSession'in navigator){navigator.mediaSession.playbackState=p?'playing':'paused';_updPos();}}
 function _updPos(){if(!('mediaSession'in navigator))return;try{const d=audio.duration,pos=audio.currentTime;if(d&&isFinite(d)&&isFinite(pos))navigator.mediaSession.setPositionState({duration:d,position:Math.min(pos,d),playbackRate:audio.playbackRate||1});}catch(e){}}
 function startProg(){clearInterval(progInt);progInt=setInterval(()=>{if(!audio.duration)return;const pct=(audio.currentTime/audio.duration)*100;document.getElementById('prfill').style.width=pct+'%';document.getElementById('ptCur').textContent=fmt(audio.currentTime);document.getElementById('ptTot').textContent=fmt(audio.duration);if(npOpen){document.getElementById('npPrfill').style.width=pct+'%';document.getElementById('npCur').textContent=fmt(audio.currentTime);document.getElementById('npTot').textContent=fmt(audio.duration);}_updPos();},400);}
 function fmt(s){return isNaN(s)?'0:00':`${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,'0')}`;}
