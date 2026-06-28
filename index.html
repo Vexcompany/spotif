@@ -1297,10 +1297,6 @@ body::after{content:'';position:fixed;inset:0;z-index:1;pointer-events:none;back
 <script src="_lib/db.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script>
-// ── Console filter: suppress SW internal logs yang expose R2/CDN URLs ──
-(function(){const _log=console.log,_warn=console.warn;const _SWSUPP=/^\[SW\]\s+(Audio cache hit|Prefetch|Cache (put|match)|Serving from cache)/i;console.log=function(){if(arguments.length&&typeof arguments[0]==="string"&&_SWSUPP.test(arguments[0]))return;_log.apply(console,arguments);};console.warn=function(){if(arguments.length&&typeof arguments[0]==="string"&&_SWSUPP.test(arguments[0]))return;_warn.apply(console,arguments);};})();
-</script>
-<script>
 const BACKEND_URL='https://verolyz-kingdom3.vercel.app';
 const APPLE_SEARCH_API=`${BACKEND_URL}/api/apple-search?q=`;
 window.BACKEND_URL=BACKEND_URL;
@@ -1644,7 +1640,7 @@ async function sbCheckNewMessages(){try{const rows=await sb.get('messages',`to_k
 // ── PWA ──
 let swRegistration=null,installPrompt=null,cachedAudioUrls=new Set();
 async function registerSW(){if(!('serviceWorker'in navigator))return;try{swRegistration=await navigator.serviceWorker.register('/sw.js',{scope:'/',updateViaCache:'none'});swRegistration.update().catch(()=>{});swRegistration.addEventListener('updatefound',()=>{const nw=swRegistration.installing;nw.addEventListener('statechange',()=>{if(nw.state==='installed'&&navigator.serviceWorker.controller){toast('🔄 Update tersedia...');nw.postMessage({type:'SKIP_WAITING'});setTimeout(()=>window.location.reload(),2000);}});});navigator.serviceWorker.addEventListener('message',onSWMessage);navigator.serviceWorker.ready.then(()=>requestCacheStats());}catch(e){console.warn('[PWA]',e.message);}}
-function onSWMessage(e){const{type,url,stats}=e.data||{};if(type==='AUDIO_CACHED'){cachedAudioUrls.add(url);updateCachedBadges();}if(type==='CACHE_STATS'&&stats?.audio?.urls){stats.audio.urls.forEach(u=>cachedAudioUrls.add(u));updateCachedBadges();}if(type==='AUDIO_CACHE_STATUS'&&e.data.cached){cachedAudioUrls.add(url);updateCachedBadges();}}
+function onSWMessage(e){const{type,url,stats}=e.data||{};if(type==='AUDIO_CACHED'){cachedAudioUrls.add(url);updateCachedBadges();}if(type==='AUDIO_CACHE_STATUS'&&e.data.cached){cachedAudioUrls.add(url);updateCachedBadges();}}
 function requestCacheStats(){if(navigator.serviceWorker.controller)navigator.serviceWorker.controller.postMessage({type:'GET_CACHE_STATS'});}
 function checkAudioCached(audioUrl){if(!audioUrl||!navigator.serviceWorker.controller)return;navigator.serviceWorker.controller.postMessage({type:'CHECK_AUDIO_CACHED',url:audioUrl});}
 let _preloadTimer=null;
