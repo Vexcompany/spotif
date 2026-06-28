@@ -1550,7 +1550,7 @@ function setPinnedChats(arr){localStorage.setItem(PINNED_CHATS_KEY,JSON.stringif
 function pinChat(userKey){const pins=getPinnedChats();if(!pins.includes(userKey)){pins.unshift(userKey);setPinnedChats(pins);loadChatList();toast('📌 Percakapan di-pin!');}}
 function unpinChat(userKey){const pins=getPinnedChats().filter(k=>k!==userKey);setPinnedChats(pins);loadChatList();toast('📌 Pin dilepas');}
 // ── Keyboard Shortcut Welcome (PC only) ──
-function _showKbHint(){if(localStorage.getItem('kb_hint_shown'))return;const isMobile=/Android|iPhone|iPad|iPod|Touch/i.test(navigator.userAgent)||('ontouchstart' in window&&navigator.maxTouchPoints>0);if(isMobile)return;setTimeout(()=>{toast('⌨️ Gunakan Spasi = play/pause · ← → = seek · ↑↓ = volume · M = mute · S = shuffle · F = fullscreen');localStorage.setItem('kb_hint_shown','1');},2000);}const el=document.getElementById('toast');el.textContent=m;el.classList.add('on');clearTimeout(toastT);toastT=setTimeout(()=>el.classList.remove('on'),3500);}
+function _showKbHint(){if(localStorage.getItem('kb_hint_shown'))return;const isMobile=/Android|iPhone|iPad|iPod|Touch/i.test(navigator.userAgent)||('ontouchstart' in window&&navigator.maxTouchPoints>0);if(isMobile)return;setTimeout(()=>{toast('⌨️ Gunakan Spasi = play/pause · ← → = seek · ↑↓ = volume · M = mute · S = shuffle · F = fullscreen');localStorage.setItem('kb_hint_shown','1');},2000);}const el=document.getElementById('toast');el.textContent=m;el.classList.add('on');clearTimeout(toastT);toastT=setTimeout(()=>el.classList.remove('on'),3500);
 function esc(obj){return JSON.stringify(obj).replace(/"/g,'&quot;');}
 // ── Explore ──
 let _expAllTracks=[],_expActiveChip=null;
