@@ -4,7 +4,7 @@
 
 const PublikProfil = (() => {
   let _currentKey = null;
-  let _prevPage   = 'beranda';
+  let _prevPage   = 'beranda', _fromChatRoom = false;
   let _injected   = false;
 
   function _inject() {
@@ -92,9 +92,17 @@ const PublikProfil = (() => {
     _prevPage   = typeof currentPage !== 'undefined' ? currentPage : 'beranda';
     _currentKey = userKey;
 
+    // Deteksi apakah dibuka dari dalam chat room
+    _fromChatRoom = document.getElementById('chatRoom')?.classList.contains('open') || false;
+
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-    document.getElementById('page-profil-publik').classList.add('active');
+
+    const ppPage = document.getElementById('page-profil-publik');
+    ppPage.classList.add('active');
+    // Tampil di atas chat room (z-index 500) maupun panel lain
+    ppPage.style.cssText = 'position:fixed;inset:0;z-index:601;overflow-y:auto;background:var(--bg)';
+
     if (typeof currentPage !== 'undefined') window.currentPage = 'profil-publik';
 
     const name = displayName || userKey.split('_').slice(0,-1).join(' ') || userKey;
@@ -116,8 +124,20 @@ const PublikProfil = (() => {
   }
 
   function close() {
-    if (typeof navigate === 'function') navigate(_prevPage);
+    const ppPage = document.getElementById('page-profil-publik');
+    if (ppPage) {
+      ppPage.classList.remove('active');
+      ppPage.style.cssText = ''; // reset fixed positioning
+    }
     _currentKey = null;
+
+    if (_fromChatRoom) {
+      // Kembali ke chat room — tidak perlu navigate, room masih terbuka di belakang
+      if (typeof currentPage !== 'undefined') window.currentPage = _prevPage;
+      _fromChatRoom = false;
+    } else {
+      if (typeof navigate === 'function') navigate(_prevPage);
+    }
   }
 
   async function _loadProfile(userKey, isSelf) {
@@ -502,7 +522,7 @@ window.loadWrapped = async function() {
     const _origNavigate = navigate;
     window.navigate = function(page) {
       const ppPage = document.getElementById('page-profil-publik');
-      if (ppPage) ppPage.classList.remove('active');
+      if (ppPage) { ppPage.classList.remove('active'); ppPage.style.cssText = ''; }
 
       if (typeof currentPage !== 'undefined') window.currentPage = '';
 
