@@ -1,7 +1,5 @@
 /**
  * profil-publik.js — v3
- * Fix: merge data dari user_play_counts (akumulasi) + play_history (per-session)
- * Ambil count terbesar dari keduanya agar data lama tidak hilang
  */
 
 const PublikProfil = (() => {
@@ -17,8 +15,8 @@ const PublikProfil = (() => {
     page.className = 'page';
     page.id = 'page-profil-publik';
     page.innerHTML = `
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
-        <button class="page-back-btn" id="ppBack"><i class="fas fa-arrow-left"></i></button>
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;padding:4px 0">
+        <button class="page-back" id="ppBack" style="flex-shrink:0"><i class="fas fa-arrow-left"></i></button>
         <div class="sec-title" style="margin-bottom:0;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" id="ppPageTitle">Profil</div>
       </div>
 
@@ -138,19 +136,22 @@ const PublikProfil = (() => {
 
       // ── Avatar (tabel user_avatars) ────────────────────────
       const avWrap = document.getElementById('ppAvWrap');
+      const _renderInitials = () => {
+        avWrap.style.background = 'linear-gradient(135deg,var(--p),var(--dyn))';
+        avWrap.innerHTML = `<span style="font-family:'Syne',sans-serif;font-size:1.4rem;font-weight:800;color:#fff;line-height:1;user-select:none">${ini}</span>`;
+      };
       try {
         const avRows = await sb.get('user_avatars', `user_key=eq.${encodeURIComponent(userKey)}&select=avatar_url`);
         const url = avRows?.[0]?.avatar_url;
         if (url) {
-          avWrap.innerHTML = `<img src="${url}" style="width:100%;height:100%;object-fit:cover" onerror="this.parentElement.textContent='${ini}'">`;
+          avWrap.innerHTML = `<img src="${url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%" onerror="this.parentElement.innerHTML='';this.parentElement.style.background='linear-gradient(135deg,var(--p),var(--dyn))';this.parentElement.innerHTML='<span style=\\'font-family:\\'Syne\\',sans-serif;font-size:1.4rem;font-weight:800;color:#fff;line-height:1\\'>${ini}</span>'">`;
+          avWrap.style.background = 'transparent';
         } else {
-          avWrap.textContent = ini;
+          _renderInitials();
         }
-      } catch { avWrap.textContent = ini; }
+      } catch { _renderInitials(); }
 
       // ── Ambil KEDUA sumber data secara paralel ─────────────
-      // user_play_counts: akumulasi total per track (akurat, data lama ada di sini)
-      // play_history: per-session rows (baru terisi setelah SQL fix)
       const [playCountRows, historyRows] = await Promise.all([
         sb.get('user_play_counts',
           `user_key=eq.${encodeURIComponent(userKey)}&select=track_id,count`
@@ -168,7 +169,6 @@ const PublikProfil = (() => {
         if (r.track_id) countMap[r.track_id] = r.count || 0;
       });
 
-      // Dari play_history — hitung per track, pakai kalau lebih besar
       const histCountMap = {};
       historyRows.forEach(h => {
         if (h.track_id) histCountMap[h.track_id] = (histCountMap[h.track_id]||0) + 1;
@@ -192,8 +192,6 @@ const PublikProfil = (() => {
       }
 
       // ── Total menit ────────────────────────────────────────
-      // Hitung dari play_history yang ada duration_played
-      // Sisanya estimasi dari durasi lagu × count
       let totalSecs = 0;
       const countedFromHistory = new Set();
 
@@ -204,10 +202,10 @@ const PublikProfil = (() => {
         }
       });
 
-      // Untuk track yang tidak ada di history, estimasi dari count × durasi
+      // estimasi dari count × durasi
       Object.entries(countMap).forEach(([id, cnt]) => {
         const histCnt = histCountMap[id] || 0;
-        const extraCnt = cnt - histCnt; // play count di luar history
+        const extraCnt = cnt - histCnt; 
         if (extraCnt <= 0) return;
         const t = trackMap[id];
         let secPerPlay = 210;
@@ -218,7 +216,6 @@ const PublikProfil = (() => {
         totalSecs += extraCnt * secPerPlay;
       });
 
-      // Tambah estimasi dari history rows yang tidak punya duration_played
       historyRows.forEach(h => {
         if (!h.duration_played || Number(h.duration_played) <= 0) {
           const t = trackMap[h.track_id];
@@ -383,10 +380,7 @@ window.loadWrapped = async function() {
     if (_wrPeriod === 'year')  since.setFullYear(now.getFullYear()-1);
     const sinceISO = _wrPeriod === 'all' ? null : since.toISOString();
 
-    // Ambil keduanya paralel
     const [playCountRows, historyRows] = await Promise.all([
-      // user_play_counts tidak ada filter waktu — ini data kumulatif
-      // Hanya pakai untuk 'all', untuk period filter pakai history saja
       (_wrPeriod === 'all'
         ? sb.get('user_play_counts', `user_key=eq.${encodeURIComponent(_USER_KEY)}&select=track_id,count`)
         : Promise.resolve([])
@@ -398,7 +392,6 @@ window.loadWrapped = async function() {
       ).catch(() => [])
     ]);
 
-    // Merge countMap
     const countMap = {};
     playCountRows.forEach(r => { if (r.track_id) countMap[r.track_id] = r.count||0; });
     const histCountMap = {};
@@ -428,7 +421,6 @@ window.loadWrapped = async function() {
       tracks.forEach(t => { trackMap[t.id] = t; });
     }
 
-    // Total menit — history rows yang punya duration_played
     let totalSecs = 0;
     historyRows.forEach(h => {
       if (h.duration_played && Number(h.duration_played)>0) {
@@ -441,7 +433,7 @@ window.loadWrapped = async function() {
         } else { totalSecs += 210; }
       }
     });
-    // Tambah estimasi untuk play dari user_play_counts yang tidak ada di history
+
     Object.entries(countMap).forEach(([id,cnt]) => {
       const histCnt = histCountMap[id]||0;
       const extra = cnt - histCnt;
@@ -453,7 +445,6 @@ window.loadWrapped = async function() {
     });
     const totalMins = Math.round(totalSecs/60);
 
-    // Streak dari play_history
     const localDate = dt => { const d=new Date(dt); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
     const playDays = new Set(historyRows.map(h => h.played_at ? localDate(h.played_at) : null));
     let streak=0; const _d=new Date();
@@ -504,26 +495,17 @@ window.loadWrapped = async function() {
   }
 };
 
-// ══════════════════════════════════════════════════════════════
-//  FIX navigate() — reset page-profil-publik saat pindah halaman
-//  Tanpa ini, currentPage stuck di 'profil-publik' dan nav bar
-//  tidak bisa berpindah halaman.
-// ══════════════════════════════════════════════════════════════
 (function patchNavigate() {
-  // Tunggu sampai navigate() sudah terdefinisi di index.html
   const _patch = () => {
     if (typeof navigate !== 'function') return;
 
     const _origNavigate = navigate;
     window.navigate = function(page) {
-      // Kalau sedang di halaman profil-publik, sembunyikan dulu
       const ppPage = document.getElementById('page-profil-publik');
       if (ppPage) ppPage.classList.remove('active');
 
-      // Reset currentPage supaya navigate() asli berjalan normal
       if (typeof currentPage !== 'undefined') window.currentPage = '';
 
-      // Panggil navigate() asli
       _origNavigate(page);
     };
   };
@@ -531,8 +513,6 @@ window.loadWrapped = async function() {
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', _patch);
   } else {
-    // navigate() mungkin belum ada saat script ini jalan,
-    // tunggu setelah semua script selesai load
     setTimeout(_patch, 500);
   }
 })();
