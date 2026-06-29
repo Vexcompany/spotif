@@ -112,7 +112,14 @@ self.addEventListener('fetch', event => {
 
   // 1. Network Only
   if (NETWORK_ONLY_DOMAINS.some(d => url.hostname.includes(d))) {
-    event.respondWith(fetch(event.request));
+    event.respondWith(
+      fetch(event.request).catch(() =>
+        new Response(JSON.stringify({ error: 'Network tidak tersedia' }), {
+          status: 503,
+          headers: { 'Content-Type': 'application/json' },
+        })
+      )
+    );
     return;
   }
 
