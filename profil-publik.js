@@ -12,8 +12,9 @@ const PublikProfil = (() => {
     _injected = true;
 
     const page = document.createElement('div');
-    page.className = 'page';
+    // Bukan .page — overlay independen, tidak ikut sistem navigate()
     page.id = 'page-profil-publik';
+    page.style.cssText = 'display:none;position:fixed;inset:0;z-index:601;overflow-y:auto;background:var(--bg);-webkit-overflow-scrolling:touch';
     page.innerHTML = `
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;padding:4px 0">
         <button class="page-back" id="ppBack" style="flex-shrink:0"><i class="fas fa-arrow-left"></i></button>
@@ -76,7 +77,7 @@ const PublikProfil = (() => {
         <div id="ppRecentList" class="tlist"></div>
       </div>`;
 
-    document.querySelector('.main-content').appendChild(page);
+    document.body.appendChild(page);
 
     document.getElementById('ppBack').addEventListener('click', close);
     document.getElementById('ppChatBtn').addEventListener('click', () => {
@@ -92,18 +93,13 @@ const PublikProfil = (() => {
     _prevPage   = typeof currentPage !== 'undefined' ? currentPage : 'beranda';
     _currentKey = userKey;
 
-    // Deteksi apakah dibuka dari dalam chat room
+    // Catat dari mana dibuka — tidak ganggu halaman/page yang sedang aktif
     _fromChatRoom = document.getElementById('chatRoom')?.classList.contains('open') || false;
 
-    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-
+    // Tampilkan overlay (independen, tidak ubah .page system sama sekali)
     const ppPage = document.getElementById('page-profil-publik');
-    ppPage.classList.add('active');
-    // Tampil di atas chat room (z-index 500) maupun panel lain
-    ppPage.style.cssText = 'position:fixed;inset:0;z-index:601;overflow-y:auto;background:var(--bg)';
-
-    if (typeof currentPage !== 'undefined') window.currentPage = 'profil-publik';
+    ppPage.style.display = 'block';
+    ppPage.scrollTop = 0;
 
     const name = displayName || userKey.split('_').slice(0,-1).join(' ') || userKey;
     document.getElementById('ppPageTitle').textContent = name;
@@ -125,17 +121,14 @@ const PublikProfil = (() => {
 
   function close() {
     const ppPage = document.getElementById('page-profil-publik');
-    if (ppPage) {
-      ppPage.classList.remove('active');
-      ppPage.style.cssText = ''; // reset fixed positioning
-    }
+    if (ppPage) ppPage.style.display = 'none';
     _currentKey = null;
 
     if (_fromChatRoom) {
-      // Kembali ke chat room — tidak perlu navigate, room masih terbuka di belakang
-      if (typeof currentPage !== 'undefined') window.currentPage = _prevPage;
+      // Chat room masih terbuka di belakang, tidak perlu navigate
       _fromChatRoom = false;
     } else {
+      // Kembali ke halaman sebelumnya
       if (typeof navigate === 'function') navigate(_prevPage);
     }
   }
@@ -514,25 +507,3 @@ window.loadWrapped = async function() {
     if (typeof toast==='function') toast('Gagal load rekap: '+e.message);
   }
 };
-
-(function patchNavigate() {
-  const _patch = () => {
-    if (typeof navigate !== 'function') return;
-
-    const _origNavigate = navigate;
-    window.navigate = function(page) {
-      const ppPage = document.getElementById('page-profil-publik');
-      if (ppPage) { ppPage.classList.remove('active'); ppPage.style.cssText = ''; }
-
-      if (typeof currentPage !== 'undefined') window.currentPage = '';
-
-      _origNavigate(page);
-    };
-  };
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', _patch);
-  } else {
-    setTimeout(_patch, 500);
-  }
-})();
