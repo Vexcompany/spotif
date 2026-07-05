@@ -1,7 +1,4 @@
-// sb-proxy.js — Frontend helper: semua request Supabase lewat /api/sb (proxy)
-// Key TIDAK pernah ada di browser. Tidak perlu /api/config lagi.
-// Ganti semua penggunaan sb.get/patch/del/post dan fetch langsung ke Supabase.
-
+// sb-proxy.js — Frontend helper
 const sb = {
   async _req(method, path, body, prefer) {
     const res = await fetch('/api/sb', {
