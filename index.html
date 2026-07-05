@@ -754,7 +754,7 @@ body::after{content:'';position:fixed;inset:0;z-index:1;pointer-events:none;back
     </a>
     <div class="tb-search" id="tbSearch" onclick="expandSearch(event)">
       <i class="fas fa-search tb-search-ico"></i>
-      <input type="text" id="sInput" placeholder="Cari lagu di Apple Music..." autocomplete="off" onblur="collapseSearch()" onkeydown="if(event.key==='Enter')doSearch()">
+      <input type="text" id="sInput" placeholder="Cari lagu di Pagaska Music..." autocomplete="off" onblur="collapseSearch()" onkeydown="if(event.key==='Enter')doSearch()">
       <button class="tb-search-btn" id="sBtn" onclick="doSearch()">
         <i id="sBtnIco" class="fas fa-search"></i><span id="sBtnTxt">Cari</span>
       </button>
@@ -783,7 +783,7 @@ body::after{content:'';position:fixed;inset:0;z-index:1;pointer-events:none;back
   <div class="state show" id="stEmpty">
     <div class="st-ico"><i class="fas fa-compact-disc"></i></div>
     <h3>Pagaska Music</h3>
-    <p>Cari lagu dari Apple Music — otomatis tersimpan permanen!</p>
+    <p>Cari lagu di Pagaska Music — otomatis tersimpan permanen!</p>
   </div>
   <div class="state" id="stLoad">
     <div class="st-ico"><i class="fas fa-circle-notch spin" style="color:var(--dyn);font-size:1.9rem"></i></div>
@@ -832,7 +832,7 @@ body::after{content:'';position:fixed;inset:0;z-index:1;pointer-events:none;back
   </div>
   <div id="quickPlaySec" style="display:none;margin-bottom:16px;contain:layout style">
     <div class="sec-row">
-      <h3><i class="fas fa-bolt" style="color:var(--yw)"></i> Cepat Putar <span class="badge-cnt" id="qpCnt">0</span></h3>
+      <h3><i class="fas fa-bolt" style="color:var(--yw)"></i> Lagu Database <span class="badge-cnt" id="qpCnt">0</span></h3>
       <button class="sec-btn" onclick="loadQuickPlay()"><i class="fas fa-sync-alt"></i> Refresh</button>
     </div>
     <div class="qp-grid" id="qpGrid"></div>
@@ -860,7 +860,7 @@ body::after{content:'';position:fixed;inset:0;z-index:1;pointer-events:none;back
     <div class="tabs">
       <button class="tab on" id="tQ" onclick="switchTab('q')">Queue <span class="q-badge" id="qBadge">0</span></button>
       <button class="tab" id="tH" onclick="switchTab('h')">Riwayat</button>
-      <button class="tab" id="tL" onclick="switchTab('l')">Disukai ❤️</button>
+      <button class="tab" id="tL" onclick="switchTab('l')">Disukai</button>
     </div>
     <div id="panQ" class="tlist"></div>
     <div id="panH" class="tlist" style="display:none"></div>
@@ -934,14 +934,14 @@ body::after{content:'';position:fixed;inset:0;z-index:1;pointer-events:none;back
 <div class="page" id="page-chat">
   <div class="sec-title"><i class="fas fa-comment-dots" style="color:var(--b2)"></i> Chat & Share Lagu</div>
   <p style="font-size:.75rem;color:var(--t2);margin-bottom:var(--sp-sm)">Bagikan lagu ke sesama anggota Pagaska</p>
-  <div class="chat-pin-divider"><i class="fas fa-robot" style="color:var(--dyn)"></i> Grup Taksaka · Selalu di atas</div>
+  <div class="chat-pin-divider"><i class="fas fa-robot" style="color:var(--dyn)"></i> Grup Taksaka · Di pin oleh System</div>
   <div class="chat-item" id="aiBotEntry" onclick="TaksakaGroup.open()" style="background:linear-gradient(135deg,rgba(29,185,84,.06),rgba(124,92,191,.06));border-color:rgba(29,185,84,.22);margin-bottom:8px">
     <div style="position:relative;width:44px;height:44px;flex-shrink:0">
       <div style="position:absolute;top:0;left:0;width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#1DB954,#17a348);display:flex;align-items:center;justify-content:center;font-size:.45rem;font-weight:800;color:#fff;z-index:2;border:2px solid var(--bg)">KT</div>
       <div style="position:absolute;bottom:0;right:0;width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#7c5cbf,#5a3fa0);display:flex;align-items:center;justify-content:center;font-size:.45rem;font-weight:800;color:#fff;z-index:1;border:2px solid var(--bg)">DT</div>
     </div>
     <div class="chat-info">
-      <div class="chat-name">Grup Taksaka 🤖</div>
+      <div class="chat-name">Grup Taksaka</div>
       <div class="chat-preview" id="taksakaGroupPreview">Kak Taksaka & Dokter Taksaka siap membantu...</div>
     </div>
     <div class="chat-meta">
@@ -1246,7 +1246,7 @@ body::after{content:'';position:fixed;inset:0;z-index:1;pointer-events:none;back
     <div class="modal-ico info"><i class="fas fa-share"></i></div>
     <h3>Bagikan Lagu</h3>
     <div class="modal-body">Pilih anggota yang ingin kamu kirimi lagu ini:</div>
-    <input id="shareMemberSearch" type="text" placeholder="🔍 Cari nama anggota..." oninput="_renderShareList(this.value)" onclick="event.stopPropagation()" style="width:100%;box-sizing:border-box;padding:9px 12px;border-radius:10px;border:1px solid var(--bd);background:var(--s3);color:var(--tx);font-size:.8rem;font-family:inherit;outline:none;margin-bottom:6px">
+    <input id="shareMemberSearch" type="text" placeholder="Cari nama anggota..." oninput="_renderShareList(this.value)" onclick="event.stopPropagation()" style="width:100%;box-sizing:border-box;padding:9px 12px;border-radius:10px;border:1px solid var(--bd);background:var(--s3);color:var(--tx);font-size:.8rem;font-family:inherit;outline:none;margin-bottom:6px">
     <div class="share-member-list" id="shareMemberList"></div>
     <div class="modal-actions">
       <button class="modal-cancel" onclick="closeShareModal()">Batal</button>
@@ -1418,8 +1418,8 @@ async function playTrackObj(t){const s=t?.audio||t?.audioUrl||t?.audio_url||null
 function togglePlay(){if(!currentTrack)return;if(isPlaying||!audio.paused)safePause();else safePlay();}
 function prevTrack(){if(!queue.length)return;qi=isShuffle?Math.floor(Math.random()*queue.length):(qi>0?qi-1:queue.length-1);playTrackObj(queue[qi]);}
 function nextTrack(){if(!queue.length)return;qi=isShuffle?Math.floor(Math.random()*queue.length):(qi<queue.length-1?qi+1:0);playTrackObj(queue[qi]);}
-function toggleShuffle(){isShuffle=!isShuffle;document.getElementById('cbShuf').classList.toggle('on',isShuffle);if(npOpen)document.getElementById('npShuf').classList.toggle('on-g',isShuffle);toast(isShuffle?'Shuffle aktif 🔀':'Shuffle nonaktif');}
-function toggleRepeat(){isRepeat=!isRepeat;document.getElementById('cbRep').classList.toggle('on',isRepeat);if(npOpen)document.getElementById('npRep').classList.toggle('on-g',isRepeat);toast(isRepeat?'Repeat aktif 🔁':'Repeat nonaktif');}
+function toggleShuffle(){isShuffle=!isShuffle;document.getElementById('cbShuf').classList.toggle('on',isShuffle);if(npOpen)document.getElementById('npShuf').classList.toggle('on-g',isShuffle);toast(isShuffle?'Shuffle aktif':'Shuffle nonaktif');}
+function toggleRepeat(){isRepeat=!isRepeat;document.getElementById('cbRep').classList.toggle('on',isRepeat);if(npOpen)document.getElementById('npRep').classList.toggle('on-g',isRepeat);toast(isRepeat?'Repeat aktif':'Repeat nonaktif');}
 function toggleMute(){isMuted=!isMuted;audio.muted=isMuted;document.getElementById('vIco').className=isMuted?'fas fa-volume-mute':vol>.5?'fas fa-volume-up':'fas fa-volume-down';}
 function updateQPCards(){const p=isPlaying;const cid=currentTrack?.id;document.querySelectorAll('.qp-card').forEach(card=>{const isNow=cid&&card.id==='qpc-'+CSS.escape(cid);card.classList.toggle('playing',!!isNow);const btn=card.querySelector('.qp-play-btn i');if(btn)btn.className=(isNow&&p)?'fas fa-pause':'fas fa-play';});}
 function updAll(){const p=isPlaying;const cbIco=document.getElementById('cbIco');if(cbIco)cbIco.className=p?'fas fa-pause':'fas fa-play';const plEq=document.getElementById('plEq');if(plEq)plEq.classList.toggle('show',p);updHeroPlayBtn();updateQPCards();if(npOpen){const npVinyl=document.getElementById('npVinyl');if(npVinyl)npVinyl.classList.toggle('playing',p);const npPlayIco=document.getElementById('npPlayIco');if(npPlayIco)npPlayIco.className=p?'fas fa-pause':'fas fa-play';}if('mediaSession'in navigator){navigator.mediaSession.playbackState=p?'playing':'paused';_updPos();}}
