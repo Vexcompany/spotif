@@ -1,4 +1,4 @@
-// api/sb.js — Vercel Serverless: Supabase Proxy
+// api/sb.js — Vercel Serverless: Supabase Proxy 
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', 'https://music.pagaska.my.id');
