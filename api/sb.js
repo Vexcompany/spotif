@@ -1,11 +1,4 @@
 // api/sb.js — Vercel Serverless: Supabase Proxy
-// Semua request ke Supabase REST API dirutekan lewat sini.
-// Key TIDAK pernah dikirim ke browser.
-//
-// Request dari frontend:
-//   POST /api/sb
-//   Body: { method, path, body, prefer }
-//   Contoh: { method: "GET", path: "tracks?order=last_played.desc&limit=50" }
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', 'https://music.pagaska.my.id');
