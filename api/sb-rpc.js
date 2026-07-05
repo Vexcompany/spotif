@@ -1,10 +1,4 @@
 // api/sb-rpc.js — Vercel Serverless: Supabase RPC Proxy
-// Untuk memanggil fungsi RPC seperti increment_play_count.
-//
-// Request dari frontend:
-//   POST /api/sb-rpc
-//   Body: { fn, args }
-//   Contoh: { fn: "increment_play_count", args: { track_id: "abc123" } }
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', 'https://music.pagaska.my.id');
